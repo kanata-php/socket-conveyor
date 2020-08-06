@@ -1,8 +1,8 @@
 ![Conveyor](./imgs/logo.png)
 
-# Conveyor
+# Socket Conveyor
 
-![Tests](https://github.com/WordsTree/conveyor/workflows/Tests/badge.svg)
+![Tests](https://github.com/WordsTree/socket-conveyor/workflows/Tests/badge.svg)
 
 
 
@@ -47,8 +47,8 @@ $sampleMiddleware = new SampleMiddleware;
 $sampleMiddleware2 = new SampleMiddleware2;
 
 // add middlewares
-$socketRouter->pipe($sampleAction->getName(), $sampleMiddleware);
-$socketRouter->pipe($sampleAction->getName(), $sampleMiddleware2);
+$socketRouter->middleware($sampleAction->getName(), $sampleMiddleware);
+$socketRouter->middleware($sampleAction->getName(), $sampleMiddleware2);
 
 // socket message must look like this:
 // @var string

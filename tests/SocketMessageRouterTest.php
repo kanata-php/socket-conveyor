@@ -36,7 +36,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
     {
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
 
         $data = json_encode([
             'action' => $sampleAction->getName(),
@@ -50,8 +50,8 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
     {
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware2);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware2);
 
         $data = json_encode([
             'action' => $sampleAction->getName(),
@@ -68,7 +68,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
 
         $data = json_encode([
             'action' => $sampleAction->getName(),
@@ -84,8 +84,8 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware2);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware2);
 
         $data = json_encode([
             'action' => $sampleAction->getName(),
@@ -102,8 +102,8 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->pipe($sampleAction->getName(), new SampleMiddleware2);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware2);
 
         $data = json_encode([
             'action' => $sampleAction->getName(),

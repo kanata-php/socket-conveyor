@@ -94,7 +94,7 @@ trait HasPipeline
      *
      * @return void
      */
-    public function pipe(string $action, callable $middleware) : void
+    public function middleware(string $action, callable $middleware) : void
     {
         if (!isset($this->pipelineMap[$action])) {
             $this->pipelineMap[$action] = [];
