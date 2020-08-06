@@ -2,6 +2,8 @@
 
 # Conveyor
 
+![Tests](https://github.com/WordsTree/conveyor/workflows/Tests/badge.svg)
+
 
 
 A WebSocket/Socket message Router fro PHP.
