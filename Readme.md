@@ -6,11 +6,11 @@
 
 
 
-A WebSocket/Socket message Router fro PHP.
+A WebSocket/Socket message Router for PHP.
 
-This packages enables you to work with socket messages with routes strategy, just as if you were specifying routes in [Laravel](https://laravel.com/) or [Slim](https://www.slimframework.com/) projects. For that, you just add an Action Handler implementing the ActionInterface to the SocketMessageRouter and watch the magic happening!
+This package enables you to work with socket messages with routes strategy, just as if you were specifying routes in [Laravel](https://laravel.com/) or [Slim](https://www.slimframework.com/) projects. For that, you just add an Action Handler implementing the ActionInterface to the SocketMessageRouter and watch the magic happen!
 
-this package assumes that the application is receiving socket messages with a socket server. an example of how to accomplish that with PHP, you can use the [Swoole PHP Extension](https://www.swoole.co.uk/).
+This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [Swoole PHP Extension](https://www.swoole.co.uk/).
 
 
 
@@ -18,7 +18,7 @@ this package assumes that the application is receiving socket messages with a so
 
 
 
-The main example are set in the `tests ` directory, but here is how it works:
+The main example is set in the `tests ` directory, but here is how it works:
 
 
 
@@ -30,7 +30,7 @@ The main example are set in the `tests ` directory, but here is how it works:
 
 
 
-To use it, in your application, you would do something like this:
+In order to use it in your application, you would do something like this:
 
 ```php
 // @var Conveyor\Actions\Interfaces\ActionInterface
