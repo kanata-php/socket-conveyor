@@ -1,0 +1,27 @@
+{
+    "name": "wordstree/conveyor",
+    "description": "A WebSocket/Socket message Router",
+    "type": "library",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Savio Resende",
+            "email": "savio@savioresende.com.br"
+        }
+    ],
+    "require": {
+        "league/pipeline": "^1.0"
+    },
+    "require-dev": {
+        "symfony/var-dumper": "^5.1",
+        "phpunit/phpunit": "^9.2",
+        "mockery/mockery": "^1.4",
+        "codedungeon/phpunit-result-printer": "^0.28.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Conveyor\\": "src/",
+            "Tests\\": "tests"
+        }
+    }
+}
