@@ -4,6 +4,10 @@
 
 ![Tests](https://github.com/WordsTree/socket-conveyor/workflows/Tests/badge.svg)
 
+[![Code Intelligence Status](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
+
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/?branch=master)
+
 
 
 A WebSocket/Socket message Router for PHP.
