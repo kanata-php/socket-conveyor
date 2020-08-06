@@ -1,5 +1,5 @@
 {
-    "name": "wordstree/conveyor",
+    "name": "wordstree/socket-conveyor",
     "description": "A WebSocket/Socket message Router",
     "type": "library",
     "license": "Apache-2.0",
