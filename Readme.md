@@ -47,8 +47,8 @@ $sampleMiddleware = new SampleMiddleware;
 $sampleMiddleware2 = new SampleMiddleware2;
 
 // add middlewares
-$sampleAction->pipe($sampleAction->getName(), $sampleMiddleware);
-$sampleAction->pipe($sampleAction->getName(), $sampleMiddleware2);
+$socketRouter->pipe($sampleAction->getName(), $sampleMiddleware);
+$socketRouter->pipe($sampleAction->getName(), $sampleMiddleware2);
 
 // socket message must look like this:
 // @var string
