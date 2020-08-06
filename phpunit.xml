@@ -3,7 +3,7 @@
     bootstrap="vendor/autoload.php"
     printerClass="Codedungeon\PHPUnitPrettyResultPrinter\Printer">
   <testsuites>
-    <testsuite name="Safe">
+    <testsuite name="All">
       <file>tests/SocketMessageRouterTest.php</file>
     </testsuite>
   </testsuites>

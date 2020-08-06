@@ -23,5 +23,10 @@
             "Conveyor\\": "src/",
             "Tests\\": "tests"
         }
+    },
+    "scripts": {
+        "test": [
+            "vendor/bin/phpunit --testsuite All"
+        ]
     }
 }
