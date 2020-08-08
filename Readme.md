@@ -14,6 +14,13 @@ This package enables you to work with socket messages with routes strategy, just
 This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [Swoole PHP Extension](https://www.swoole.co.uk/).
 
 
+## Installation
+
+
+```shell
+composer require wordstree/socket-conveyor
+```
+
 
 ## How it works
 
