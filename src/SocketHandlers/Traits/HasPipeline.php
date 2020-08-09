@@ -37,7 +37,7 @@ trait HasPipeline
         /** @throws Exception */
         $pipeline->process($this);
 
-        return $action->execute();
+        return $action->execute($this->parsedData);
     }
 
     /**

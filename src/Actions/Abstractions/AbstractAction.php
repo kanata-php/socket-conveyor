@@ -29,5 +29,5 @@ abstract class AbstractAction implements ActionInterface
     /**
      *
      */
-    abstract public function execute();
+    abstract public function execute(array $data);
 }

@@ -13,11 +13,13 @@ class SampleAction extends  AbstractAction
     protected $name = 'sample-action';
 
     /**
+     * @param array $data
+     *
      * @return bool
      *
      * @throws Exception
      */
-    public function execute()
+    public function execute(array $data)
     {
         return true;
     }

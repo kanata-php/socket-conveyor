@@ -35,6 +35,8 @@ class SocketMessageRouter extends SocketHandler
     }
 
     /**
+     * @internal This method also leave the $parsedData property set to the instance.
+     *
      * @param string $data
      * @return ActionInterface
      *
