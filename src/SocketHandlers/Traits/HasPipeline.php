@@ -23,10 +23,11 @@ trait HasPipeline
 
     /**
      * @param string $data
+     * @param int|null $fd
      *
      * @throws Exception
      */
-    public function __invoke(string $data)
+    public function __invoke(string $data, $fd = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);
@@ -36,6 +37,8 @@ trait HasPipeline
 
         /** @throws Exception */
         $pipeline->process($this);
+
+        $this->maybeSetFd($fd);
 
         return $action->execute($this->parsedData);
     }
@@ -119,5 +122,17 @@ trait HasPipeline
         if (!isset($this->handlerMap[$data['action']])) {
             throw new InvalidActionException('Invalid Action! This action (' . $data['action'] . ') is not set.');
         }
+    }
+
+    /**
+     * Get an Action by name
+     *
+     * @param string $name
+     *
+     * @return ActionInterface|null
+     */
+    public function getAction(string $name)
+    {
+        return $this->handlerMap[$name];
     }
 }

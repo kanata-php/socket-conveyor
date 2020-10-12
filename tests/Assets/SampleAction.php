@@ -12,6 +12,9 @@ class SampleAction extends  AbstractAction
     /** @var string */
     protected $name = 'sample-action';
 
+    /** @var int */
+    protected $fd;
+
     /**
      * @param array $data
      *
@@ -35,5 +38,23 @@ class SampleAction extends  AbstractAction
         if (!isset($data['action'])) {
             throw new InvalidArgumentException('SampleAction required \'action\' field to be created!');
         }
+    }
+
+    /**
+     * @return int $fd
+     *
+     * @return void
+     */
+    public function setFd(int $fd): void
+    {
+        $this->fd = $fd;
+    }
+
+    /**
+     * @return int
+     */
+    public function getFd(): int
+    {
+        return $this->fd;
     }
 }

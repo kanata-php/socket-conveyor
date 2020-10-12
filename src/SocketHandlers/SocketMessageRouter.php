@@ -49,6 +49,6 @@ class SocketMessageRouter extends SocketHandler
         // @throws InvalidArgumentException|InvalidActionException
         $this->validateData($this->parsedData);
 
-        return $this->handlerMap[$this->parsedData['action']];
+        return $this->getAction($this->parsedData['action']);
     }
 }

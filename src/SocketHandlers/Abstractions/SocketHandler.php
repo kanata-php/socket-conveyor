@@ -10,13 +10,25 @@ abstract class SocketHandler implements SocketHandlerInterface
 {
     /**
      * @param string $data
+     * @param int $fd
      */
-    public function __invoke(string $data)
+    public function __invoke(string $data, $fd = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);
+
+        $this->maybeSetFd($fd);
         
         return $action->execute();
+    }
+
+    public function maybeSetFd($fd) {
+        $parsedData = $this->getParsedData();
+        $action = $this->getAction($parsedData['action']);
+
+        if ($fd && method_exists($action, 'setFd')) {
+            $action->setFd($fd);
+        }
     }
 
     /**

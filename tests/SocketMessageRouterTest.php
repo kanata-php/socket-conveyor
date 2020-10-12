@@ -32,6 +32,21 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $this->assertTrue($result);
     }
 
+    public function testCanSetAndGetFdFromAction()
+    {
+        $fd = 1;
+        
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+
+        $data = json_encode([
+            'action' => $sampleAction->getName(),
+        ]);
+        $result = ($socketRouter)($data, $fd);
+
+        $this->assertTrue($result);
+        $this->assertTrue($fd === $socketRouter->getAction($sampleAction->getName())->getFd());
+    }
+
     public function testCanAddMiddlewareToPipelineOfHandlerAndExecute()
     {
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();

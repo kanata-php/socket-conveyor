@@ -67,6 +67,8 @@ $data = json_encode([
 $result = ($socketRouter)($data);
 ```
 
+Example within a Swoole context:
+https://github.com/lotharthesavior/slim-swoole-skeleton/blob/master/src/websocket_server.php
 
 
 ## Motivation
