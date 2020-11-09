@@ -42,7 +42,7 @@ trait HasPipeline
         $this->maybeSetFd($fd);
         $this->maybeSetServer($server);
 
-        return $action->execute($this->parsedData);
+        return $action->execute($this->parsedData, $fd, $server);
     }
 
     /**
