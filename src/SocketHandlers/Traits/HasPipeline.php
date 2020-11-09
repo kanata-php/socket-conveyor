@@ -22,12 +22,13 @@ trait HasPipeline
     protected $parsedData;
 
     /**
-     * @param string $data
-     * @param int|null $fd
+     * @param string   $data   Data to be processed.
+     * @param int|null $fd     File descriptor (connection).
+     * @param mixed    $server Server object, e.g. Swoole\WebSocket\Frame.
      *
      * @throws Exception
      */
-    public function __invoke(string $data, $fd = null)
+    public function __invoke(string $data, $fd = null, $server = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);
@@ -39,6 +40,7 @@ trait HasPipeline
         $pipeline->process($this);
 
         $this->maybeSetFd($fd);
+        $this->maybeSetServer($server);
 
         return $action->execute($this->parsedData);
     }

@@ -22,12 +22,35 @@ abstract class SocketHandler implements SocketHandlerInterface
         return $action->execute();
     }
 
-    public function maybeSetFd($fd) {
+    /**
+     * Set $fd (File descriptor) if method "setFd" exists.
+     *
+     * @param int|null $fd File descriptor.
+     *
+     * @return void
+     */
+    public function maybeSetFd($fd = null): void {
         $parsedData = $this->getParsedData();
         $action = $this->getAction($parsedData['action']);
 
         if ($fd && method_exists($action, 'setFd')) {
             $action->setFd($fd);
+        }
+    }
+
+    /**
+     * Set $server if method "setServer" exists.
+     *
+     * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
+     *
+     * @return void
+     */
+    public function maybeSetServer($server = null): void {
+        $parsedData = $this->getParsedData();
+        $action = $this->getAction($parsedData['action']);
+
+        if ($server && method_exists($action, 'setServer')) {
+            $action->setServer($server);
         }
     }
 

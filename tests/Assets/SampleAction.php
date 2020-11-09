@@ -2,6 +2,7 @@
 
 namespace Tests\Assets;
 
+use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
 use Conveyor\Actions\Traits\ProcedureActionTrait;
 
@@ -56,5 +57,23 @@ class SampleAction extends  AbstractAction
     public function getFd(): int
     {
         return $this->fd;
+    }
+
+    /**
+     * @return stdClass $server
+     *
+     * @return void
+     */
+    public function setServer(stdClass $server): void
+    {
+        $this->server = $server;
+    }
+
+    /**
+     * @return stdClass
+     */
+    public function getServer(): stdClass
+    {
+        return $this->server;
     }
 }

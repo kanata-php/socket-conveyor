@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use stdClass;
 use Exception;
 use League\Pipeline\Pipeline;
 use Tests\Assets\SampleAction;
@@ -45,6 +46,22 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
         $this->assertTrue($result);
         $this->assertTrue($fd === $socketRouter->getAction($sampleAction->getName())->getFd());
+    }
+
+    public function testCanSetAndGetServerFromAction()
+    {
+        $server = new stdClass;
+        $server->label = 'test-server';
+        
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+
+        $data = json_encode([
+            'action' => $sampleAction->getName(),
+        ]);
+        $result = ($socketRouter)($data, null, $server);
+
+        $this->assertTrue($result);
+        $this->assertTrue($server === $socketRouter->getAction($sampleAction->getName())->getServer());
     }
 
     public function testCanAddMiddlewareToPipelineOfHandlerAndExecute()
