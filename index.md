@@ -1,37 +1,94 @@
-## Welcome to GitHub Pages
+![Conveyor](https://github.com/WordsTree/socket-conveyor/raw/master/imgs/logo.png)
 
-You can use the [editor on GitHub](https://github.com/WordsTree/socket-conveyor/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+# Socket Conveyor
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+![Tests](https://github.com/WordsTree/socket-conveyor/workflows/Tests/badge.svg)
+[![Code Intelligence Status](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/?branch=master)
 
-### Markdown
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+A WebSocket/Socket message Router for PHP.
 
-```markdown
-Syntax highlighted code block
+This package enables you to work with socket messages with routes strategy, just as if you were specifying routes in [Laravel](https://laravel.com/) or [Slim](https://www.slimframework.com/) projects. For that, you just add an Action Handler implementing the ActionInterface to the SocketMessageRouter and watch the magic happen!
 
-# Header 1
-## Header 2
-### Header 3
+This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [Swoole PHP Extension](https://www.swoole.co.uk/).
 
-- Bulleted
-- List
 
-1. Numbered
-2. List
+## Installation
 
-**Bold** and _Italic_ and `Code` text
 
-[Link](url) and ![Image](src)
+```shell
+composer require wordstree/socket-conveyor
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
 
-### Jekyll Themes
+## How it works
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/WordsTree/socket-conveyor/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
 
-### Support or Contact
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+The main example is set in the `tests ` directory, but here is how it works:
+
+
+
+![Conveyor Process](https://github.com/WordsTree/socket-conveyor/raw/master/imgs/conveyor-process.png)
+
+
+
+## Usage
+
+
+
+In order to use it in your application, you would do something like this:
+
+```php
+// @var Conveyor\Actions\Interfaces\ActionInterface
+$sampleAction = new SampleAction();
+
+// @var Conveyor\SocketHandlers\SocketMessageRouter
+$socketRouter = SocketMessageRouter::getInstance();
+
+// add the action handler
+$socketRouter->add($sampleAction);
+
+// @var Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface
+$sampleMiddleware = new SampleMiddleware;
+$sampleMiddleware2 = new SampleMiddleware2;
+
+// add middlewares
+$socketRouter->middleware($sampleAction->getName(), $sampleMiddleware);
+$socketRouter->middleware($sampleAction->getName(), $sampleMiddleware2);
+
+// socket message must look like this:
+// @var string
+$data = json_encode([
+    'action' => $sampleAction->getName(),
+    'some-other-field'  => 'some value',
+]);
+$result = ($socketRouter)($data);
+```
+
+Example within a Swoole context:
+https://github.com/lotharthesavior/slim-swoole-skeleton/blob/master/src/websocket_server.php
+
+
+## Motivation
+
+
+
+WebSocket procedures are more and more common with PHP, and realtime applications are becoming more often. That said, there is a need for solutions that help to work like that in PHP.
+
+
+
+## Tests
+
+Run Command:
+
+```shell
+./vendor/bin/phpunit
+```
+
+
+
+## TODO
+
+- add support to protobuf
