@@ -16,7 +16,7 @@
         "symfony/var-dumper": "^5.1",
         "phpunit/phpunit": "^9.2",
         "mockery/mockery": "^1.4",
-        "codedungeon/phpunit-result-printer": "^0.28.0"
+        "codedungeon/phpunit-result-printer": "^0.30.0"
     },
     "autoload": {
         "psr-4": {
