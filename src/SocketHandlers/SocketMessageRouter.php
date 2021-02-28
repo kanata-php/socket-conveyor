@@ -13,6 +13,9 @@ class SocketMessageRouter extends SocketHandler
 {
     use HasPipeline;
 
+    /** @var mixed */
+    protected $server = null;
+
     /**
      * Call this method to get singleton
      *
@@ -31,7 +34,6 @@ class SocketMessageRouter extends SocketHandler
 
     private function __construct()
     {
-
     }
 
     /**

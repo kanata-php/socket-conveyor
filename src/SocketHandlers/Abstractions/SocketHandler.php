@@ -29,7 +29,8 @@ abstract class SocketHandler implements SocketHandlerInterface
      *
      * @return void
      */
-    public function maybeSetFd($fd = null): void {
+    public function maybeSetFd($fd = null): void
+    {
         $parsedData = $this->getParsedData();
         $action = $this->getAction($parsedData['action']);
 
@@ -45,9 +46,14 @@ abstract class SocketHandler implements SocketHandlerInterface
      *
      * @return void
      */
-    public function maybeSetServer($server = null): void {
+    public function maybeSetServer($server = null): void
+    {
         $parsedData = $this->getParsedData();
         $action = $this->getAction($parsedData['action']);
+
+        if ($server) {
+            $this->server = $server;
+        }
 
         if ($server && method_exists($action, 'setServer')) {
             $action->setServer($server);

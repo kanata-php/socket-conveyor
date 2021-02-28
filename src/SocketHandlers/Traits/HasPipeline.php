@@ -9,6 +9,7 @@ use League\Pipeline\PipelineBuilder;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\Abstractions\SocketHandler;
+use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 
 trait HasPipeline
 {
@@ -20,6 +21,9 @@ trait HasPipeline
 
     /** @var array */
     protected $parsedData;
+
+    /** @var null|ExceptionHandlerInterface */
+    protected $exceptionHandler = null;
 
     /**
      * @param string   $data   Data to be processed.
@@ -36,8 +40,13 @@ trait HasPipeline
         /** @var Pipeline */
         $pipeline = $this->getPipeline($action->getName());
 
-        /** @throws Exception */
-        $pipeline->process($this);
+        try {
+            /** @throws Exception */
+            $pipeline->process($this);
+        } catch (Exception $e) {
+            $this->processException();
+            throw $e;
+        }
 
         $this->maybeSetFd($fd);
         $this->maybeSetServer($server);
@@ -136,5 +145,33 @@ trait HasPipeline
     public function getAction(string $name)
     {
         return $this->handlerMap[$name];
+    }
+
+    /**
+     * Add a Middleware Exception Handler.
+     * This handler does some custom processing in case
+     * of an exception.
+     *
+     * @param ExceptionHandlerInterface $handler
+     *
+     * @return void
+     */
+    public function addMiddlewareExceptionHandler(ExceptionHandlerInterface $handler): void
+    {
+        $this->exceptionHandler = $handler;
+    }
+
+    /**
+     * Process a registered exception.
+     *
+     * @return void
+     *
+     * @throws Exception
+     */
+    public function processException(): void
+    {
+        if (null !== $this->exceptionHandler) {
+            $this->exceptionHandler->handle($this->server);
+        }
     }
 }

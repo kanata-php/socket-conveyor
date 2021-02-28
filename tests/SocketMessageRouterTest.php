@@ -9,6 +9,8 @@ use Tests\Assets\SampleAction;
 use Tests\SocketHandlerTestCase;
 use Tests\Assets\SampleMiddleware;
 use Tests\Assets\SampleMiddleware2;
+use Tests\Assets\SampleExceptionHandler;
+use Tests\Assets\SampleCustomException;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 
 class SocketMessageRouterTest extends SocketHandlerTestCase
@@ -141,6 +143,23 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'action' => $sampleAction->getName(),
             'token'  => 'valid-token',
             'second-verification'  => 'invalid',
+        ]);
+        $result = ($socketRouter)($data);
+    }
+
+    public function testCanAddCustomExceptionMessageAfterMiddlewareException()
+    {
+        $this->expectException(SampleCustomException::class);
+        $this->expectExceptionMessage('This is a test custom exception!');
+
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+
+        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
+        $socketRouter->addMiddlewareExceptionHandler(new SampleExceptionHandler);
+
+        $data = json_encode([
+            'action' => $sampleAction->getName(),
+            'token'  => 'invalid-token',
         ]);
         $result = ($socketRouter)($data);
     }
