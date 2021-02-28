@@ -56,6 +56,14 @@ abstract class SocketHandler implements SocketHandlerInterface
     }
 
     /**
+     * @return int|null $fd File descriptor.
+     */
+    public function getFd()
+    {
+        return $this->fd;
+    }
+
+    /**
      * Set $server if method "setServer" exists.
      *
      * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
@@ -74,6 +82,14 @@ abstract class SocketHandler implements SocketHandlerInterface
         if ($server && method_exists($action, 'setServer')) {
             $action->setServer($server);
         }
+    }
+
+    /**
+     * @return mixed $server Server object, e.g. Swoole\WebSocket\Frame.
+     */
+    public function getServer()
+    {
+        return $this->server;
     }
 
     /**
