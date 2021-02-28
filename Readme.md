@@ -42,10 +42,12 @@ At this library, there is the presumption that the socket message has a *JSON* f
 
 ```json
 {
-    "action" => "sample-action", // this action is the action's name served by ActionInterface::getName()
-    // here foes other fields necessary for the Actions processing...
+    "action": "sample-action",
+    "other-parameters": "here goes other fields necessary for the Actions processing..."
 }
 ```
+
+Notice that the "action" property  is the action's name served by `ActionInterface::getName()`.
 
 
 
