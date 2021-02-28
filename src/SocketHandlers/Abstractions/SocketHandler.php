@@ -9,17 +9,29 @@ use Conveyor\Actions\Interfaces\ActionInterface;
 abstract class SocketHandler implements SocketHandlerInterface
 {
     /**
-     * @param string $data
-     * @param int $fd
+     * @param string   $data   Data to be processed.
+     * @param int|null $fd     File descriptor (connection).
+     * @param mixed    $server Server object, e.g. Swoole\WebSocket\Frame.
      */
-    public function __invoke(string $data, $fd = null)
+    public function __invoke(string $data, $fd = null, $server = null)
+    {
+        return $this->handle($data, $fd, $server);
+    }
+
+    /**
+     * @param string   $data   Data to be processed.
+     * @param int|null $fd     File descriptor (connection).
+     * @param mixed    $server Server object, e.g. Swoole\WebSocket\Frame.
+     */
+    public function handle(string $data, $fd = null, $server = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);
 
         $this->maybeSetFd($fd);
-        
-        return $action->execute();
+        $this->maybeSetServer($server);
+
+        return $action->execute($this->parsedData);
     }
 
     /**

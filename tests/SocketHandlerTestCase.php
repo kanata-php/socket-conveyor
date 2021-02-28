@@ -23,7 +23,8 @@ class SocketHandlerTestCase extends TestCase
     protected function prepareSocketMessageRouter()
     {
         $sampleAction = $this->getSampleAction();
-        $socketRouter = SocketMessageRouter::getInstance();
+        
+        $socketRouter = new SocketMessageRouter;
         $resultOfAddMethod = $socketRouter->add($sampleAction);
 
         $this->assertInstanceOf(get_class($resultOfAddMethod), $socketRouter);

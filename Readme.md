@@ -14,8 +14,8 @@ This package enables you to work with socket messages with routes strategy, just
 This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [Swoole PHP Extension](https://www.swoole.co.uk/).
 
 
-## Installation
 
+## Installation
 
 ```shell
 composer require wordstree/socket-conveyor
@@ -24,10 +24,7 @@ composer require wordstree/socket-conveyor
 
 ## How it works
 
-
-
 The main example is set in the `tests ` directory, but here is how it works:
-
 
 
 ![Conveyor Process](./imgs/conveyor-process.png)
@@ -35,8 +32,6 @@ The main example is set in the `tests ` directory, but here is how it works:
 
 
 ## Usage
-
-
 
 At this library, there is the presumption that the socket message has a *JSON* format. That said, the following standard is expected to be followed by the messages, so they can match specific *Actions*. The minimum format is this:
 
@@ -48,7 +43,6 @@ At this library, there is the presumption that the socket message has a *JSON* f
 ```
 
 Notice that the "action" property  is the action's name served by `ActionInterface::getName()`.
-
 
 
 In order to use it in your application, you would do something like this:
@@ -91,17 +85,19 @@ $socketRouter->middleware($sampleAction->getName(), $sampleMiddleware2);
 //         at the "onMessage" event of the Socket Server. If using ReactPHP, this 
 //         would go at the "data" event.
 
-$result = ($socketRouter)($data);
+$result = ($socketRouter)($data); // ir $socketRouter->handle($data)
 ```
 
 To understand further, check the tests: https://github.com/WordsTree/socket-conveyor/blob/master/tests/SocketMessageRouterTest.php
 
+Important topics:
+
+- If you need to dispatch a custom message back according to the action's functionality, you can pass the $server instance at the `SocketMessageRouter::handle`, also the $fd, so you know which connection to send it to. Check its interface here: https://github.com/WordsTree/socket-conveyor/blob/master/src/SocketHandlers/Interfaces/SocketHandlerInterface.php
+- To avoid problems with resilient data in swoole, it is better to create a new instance of `SocketMessageRouter` at the incoming message event of your socket server.
 
 
 
 ## Motivation
-
-
 
 WebSocket procedures are more and more common with PHP, and realtime applications are becoming more often. That said, there is a need for solutions that help to work like that in PHP.
 

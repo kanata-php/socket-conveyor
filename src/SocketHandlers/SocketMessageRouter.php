@@ -3,6 +3,7 @@
 namespace Conveyor\SocketHandlers;
 
 use Exception;
+use InvalidArgumentException;
 use League\Pipeline\Pipeline;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Actions\Interfaces\ActionInterface;
@@ -16,25 +17,8 @@ class SocketMessageRouter extends SocketHandler
     /** @var mixed */
     protected $server = null;
 
-    /**
-     * Call this method to get singleton
-     *
-     * @return SocketMessageRouter
-     */
-    public static function getInstance(): SocketMessageRouter
-    {
-        static $instance = null;
-
-        if ($instance === null) {
-            $instance = new self;
-        }
-
-        return $instance;
-    }
-
-    private function __construct()
-    {
-    }
+    /** @var array */
+    protected $parsedData;
 
     /**
      * @internal This method also leave the $parsedData property set to the instance.
@@ -52,5 +36,23 @@ class SocketMessageRouter extends SocketHandler
         $this->validateData($this->parsedData);
 
         return $this->getAction($this->parsedData['action']);
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException|InvalidActionException
+     */
+    final public function validateData(array $data) : void
+    {
+        if (!isset($data['action'])) {
+            throw new InvalidArgumentException('Missing action key in data!');
+        }
+
+        if (!isset($this->handlerMap[$data['action']])) {
+            throw new InvalidActionException('Invalid Action! This action (' . $data['action'] . ') is not set.');
+        }
     }
 }

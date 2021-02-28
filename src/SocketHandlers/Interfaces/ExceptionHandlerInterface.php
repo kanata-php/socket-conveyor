@@ -2,11 +2,15 @@
 
 namespace Conveyor\SocketHandlers\Interfaces;
 
+use Exception;
+
 interface ExceptionHandlerInterface
 {
     /**
-     * @param $server The socket server instance useful for
-     *                sending back the expected error message.
+     * @param Exception $e          Current exception being handled.
+     * @param array     $parsedData Parsed data at the current message.
+     * @param mixed     $server     The socket server instance useful for
+     *                              sending back the expected error message.
      */
-    public function handle($server = null);
+    public function handle(Exception $e, array $data, $server = null);
 }

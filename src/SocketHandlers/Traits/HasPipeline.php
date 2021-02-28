@@ -3,10 +3,8 @@
 namespace Conveyor\SocketHandlers\Traits;
 
 use Exception;
-use InvalidArgumentException;
 use League\Pipeline\Pipeline;
 use League\Pipeline\PipelineBuilder;
-use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\Abstractions\SocketHandler;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
@@ -19,9 +17,6 @@ trait HasPipeline
     /** @var array */
     protected $handlerMap = [];
 
-    /** @var array */
-    protected $parsedData;
-
     /** @var null|ExceptionHandlerInterface */
     protected $exceptionHandler = null;
 
@@ -32,7 +27,7 @@ trait HasPipeline
      *
      * @throws Exception
      */
-    public function __invoke(string $data, $fd = null, $server = null)
+    public function handle(string $data, $fd = null, $server = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);
@@ -44,7 +39,7 @@ trait HasPipeline
             /** @throws Exception */
             $pipeline->process($this);
         } catch (Exception $e) {
-            $this->processException();
+            $this->processException($e);
             throw $e;
         }
 
@@ -118,24 +113,6 @@ trait HasPipeline
     }
 
     /**
-     * @param array $data
-     *
-     * @return void
-     *
-     * @throws InvalidArgumentException|InvalidActionException
-     */
-    final public function validateData(array $data) : void
-    {
-        if (!isset($data['action'])) {
-            throw new InvalidArgumentException('Missing action key in data!');
-        }
-
-        if (!isset($this->handlerMap[$data['action']])) {
-            throw new InvalidActionException('Invalid Action! This action (' . $data['action'] . ') is not set.');
-        }
-    }
-
-    /**
      * Get an Action by name
      *
      * @param string $name
@@ -164,14 +141,16 @@ trait HasPipeline
     /**
      * Process a registered exception.
      *
+     * @param Exception $e
+     *
      * @return void
      *
      * @throws Exception
      */
-    public function processException(): void
+    public function processException(Exception $e): void
     {
         if (null !== $this->exceptionHandler) {
-            $this->exceptionHandler->handle($this->server);
+            $this->exceptionHandler->handle($e, $this->parsedData, $this->server);
         }
     }
 }

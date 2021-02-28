@@ -161,6 +161,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'action' => $sampleAction->getName(),
             'token'  => 'invalid-token',
         ]);
-        $result = ($socketRouter)($data);
+
+        $result = $socketRouter->handle($data);
     }
 }
