@@ -7,6 +7,18 @@ use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 
 class SampleExceptionHandler implements ExceptionHandlerInterface
 {
+    /** @var Exception */
+    public $e;
+
+    /** @var array */
+    public $parsedData;
+
+    /** @var mixed */
+    public $fd;
+
+    /** @var mixed */
+    public $server;
+
     /**
      * @param Exception $e          Current exception being handled.
      * @param array     $parsedData Parsed data at the current message.
@@ -18,6 +30,11 @@ class SampleExceptionHandler implements ExceptionHandlerInterface
      */
     public function handle(Exception $e, array $parsedData, $fd = null, $server = null)
     {
+        $this->e          = $e;
+        $this->parsedData = $parsedData;
+        $this->fd         = $fd;
+        $this->server     = $server;
+
         throw new SampleCustomException('This is a test custom exception!');
     }
 }

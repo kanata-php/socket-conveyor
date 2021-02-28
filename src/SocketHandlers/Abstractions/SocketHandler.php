@@ -46,6 +46,10 @@ abstract class SocketHandler implements SocketHandlerInterface
         $parsedData = $this->getParsedData();
         $action = $this->getAction($parsedData['action']);
 
+        if ($fd) {
+            $this->fd = $fd;
+        }
+
         if ($fd && method_exists($action, 'setFd')) {
             $action->setFd($fd);
         }

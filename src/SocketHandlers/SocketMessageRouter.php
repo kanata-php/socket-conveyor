@@ -17,6 +17,9 @@ class SocketMessageRouter extends SocketHandler
     /** @var mixed */
     protected $server = null;
 
+    /** @var mixed */
+    protected $fd = null;
+
     /** @var array */
     protected $parsedData;
 

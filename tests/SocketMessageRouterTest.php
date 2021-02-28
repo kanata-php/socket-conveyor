@@ -155,13 +155,24 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
         $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->addMiddlewareExceptionHandler(new SampleExceptionHandler);
+
+        $exceptionHandler = new SampleExceptionHandler;
+        $socketRouter->addMiddlewareExceptionHandler($exceptionHandler);
 
         $data = json_encode([
             'action' => $sampleAction->getName(),
             'token'  => 'invalid-token',
         ]);
 
-        $result = $socketRouter->handle($data);
+        try {
+            $socketRouter->handle($data, 1, new stdClass);
+        } catch (Exception $e) {
+            // let's verify the parameters that reached the exception handler.
+            $this->assertTrue('Exception' === get_class($exceptionHandler->e), 'Not expected value at exception parameter.');
+            $this->assertTrue(is_array($exceptionHandler->parsedData), 'Not expected value at data parameter.');
+            $this->assertTrue(is_int($exceptionHandler->fd), 'Not expected value at fd parameter.');
+            $this->assertTrue('stdClass' === get_class($exceptionHandler->server), 'Not expected value at server parameter.');
+            throw $e;
+        }
     }
 }

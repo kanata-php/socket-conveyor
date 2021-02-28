@@ -35,6 +35,9 @@ trait HasPipeline
         /** @var Pipeline */
         $pipeline = $this->getPipeline($action->getName());
 
+        $this->maybeSetFd($fd);
+        $this->maybeSetServer($server);
+
         try {
             /** @throws Exception */
             $pipeline->process($this);
@@ -42,9 +45,6 @@ trait HasPipeline
             $this->processException($e);
             throw $e;
         }
-
-        $this->maybeSetFd($fd);
-        $this->maybeSetServer($server);
 
         return $action->execute($this->parsedData, $fd, $server);
     }
@@ -150,7 +150,7 @@ trait HasPipeline
     public function processException(Exception $e): void
     {
         if (null !== $this->exceptionHandler) {
-            $this->exceptionHandler->handle($e, $this->parsedData, $this->server);
+            $this->exceptionHandler->handle($e, $this->parsedData, $this->fd, $this->server);
         }
     }
 }
