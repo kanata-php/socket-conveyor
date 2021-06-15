@@ -85,7 +85,7 @@ $socketRouter->middleware($sampleAction->getName(), $sampleMiddleware2);
 //         at the "onMessage" event of the Socket Server. If using ReactPHP, this 
 //         would go at the "data" event.
 
-$result = ($socketRouter)($data); // ir $socketRouter->handle($data)
+$result = ($socketRouter)($data); // or $socketRouter->handle($data)
 ```
 
 To understand further, check the tests: https://github.com/WordsTree/socket-conveyor/blob/master/tests/SocketMessageRouterTest.php
