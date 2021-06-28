@@ -58,7 +58,7 @@ $sampleAction = new SampleAction();
 // Step 2: Get an instance of the SocketMessageRouter:
 
 // @var Conveyor\SocketHandlers\SocketMessageRouter
-$socketRouter = SocketMessageRouter::getInstance();
+$socketRouter = new SocketMessageRouter();
 
 
 // Step 3: Add the action's instance to your SocketMessageRouter
