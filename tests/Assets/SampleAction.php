@@ -2,6 +2,8 @@
 
 namespace Tests\Assets;
 
+use Exception;
+use InvalidArgumentException;
 use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
 use Conveyor\Actions\Traits\ProcedureActionTrait;
@@ -10,11 +12,8 @@ class SampleAction extends  AbstractAction
 {
     use ProcedureActionTrait;
 
-    /** @var string */
-    protected $name = 'sample-action';
-
-    /** @var int */
-    protected $fd;
+    protected string $name = 'sample-action';
+    protected ?int $fd = null;
 
     /**
      * @param array $data
@@ -23,7 +22,7 @@ class SampleAction extends  AbstractAction
      *
      * @throws Exception
      */
-    public function execute(array $data)
+    public function execute(array $data, ?int $fd, $server)
     {
         return true;
     }
@@ -60,19 +59,19 @@ class SampleAction extends  AbstractAction
     }
 
     /**
-     * @return stdClass $server
+     * @return mixed $server
      *
      * @return void
      */
-    public function setServer(stdClass $server): void
+    public function setServer($server): void
     {
         $this->server = $server;
     }
 
     /**
-     * @return stdClass
+     * @return mixed
      */
-    public function getServer(): stdClass
+    public function getServer()
     {
         return $this->server;
     }

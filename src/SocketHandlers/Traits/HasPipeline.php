@@ -11,14 +11,9 @@ use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 
 trait HasPipeline
 {
-    /** @var array */
-    protected $pipelineMap = [];
-
-    /** @var array */
-    protected $handlerMap = [];
-
-    /** @var null|ExceptionHandlerInterface */
-    protected $exceptionHandler = null;
+    protected array $pipelineMap = [];
+    protected array $handlerMap = [];
+    protected null|ExceptionHandlerInterface $exceptionHandler = null;
 
     /**
      * @param string   $data   Data to be processed.
@@ -27,7 +22,7 @@ trait HasPipeline
      *
      * @throws Exception
      */
-    public function handle(string $data, $fd = null, $server = null)
+    public function handle(string $data, int|null $fd = null, $server = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);

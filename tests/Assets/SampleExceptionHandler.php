@@ -7,14 +7,9 @@ use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 
 class SampleExceptionHandler implements ExceptionHandlerInterface
 {
-    /** @var Exception */
-    public $e;
-
-    /** @var array */
-    public $parsedData;
-
-    /** @var mixed */
-    public $fd;
+    public Exception $e;
+    public array $parsedData;
+    public ?int $fd;
 
     /** @var mixed */
     public $server;

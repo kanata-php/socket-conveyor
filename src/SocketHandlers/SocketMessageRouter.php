@@ -2,9 +2,7 @@
 
 namespace Conveyor\SocketHandlers;
 
-use Exception;
 use InvalidArgumentException;
-use League\Pipeline\Pipeline;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\Abstractions\SocketHandler;
@@ -13,15 +11,6 @@ use Conveyor\SocketHandlers\Traits\HasPipeline;
 class SocketMessageRouter extends SocketHandler
 {
     use HasPipeline;
-
-    /** @var mixed */
-    protected $server = null;
-
-    /** @var mixed */
-    protected $fd = null;
-
-    /** @var array */
-    protected $parsedData;
 
     /**
      * @internal This method also leave the $parsedData property set to the instance.

@@ -10,6 +10,7 @@
         }
     ],
     "require": {
+        "php": "^8.0",
         "league/pipeline": "^1.0"
     },
     "require-dev": {

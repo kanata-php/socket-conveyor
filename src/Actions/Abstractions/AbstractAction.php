@@ -8,7 +8,7 @@ use Conveyor\Actions\Interfaces\ActionInterface;
 abstract class AbstractAction implements ActionInterface
 {
     /** @var array */
-    protected $data;
+    protected array $data;
 
     /**
      * @return string
@@ -27,7 +27,10 @@ abstract class AbstractAction implements ActionInterface
     abstract public function validateData(array $data) : void;
 
     /**
-     *
+     * @param array $data
+     * @param int $fd
+     * @param mixed $server
+     * @return mixed
      */
-    abstract public function execute(array $data);
+    abstract public function execute(array $data, int $fd, $server);
 }

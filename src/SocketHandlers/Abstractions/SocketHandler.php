@@ -2,28 +2,34 @@
 
 namespace Conveyor\SocketHandlers\Abstractions;
 
-use Slim\Container;
+use InvalidArgumentException;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use Conveyor\Actions\Interfaces\ActionInterface;
 
 abstract class SocketHandler implements SocketHandlerInterface
 {
+    protected mixed $server = null;
+
+    protected ?int $fd = null;
+
+    protected array $parsedData;
+
     /**
-     * @param string   $data   Data to be processed.
-     * @param int|null $fd     File descriptor (connection).
-     * @param mixed    $server Server object, e.g. Swoole\WebSocket\Frame.
+     * @param string $data   Data to be processed.
+     * @param ?int   $fd     File descriptor (connection).
+     * @param mixed  $server Server object, e.g. Swoole\WebSocket\Frame.
      */
-    public function __invoke(string $data, $fd = null, $server = null)
+    public function __invoke(string $data, ?int $fd = null, $server = null)
     {
         return $this->handle($data, $fd, $server);
     }
 
     /**
-     * @param string   $data   Data to be processed.
-     * @param int|null $fd     File descriptor (connection).
-     * @param mixed    $server Server object, e.g. Swoole\WebSocket\Frame.
+     * @param string $data   Data to be processed.
+     * @param ?int   $fd     File descriptor (connection).
+     * @param mixed  $server Server object, e.g. Swoole\WebSocket\Frame.
      */
-    public function handle(string $data, $fd = null, $server = null)
+    public function handle(string $data, ?int $fd = null, $server = null)
     {
         /** @var ActionInterface */
         $action = $this->parseData($data);
@@ -37,11 +43,11 @@ abstract class SocketHandler implements SocketHandlerInterface
     /**
      * Set $fd (File descriptor) if method "setFd" exists.
      *
-     * @param int|null $fd File descriptor.
+     * @param ?int $fd File descriptor.
      *
      * @return void
      */
-    public function maybeSetFd($fd = null): void
+    public function maybeSetFd(?int $fd = null): void
     {
         $parsedData = $this->getParsedData();
         $action = $this->getAction($parsedData['action']);
@@ -56,9 +62,9 @@ abstract class SocketHandler implements SocketHandlerInterface
     }
 
     /**
-     * @return int|null $fd File descriptor.
+     * @return ?int $fd File descriptor.
      */
-    public function getFd()
+    public function getFd(): ?int
     {
         return $this->fd;
     }
@@ -87,7 +93,7 @@ abstract class SocketHandler implements SocketHandlerInterface
     /**
      * @return mixed $server Server object, e.g. Swoole\WebSocket\Frame.
      */
-    public function getServer()
+    public function getServer(): mixed
     {
         return $this->server;
     }
