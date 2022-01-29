@@ -45,7 +45,6 @@ class SocketChannelTest extends SocketHandlerTestCase
 
         $this->assertNull($result);
         $this->assertCount(1, $persistence->getAllConnections());
-        $this->assertCount(1, $persistence->getAllConnections());
         $this->assertTrue(in_array($channelName, $persistence->getAllConnections()));
     }
 
