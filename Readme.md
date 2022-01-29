@@ -221,7 +221,7 @@ class SocketChannelsTable implements PersistenceInterface
 }
 ```
 
-With these changes to the server, you can have different implementations on the client-side, where each implementation, in a different context, connects to a different channel. As an example, we have this HTML implementation, that, when connected, will make sure the current connection belongs to a given channel. To connect another implementation to a different channel, you just need to use a different channel parameter.
+With these changes to the server, you can have different implementations on the client-side. Each implementation, in a different context, connects to a different channel. As an example, we have the following HTML example. When connected, it will make sure the current connection belongs to a given channel. To connect another implementation to a different channel, you just need to use a different channel parameter.
 
 ```html
 <div>

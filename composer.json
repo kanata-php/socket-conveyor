@@ -1,14 +1,8 @@
 {
-    "name": "wordstree/socket-conveyor",
+    "name": "kanata-php/socket-conveyor",
     "description": "A WebSocket/Socket message Router",
     "type": "library",
-    "license": "Apache-2.0",
-    "authors": [
-        {
-            "name": "Savio Resende",
-            "email": "savio@savioresende.com.br"
-        }
-    ],
+    "license": "MIT",
     "require": {
         "php": "^8.0",
         "league/pipeline": "^1.0"
