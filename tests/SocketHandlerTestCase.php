@@ -2,10 +2,13 @@
 
 namespace Tests;
 
+use Conveyor\Actions\ChannelConnectionAction;
+use stdClass;
 use Tests\Assets\SampleAction;
 use PHPUnit\Framework\TestCase;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Tests\Assets\SamplePersistence;
 
 class SocketHandlerTestCase extends TestCase
 {
@@ -20,14 +23,16 @@ class SocketHandlerTestCase extends TestCase
     /**
      * @return array
      */
-    protected function prepareSocketMessageRouter()
+    protected function prepareSocketMessageRouter(?SamplePersistence $persistence = null)
     {
         $sampleAction = $this->getSampleAction();
         
-        $socketRouter = new SocketMessageRouter;
+        $socketRouter = new SocketMessageRouter($persistence);
         $resultOfAddMethod = $socketRouter->add($sampleAction);
 
         $this->assertInstanceOf(get_class($resultOfAddMethod), $socketRouter);
+
+        $socketRouter->add(new ChannelConnectionAction);
 
         return [$socketRouter, $sampleAction];
     }

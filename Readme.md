@@ -1,25 +1,31 @@
-![Conveyor](./imgs/logo.png)
 
-# Socket Conveyor
+<p align="center">
+<img src="./imgs/logo.png"/>
+</p>
 
 ![Tests](https://github.com/WordsTree/socket-conveyor/workflows/Tests/badge.svg)
 [![Code Intelligence Status](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/?branch=master)
 
+> A WebSocket/Socket message Router for PHP
 
-A WebSocket/Socket message Router for PHP.
+### 🏠 [Homepage](https://github.com/WordsTree/socket-conveyor)
 
-This package enables you to work with socket messages with routes strategy, just as if you were specifying routes in [Laravel](https://laravel.com/) or [Slim](https://www.slimframework.com/) projects. For that, you just add an Action Handler implementing the ActionInterface to the SocketMessageRouter and watch the magic happen!
+## Prerequisites
 
-This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [Swoole PHP Extension](https://www.swoole.co.uk/).
-
-
+- PHP >= 8.0
 
 ## Installation
 
 ```shell
 composer require wordstree/socket-conveyor
 ```
+
+## Description
+
+This package enables you to work with socket messages with routes strategy. For that, you just add an Action Handler implementing the `ActionInterface` to the `SocketMessageRouter` and watch the magic happen!
+
+This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [OpenSwoole](https://openswoole.com/).
 
 
 ## How it works
@@ -33,6 +39,8 @@ The main example is set in the `tests ` directory, but here is how it works:
 
 ## Usage
 
+### Simple Use
+
 At this library, there is the presumption that the socket message has a *JSON* format. That said, the following standard is expected to be followed by the messages, so they can match specific *Actions*. The minimum format is this:
 
 ```json
@@ -42,66 +50,209 @@ At this library, there is the presumption that the socket message has a *JSON* f
 }
 ```
 
-Notice that the "action" property  is the action's name served by `ActionInterface::getName()`.
+It can be used in any WebSocket library. Following we have a basic example in [OpenSwoole](https://openswoole.com):
 
-
-In order to use it in your application, you would do something like this:
+First, write some actions:
 
 ```php
-// Step 1: Prepare an instance of an action that will be responsible to handle
-//         a specific Socket Message:
+require __DIR__.'/vendor/autoload.php';
 
-// @var Conveyor\Actions\Interfaces\ActionInterface
-$sampleAction = new SampleAction();
+use Conveyor\Actions\Abstractions\AbstractAction;
 
+class ExampleFirstCreateAction extends AbstractAction
+{
+    protected string $name = 'example-first-action';
+    public function execute(array $data)
+    {
+        $this->send('Example First Action Executed!');
+    }
+    public function validateData(array $data) : void {}
+}
 
-// Step 2: Get an instance of the SocketMessageRouter:
-
-// @var Conveyor\SocketHandlers\SocketMessageRouter
-$socketRouter = new SocketMessageRouter();
-
-
-// Step 3: Add the action's instance to your SocketMessageRouter
-
-// add the action handler
-$socketRouter->add($sampleAction);
-
-
-// Step 4: Prepare as many Middlewares as you need:
-
-// @var Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface
-$sampleMiddleware = new SampleMiddleware;
-$sampleMiddleware2 = new SampleMiddleware2;
-
-
-// Step 5: Link the Middlewares to the Actions you want them to run on.
-
-// add middlewares
-$socketRouter->middleware($sampleAction->getName(), $sampleMiddleware);
-$socketRouter->middleware($sampleAction->getName(), $sampleMiddleware2);
-
-
-// Step 6: Add this to process your Socket Messages. If using Swoole, this would go
-//         at the "onMessage" event of the Socket Server. If using ReactPHP, this 
-//         would go at the "data" event.
-
-$result = ($socketRouter)($data); // or $socketRouter->handle($data)
+class ExampleSecondCreateAction extends AbstractAction
+{
+    protected string $name = 'example-second-action';
+    public function execute(array $data)
+    {
+        $this->send('Example Second Action Executed!');
+    }
+    public function validateData(array $data) : void {}
+}
 ```
 
-To understand further, check the tests: https://github.com/WordsTree/socket-conveyor/blob/master/tests/SocketMessageRouterTest.php
+Second, at your Open Swoole Web Socket server, register `SocketMessageRouter` with your actions at your `OnMessage` event handler:
 
-Important topics:
+```php
+require __DIR__.'/vendor/autoload.php';
 
-- If you need to dispatch a custom message back according to the action's functionality, you can pass the $server instance at the `SocketMessageRouter::handle`, also the $fd, so you know which connection to send it to. Check its interface here: https://github.com/WordsTree/socket-conveyor/blob/master/src/SocketHandlers/Interfaces/SocketHandlerInterface.php
-- To avoid problems with resilient data in swoole, it is better to create a new instance of `SocketMessageRouter` at the incoming message event of your socket server.
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+use Conveyor\SocketHandlers\SocketMessageRouter;
 
+$websocket = new Server('0.0.0.0', 8001);
+$websocket->on('message', function (Server $server, Frame $frame) {
+    echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
+    $socketRouter = new SocketMessageRouter;
+    $socketRouter->add(new ExampleFirstCreateAction);
+    $socketRouter->add(new ExampleSecondCreateAction);
+    $socketRouter($frame->data, $frame->fd, $server);
+});
 
+$websocket->start();
+```
 
-## Motivation
+Thats it! Now, to communicate in real-time with this service, on your HTML you can do something like this:
 
-WebSocket procedures are more and more common with PHP, and realtime applications are becoming more often. That said, there is a need for solutions that help to work like that in PHP.
+```html
+<div>
+    <div><button onclick="sendMessage('example-first-action', 'first')">First Action</button></div>
+    <div><button onclick="sendMessage('example-second-action', 'second')">Second Action</button></div>
+    <div id="output"></div>
+</div>
+<script type="text/javascript">
+    var websocket = new WebSocket('ws://127.0.0.1:8001');
+    websocket.onmessage = function (evt) {
+        document.getElementById('output').innerHTML = evt.data;
+    };
+    function sendMessage(action, message) {
+        websocket.send(JSON.stringify({
+            'action': action,
+            'params': {'content': message}
+        }));
+    }
+</script>
+```
 
+How it looks like:
 
+![Example Server](./imgs/example-server.gif)
+
+### Using Channels
+
+The procedure here requires one extra step during the instantiation: the connection action. The connection action will link in a persistent manner the connection FD to a channel.
+
+```json
+{
+    "action": "channel-connection",
+    "channel": "channel-name"
+}
+```
+
+The Actions can be the same as the simple example. The Server initialization (remembering that this example is for OpenSwoole) will be a little different:
+
+To begin with, the actions, when calling for the method "send" will consider the third parameter to point out that they are sending a message to the entire channel, e.g.:
+
+```php
+class ExampleFirstCreateAction extends AbstractAction
+{
+    protected string $name = 'example-first-action';
+    public function execute(array $data): mixed
+    {
+        // This method will broadcast message to the entire channel
+        // if we set the third parameter (toChannel) to true.
+        $this->send('Example First Action Executed!', null, true);
+        return null;
+    }
+    public function validateData(array $data) : void {}
+}
+```
+
+The Socker Router instantiation also suffers a small change, so 
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+use Conveyor\SocketHandlers\SocketMessageRouter;
+
+$persistenceService = new SocketChannelsTable; // this is an example of the PersistenceInterface that needs to be set so the Socket Router knows how to persist its data.
+$websocket = new Server('0.0.0.0', 8001);
+$websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
+    echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
+    $socketRouter = new SocketMessageRouter($persistenceService);
+    
+    // This makes it possible for the router to accept connections to channels.
+    $socketRouter->add(new ChannelConnectionAction);
+    
+    $socketRouter->add(new ExampleFirstCreateAction);
+    $socketRouter->add(new ExampleSecondCreateAction);
+    $socketRouter($frame->data, $frame->fd, $server);
+});
+
+$websocket->start();
+```
+
+An example of the `Conveyor\Actions\Interfaces\PersistenceInterface` for the persistence of the channels information is the following. Notice that this example uses `Swoole\Table`, but it can use any external persistent storage behing the interface.
+
+```php
+use Conveyor\Actions\Interfaces\PersistenceInterface;
+use Swoole\Table;
+
+class SocketChannelsTable implements PersistenceInterface
+{
+    protected Table $table;
+
+    public function __construct()
+    {
+        $this->table = new Table(10024);
+        $this->table->column('channel', Table::TYPE_STRING, 40);
+        $this->table->create();
+    }
+
+    public function connect(int $fd, string $channel): void
+    {
+        $this->table->set($fd, ['channel' => $channel]);
+    }
+
+    public function disconnect(int $fd): void
+    {
+        $this->table->del($fd);
+    }
+
+    public function getAllConnections(): array
+    {
+        $collection = [];
+        foreach($this->table as $key => $value) {
+            $collection[$key] = $value['channel'];
+        }
+        return $collection;
+    }
+}
+```
+
+With these changes to the server, you can have different implementations on the client-side, where each implementation, in a different context, connects to a different channel. As an example, we have this HTML implementation, that, when connected, will make sure the current connection belongs to a given channel. To connect another implementation to a different channel, you just need to use a different channel parameter.
+
+```html
+<div>
+    <div><button onclick="sendMessage('example-first-action', 'first')">First Action</button></div>
+    <div><button onclick="sendMessage('example-second-action', 'second')">Second Action</button></div>
+    <div id="output"></div>
+</div>
+<script type="text/javascript">
+    var channel = 'actionschannel';
+    var websocket = new WebSocket('ws://127.0.0.1:8001');
+    websocket.onopen = function(e) {
+        websocket.send(JSON.stringify({
+            'action': 'channel-connection',
+            'channel': channel,
+        }));
+    };
+    websocket.onmessage = function (evt) {
+        document.getElementById('output').innerHTML = evt.data;
+    };
+    function sendMessage(action, message) {
+        websocket.send(JSON.stringify({
+            'action': action,
+            'params': {'content': message}
+        }));
+    }
+</script>
+```
+
+That's all, with this, you would have the following:
+
+![Example Server with Channels](./imgs/example-server-channels.gif)
 
 ## Tests
 
@@ -110,3 +261,16 @@ Run Command:
 ```shell
 ./vendor/bin/phpunit
 ```
+
+## Author
+
+👤 **Savio Resende**
+
+* Website: https://savioresende.com
+* GitHub: [@lotharthesavior](https://github.com/lotharthesavior)
+
+## 📝 License
+
+Copyright © 2022 [Savio Resende](https://github.com/lotharthesavior).
+
+This project is [MIT](https://github.com/kefranabg/readme-md-generator/blob/master/LICENSE) licensed.

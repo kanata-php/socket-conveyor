@@ -8,11 +8,11 @@ use Conveyor\Actions\Interfaces\ActionInterface;
 interface SocketHandlerInterface
 {
     /**
-     * @param string $data   Data to be processed.
-     * @param ?int   $fd     File descriptor (connection).
-     * @param mixed  $server Server object, e.g. Swoole\WebSocket\Frame.
+     * @param string $data Data to be processed.
+     * @param int $fd File descriptor (connection).
+     * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
      */
-    public function handle(string $data, ?int $fd = null, $server = null);
+    public function handle(string $data, int $fd, mixed $server);
 
     /**
      * @param string $data

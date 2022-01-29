@@ -5,6 +5,7 @@
   <testsuites>
     <testsuite name="All">
       <file>tests/SocketMessageRouterTest.php</file>
+      <file>tests/SocketChannelTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

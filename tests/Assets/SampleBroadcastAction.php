@@ -8,11 +8,11 @@ use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
 use Conveyor\Actions\Traits\ProcedureActionTrait;
 
-class SampleAction extends  AbstractAction
+class SampleBroadcastAction extends AbstractAction
 {
     use ProcedureActionTrait;
 
-    protected string $name = 'sample-action';
+    protected string $name = 'sample-broadcast-action';
     protected int $fd;
 
     /**
@@ -22,6 +22,7 @@ class SampleAction extends  AbstractAction
      */
     public function execute(array $data): mixed
     {
+        $this->send('message-back', null, true);
         return true;
     }
 

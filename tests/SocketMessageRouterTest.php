@@ -30,7 +30,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $data = json_encode([
             'action' => $sampleAction->getName(),
         ]);
-        $result = ($socketRouter)($data);
+        $result = ($socketRouter)($data, 1, new stdClass);
 
         $this->assertTrue($result);
     }
@@ -44,7 +44,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $data = json_encode([
             'action' => $sampleAction->getName(),
         ]);
-        $result = ($socketRouter)($data, $fd);
+        $result = ($socketRouter)($data, $fd, new stdClass);
 
         $this->assertTrue($result);
         $this->assertTrue($fd === $socketRouter->getAction($sampleAction->getName())->getFd());
@@ -60,7 +60,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $data = json_encode([
             'action' => $sampleAction->getName(),
         ]);
-        $result = ($socketRouter)($data, null, $server);
+        $result = ($socketRouter)($data, 1, $server);
 
         $this->assertTrue($result);
         $this->assertTrue($server === $socketRouter->getAction($sampleAction->getName())->getServer());
@@ -76,7 +76,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'action' => $sampleAction->getName(),
             'token'  => 'valid-token',
         ]);
-        $result = ($socketRouter)($data);
+        $result = ($socketRouter)($data, 1, new stdClass);
         $this->assertTrue($result);
     }
 
@@ -92,7 +92,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'token'  => 'valid-token',
             'second-verification'  => 'valid',
         ]);
-        $result = ($socketRouter)($data);
+        $result = ($socketRouter)($data, 1, new stdClass);
         $this->assertTrue($result);
     }
 
@@ -108,7 +108,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'action' => $sampleAction->getName(),
             'token'  => 'invalid-token',
         ]);
-        $result = ($socketRouter)($data);
+        $result = ($socketRouter)($data, 1, new stdClass);
     }
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndFailFirst()
@@ -126,7 +126,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'token'  => 'invalid-token',
             'second-verification'  => 'valid',
         ]);
-        $result = ($socketRouter)($data);
+        $result = ($socketRouter)($data, 1, new stdClass);
     }
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndFailSecond()
@@ -144,7 +144,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'token'  => 'valid-token',
             'second-verification'  => 'invalid',
         ]);
-        $result = ($socketRouter)($data);
+        $result = ($socketRouter)($data, 1, new stdClass);
     }
 
     public function testCanAddCustomExceptionMessageAfterMiddlewareException()
