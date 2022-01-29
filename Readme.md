@@ -3,13 +3,13 @@
 <img src="./imgs/logo.png"/>
 </p>
 
-![Tests](https://github.com/WordsTree/socket-conveyor/workflows/Tests/badge.svg)
-[![Code Intelligence Status](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/WordsTree/socket-conveyor/?branch=master)
+![Tests](https://github.com/kanata-php/socket-conveyor/workflows/Tests/badge.svg)
+[![Code Intelligence Status](https://scrutinizer-ci.com/g/kanata-php/socket-conveyor/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/kanata-php/socket-conveyor/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/kanata-php/socket-conveyor/?branch=master)
 
 > A WebSocket/Socket message Router for PHP
 
-### 🏠 [Homepage](https://github.com/WordsTree/socket-conveyor)
+### 🏠 [Homepage](https://github.com/kanata-php/socket-conveyor)
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@
 ## Installation
 
 ```shell
-composer require wordstree/socket-conveyor
+composer require kanata-php/socket-conveyor
 ```
 
 ## Description
