@@ -89,7 +89,6 @@ class SocketChannelTest extends SocketHandlerTestCase
         SocketHandlerInterface $socketRouter,
         SampleSocketServer $server
     ) {
-
         $broadcastData = json_encode([
             'action' => 'sample-broadcast-action',
         ]);

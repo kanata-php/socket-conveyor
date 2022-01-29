@@ -183,7 +183,7 @@ $websocket->on('message', function (Server $server, Frame $frame) use ($persiste
 $websocket->start();
 ```
 
-An example of the `Conveyor\Actions\Interfaces\PersistenceInterface` for the persistence of the channels information is the following. Notice that this example uses `Swoole\Table`, but it can use any external persistent storage behing the interface.
+An example of the `Conveyor\Actions\Interfaces\PersistenceInterface` for the persistence of the channels information is the following. Notice that this example uses `Swoole\Table`, but it can use any external persistent storage behind the interface.
 
 ```php
 use Conveyor\Actions\Interfaces\PersistenceInterface;
