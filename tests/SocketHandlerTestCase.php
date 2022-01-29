@@ -3,7 +3,6 @@
 namespace Tests;
 
 use Conveyor\Actions\ChannelConnectionAction;
-use stdClass;
 use Tests\Assets\SampleAction;
 use PHPUnit\Framework\TestCase;
 use Conveyor\Actions\Interfaces\ActionInterface;

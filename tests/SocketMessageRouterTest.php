@@ -4,9 +4,7 @@ namespace Tests;
 
 use stdClass;
 use Exception;
-use League\Pipeline\Pipeline;
 use Tests\Assets\SampleAction;
-use Tests\SocketHandlerTestCase;
 use Tests\Assets\SampleMiddleware;
 use Tests\Assets\SampleMiddleware2;
 use Tests\Assets\SampleExceptionHandler;

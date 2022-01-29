@@ -2,20 +2,12 @@
 
 namespace Tests;
 
-use Conveyor\Actions\ChannelConnectionAction;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use stdClass;
-use Exception;
-use League\Pipeline\Pipeline;
 use Tests\Assets\SampleAction;
 use Tests\Assets\SampleBroadcastAction;
 use Tests\Assets\SamplePersistence;
 use Tests\Assets\SampleSocketServer;
-use Tests\SocketHandlerTestCase;
-use Tests\Assets\SampleMiddleware;
-use Tests\Assets\SampleMiddleware2;
-use Tests\Assets\SampleExceptionHandler;
-use Tests\Assets\SampleCustomException;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 
 class SocketChannelTest extends SocketHandlerTestCase
