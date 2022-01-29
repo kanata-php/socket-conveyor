@@ -93,7 +93,7 @@ class SocketChannelTest extends SocketHandlerTestCase
         $broadcastData = json_encode([
             'action' => 'sample-broadcast-action',
         ]);
-        ($socketRouter)($broadcastData, 1, $server); // broadcast fd 3
+        ($socketRouter)($broadcastData, 1, $server); // broadcast to fds 1 and 2
 
         $this->assertTrue(in_array(1, $this->userKeys));
         $this->assertTrue(in_array(2, $this->userKeys));
