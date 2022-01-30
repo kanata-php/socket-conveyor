@@ -15,6 +15,19 @@
 
 - PHP >= 8.0
 
+## Table of contents
+
+- [Installation](#installation)
+- [Description](#description)
+- [How it works](#how-it-works)
+- [Usage](#usage)
+    - [Simple Use](#simple-use)
+    - [Using Channels](#using-channels)
+    - [Listening to Actions](#listening-to-actions)
+- [Tests](#tests)
+- [Author](#author)
+- [License](#-license)
+
 ## Installation
 
 ```shell
