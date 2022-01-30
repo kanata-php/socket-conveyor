@@ -5,8 +5,7 @@ namespace Tests\Assets;
 class SampleSocketServer
 {
     public function __construct(
-        protected $callback,
-        protected string $key
+        protected $callback
     ) { }
 
     public function push(int $fd, string $data)

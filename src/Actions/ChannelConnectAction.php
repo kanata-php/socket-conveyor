@@ -5,9 +5,9 @@ namespace Conveyor\Actions;
 use Conveyor\Actions\Abstractions\AbstractAction;
 use Exception;
 
-class ChannelConnectionAction extends AbstractAction
+class ChannelConnectAction extends AbstractAction
 {
-    protected string $name = 'channel-connection';
+    protected string $name = 'channel-connect';
 
     public function validateData(array $data): void
     {

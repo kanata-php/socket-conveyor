@@ -12,6 +12,7 @@ abstract class AbstractAction implements ActionInterface
     protected mixed $server = null;
     protected ?string $channel = null;
     protected ?array $channels = null;
+    protected array $listeners = [];
 
     public function setServer(mixed $server): void
     {
@@ -26,6 +27,11 @@ abstract class AbstractAction implements ActionInterface
     public function setChannels(array $channels): void
     {
         $this->channels = $channels;
+    }
+
+    public function setListeners(array $listeners): void
+    {
+        $this->listeners = array_map(fn($item) => array_filter($item), $listeners);
     }
 
     public function getName() : string
@@ -46,6 +52,11 @@ abstract class AbstractAction implements ActionInterface
             throw new Exception('Current Server instance doesn\'t have "send" method.');
         }
 
+        $data = json_encode([
+            'action' => $this->getName(),
+            'data' => $data,
+        ]);
+
         if (null !== $fd) {
             $this->server->push($fd, $data);
             return;
@@ -53,12 +64,24 @@ abstract class AbstractAction implements ActionInterface
 
         if ($toChannel && null !== $this->channels) {
             foreach (array_keys($this->channels) as $fd) {
-                $this->server->push($fd, $data);
+                if (
+                    $fd !== $this->fd
+                    && $this->isFdListeningChannel($fd)
+                ) {
+                    $this->server->push($fd, $data);
+                }
             }
             return;
         }
 
         $this->server->push($this->fd, $data);
+    }
+
+    protected function isFdListeningChannel(int $fd): bool
+    {
+        return !isset($this->listeners[$fd])
+            || count($this->listeners[$fd]) === 0
+            || in_array($this->getName(), $this->listeners[$fd]);
     }
 
     /**

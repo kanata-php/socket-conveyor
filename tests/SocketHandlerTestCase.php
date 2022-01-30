@@ -2,11 +2,14 @@
 
 namespace Tests;
 
-use Conveyor\Actions\ChannelConnectionAction;
+use Conveyor\Actions\AddListenerAction;
+use Conveyor\Actions\ChannelConnectAction;
 use Tests\Assets\SampleAction;
 use PHPUnit\Framework\TestCase;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Tests\Assets\SampleBroadcastAction;
+use Tests\Assets\SampleBroadcastAction2;
 use Tests\Assets\SamplePersistence;
 
 class SocketHandlerTestCase extends TestCase
@@ -31,7 +34,11 @@ class SocketHandlerTestCase extends TestCase
 
         $this->assertInstanceOf(get_class($resultOfAddMethod), $socketRouter);
 
-        $socketRouter->add(new ChannelConnectionAction);
+        $socketRouter->add(new ChannelConnectAction);
+        $socketRouter->add(new AddListenerAction);
+        $socketRouter->add(new SampleBroadcastAction);
+        $socketRouter->add(new SampleBroadcastAction2);
+        $socketRouter->add(new SampleAction);
 
         return [$socketRouter, $sampleAction];
     }

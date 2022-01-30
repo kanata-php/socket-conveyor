@@ -3,12 +3,12 @@
 namespace Conveyor\SocketHandlers;
 
 use Conveyor\Actions\Interfaces\ActionInterface;
-use Conveyor\Actions\Interfaces\PersistenceInterface;
+use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
+use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use Exception;
 use InvalidArgumentException;
-use Conveyor\Exceptions\InvalidActionException;
 use League\Pipeline\Pipeline;
 use League\Pipeline\PipelineBuilder;
 
@@ -18,6 +18,11 @@ class SocketMessageRouter implements SocketHandlerInterface
      * @var array Format: [$fd => $channelName, ...]
      */
     protected array $channels = [];
+
+    /**
+     * @var array Format: [$fd => [$listener1, $listener2, ...]]
+     */
+    protected array $listeners = [];
 
     protected array $pipelineMap = [];
     protected array $handlerMap = [];
@@ -52,14 +57,11 @@ class SocketMessageRouter implements SocketHandlerInterface
         }
 
         $this->channels = $this->persistence->getAllConnections();
+        $this->listeners = $this->persistence->getAllListeners();
     }
 
     public function connectFdToChannel(array $data): void
     {
-        if (!isset($data['channel'])) {
-            throw new Exception('Channel not present!');
-        }
-
         if (null === $this->fd) {
             throw new Exception('FD not specified!');
         }
@@ -69,6 +71,19 @@ class SocketMessageRouter implements SocketHandlerInterface
         $this->channels[$this->fd] = $channel;
 
         $this->persistence->connect($this->fd, $channel);
+    }
+
+    public function connectListenerToFd(array $data): void
+    {
+        if (null === $this->fd) {
+            throw new Exception('FD not specified!');
+        }
+
+        $listener = $data['listener'];
+
+        $this->channels[$this->fd] = $listener;
+
+        $this->persistence->listen($this->fd, $data['listener']);
     }
 
     /**
@@ -90,14 +105,25 @@ class SocketMessageRouter implements SocketHandlerInterface
      * @param array $data
      * @return void
      */
-    public function validateChannelConnectionAction(array $data): void
+    public function validateChannelConnectAction(array $data): void
     {
         if (!isset($data['channel'])) {
             throw new InvalidArgumentException('Channel connection must specify "channel"!');
         }
     }
 
-    public function maybeSetChannel(ActionInterface $action, int $fd): void
+    /**
+     * @param array $data
+     * @return void
+     */
+    public function validateAddListenerAction(array $data): void
+    {
+        if (!isset($data['listener'])) {
+            throw new InvalidArgumentException('Add listener must specify "listener"!');
+        }
+    }
+
+    public function setChannel(ActionInterface $action, int $fd): void
     {
         $channel = $this->matchChannel($fd);
 
@@ -111,9 +137,27 @@ class SocketMessageRouter implements SocketHandlerInterface
         ));
     }
 
+    public function setListeners(ActionInterface $action): void
+    {
+        if (null === $this->persistence) {
+            return;
+        }
+
+        $listenedChannels = $this->persistence->getAllListeners();
+
+        if (count($listenedChannels) === 0) {
+            return;
+        }
+
+        $action->setListeners($listenedChannels);
+    }
+
     public function closeConnections()
     {
-        if (!isset($this->server->connections)) {
+        if (
+            !isset($this->server->connections)
+            || null === $this->persistence
+        ) {
             return;
         }
 
@@ -147,6 +191,7 @@ class SocketMessageRouter implements SocketHandlerInterface
     {
         if (!isset($data['action'])) {
             throw new InvalidArgumentException('Missing action key in data!');
+            throw new InvalidArgumentException('Missing action key in data!');
         }
 
         if (!isset($this->handlerMap[$data['action']])) {
@@ -169,9 +214,11 @@ class SocketMessageRouter implements SocketHandlerInterface
         /** @var Pipeline */
         $pipeline = $this->getPipeline($action->getName());
 
-        $this->maybeSetFd($action, $fd);
-        $this->maybeSetServer($action, $server);
-        $this->maybeSetChannel($action, $fd);
+        $this->setFd($action, $fd);
+        $this->setServer($action, $server);
+        $this->setChannel($action, $fd);
+        $this->setListeners($action, $fd);
+
         $this->closeConnections();
 
         try {
@@ -183,6 +230,7 @@ class SocketMessageRouter implements SocketHandlerInterface
         }
 
         $this->handleChannelConnection();
+        $this->handleActionListeners();
 
         return $action->execute($this->parsedData);
     }
@@ -190,13 +238,26 @@ class SocketMessageRouter implements SocketHandlerInterface
     private function handleChannelConnection()
     {
         if (
-            $this->parsedData['action'] === 'channel-connection'
-            && method_exists($this, 'validateChannelConnectionAction')
+            $this->parsedData['action'] === 'channel-connect'
+            && method_exists($this, 'validateChannelConnectAction')
         ) {
             // @throws InvalidArgumentException
-            $this->validateChannelConnectionAction($this->parsedData);
+            $this->validateChannelConnectAction($this->parsedData);
             // @throws Exception
             $this->connectFdToChannel($this->parsedData);
+        }
+    }
+
+    private function handleActionListeners()
+    {
+        if (
+            $this->parsedData['action'] === 'add-listener'
+            && method_exists($this, 'validateAddListenerAction')
+        ) {
+            // @throws InvalidArgumentException
+            $this->validateAddListenerAction($this->parsedData);
+            // @throws Exception
+            $this->connectListenerToFd($this->parsedData);
         }
     }
 
@@ -328,7 +389,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      *
      * @return void
      */
-    public function maybeSetFd(ActionInterface $action, int $fd): void
+    public function setFd(ActionInterface $action, int $fd): void
     {
         $this->fd = $fd;
         $action->setFd($fd);
@@ -349,7 +410,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      *
      * @return void
      */
-    public function maybeSetServer(ActionInterface $action, $server): void
+    public function setServer(ActionInterface $action, $server): void
     {
         $this->server = $server;
         $action->setServer($server);

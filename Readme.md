@@ -62,9 +62,10 @@ use Conveyor\Actions\Abstractions\AbstractAction;
 class ExampleFirstCreateAction extends AbstractAction
 {
     protected string $name = 'example-first-action';
-    public function execute(array $data)
+    public function execute(array $data): mixed
     {
-        $this->send('Example First Action Executed!');
+        $this->send('Example First Action Executed!', $this->fd);
+        return null;
     }
     public function validateData(array $data) : void {}
 }
@@ -72,9 +73,10 @@ class ExampleFirstCreateAction extends AbstractAction
 class ExampleSecondCreateAction extends AbstractAction
 {
     protected string $name = 'example-second-action';
-    public function execute(array $data)
+    public function execute(array $data): mixed
     {
-        $this->send('Example Second Action Executed!');
+        $this->send('Example Second Action Executed!', $this->fd);
+        return null;
     }
     public function validateData(array $data) : void {}
 }
@@ -112,7 +114,7 @@ Thats it! Now, to communicate in real-time with this service, on your HTML you c
 <script type="text/javascript">
     var websocket = new WebSocket('ws://127.0.0.1:8001');
     websocket.onmessage = function (evt) {
-        document.getElementById('output').innerHTML = evt.data;
+        document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
     };
     function sendMessage(action, message) {
         websocket.send(JSON.stringify({
@@ -133,7 +135,7 @@ The procedure here requires one extra step during the instantiation: the connect
 
 ```json
 {
-    "action": "channel-connection",
+    "action": "channel-connect",
     "channel": "channel-name"
 }
 ```
@@ -173,7 +175,7 @@ $websocket->on('message', function (Server $server, Frame $frame) use ($persiste
     $socketRouter = new SocketMessageRouter($persistenceService);
     
     // This makes it possible for the router to accept connections to channels.
-    $socketRouter->add(new ChannelConnectionAction);
+    $socketRouter->add(new ChannelConnectAction);
     
     $socketRouter->add(new ExampleFirstCreateAction);
     $socketRouter->add(new ExampleSecondCreateAction);
@@ -186,7 +188,7 @@ $websocket->start();
 An example of the `Conveyor\Actions\Interfaces\PersistenceInterface` for the persistence of the channels information is the following. Notice that this example uses `Swoole\Table`, but it can use any external persistent storage behind the interface.
 
 ```php
-use Conveyor\Actions\Interfaces\PersistenceInterface;
+use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
 use Swoole\Table;
 
 class SocketChannelsTable implements PersistenceInterface
@@ -218,6 +220,21 @@ class SocketChannelsTable implements PersistenceInterface
         }
         return $collection;
     }
+    
+    public function listen(int $fd, string $action): void
+    {
+        return; // not needed for this example
+    }
+
+    public function getListener(int $fd): array
+    {
+        return []; // not needed for this example
+    }
+
+    public function getAllListeners(): array
+    {
+        return []; // not needed for this example
+    }
 }
 ```
 
@@ -234,12 +251,12 @@ With these changes to the server, you can have different implementations on the 
     var websocket = new WebSocket('ws://127.0.0.1:8001');
     websocket.onopen = function(e) {
         websocket.send(JSON.stringify({
-            'action': 'channel-connection',
+            'action': 'channel-connect',
             'channel': channel,
         }));
     };
     websocket.onmessage = function (evt) {
-        document.getElementById('output').innerHTML = evt.data;
+        document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
     };
     function sendMessage(action, message) {
         websocket.send(JSON.stringify({
@@ -253,6 +270,147 @@ With these changes to the server, you can have different implementations on the 
 That's all, with this, you would have the following:
 
 ![Example Server with Channels](./imgs/example-server-channels.gif)
+
+### Listening to Actions
+
+Let's see the difference from this example from the previous (Using Channels):
+
+At the `SocketMessageRouter` preparation, we have one extra action being called: ``.
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+use Conveyor\Actions\AddListenerAction;
+use Conveyor\SocketHandlers\SocketMessageRouter;
+
+$persistenceService = new SocketChannelsTable; // this is an example of the PersistenceInterface that needs to be set so the Socket Router knows how to persist its data.
+$websocket = new Server('0.0.0.0', 8001);
+$websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
+    echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
+    $socketRouter = new SocketMessageRouter($persistenceService);
+    $socketRouter->add(new ChannelConnectAction);
+    
+    // this allows listening procedures to happen in the current routing.
+    $socketRouter->add(new AddListenerAction);
+    
+    $socketRouter->add(new ExampleFirstCreateAction);
+    $socketRouter->add(new ExampleSecondCreateAction);
+    $socketRouter($frame->data, $frame->fd, $server);
+});
+
+$websocket->start();
+```
+
+The implementation of the `PersistenceInterface` needs the listening methods implemented:
+
+```php
+use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
+use Swoole\Table;
+
+class SocketChannelsTable implements PersistenceInterface
+{
+    protected Table $table;
+
+    public function __construct()
+    {
+        $this->table = new Table(10024);
+        $this->table->column('channel', Table::TYPE_STRING, 40);
+        
+        // new field
+        $this->table->column('listening', Table::TYPE_STRING, 200);
+        
+        $this->table->create();
+    }
+
+    public function connect(int $fd, string $channel): void
+    {
+        $this->table->set($fd, ['channel' => $channel]);
+    }
+
+    public function disconnect(int $fd): void
+    {
+        $this->table->del($fd);
+    }
+
+    public function getAllConnections(): array
+    {
+        $collection = [];
+        foreach($this->table as $key => $value) {
+            $collection[$key] = $value['channel'];
+        }
+        return $collection;
+    }
+    
+    // new methods:
+    
+    public function listen(int $fd, string $action): void
+    {
+        $listening = $this->table->get($fd, 'listening');
+        $listeningArray = explode(',', $listening);
+        $listeningArray = array_filter($listeningArray);
+        $listeningArray[] = $action;
+        $this->table->set($fd, [
+            'channel' => $this->table->get($fd, 'channel'),
+            'listening' => implode(',', $listeningArray),
+        ]);
+    }
+
+    public function getListener(int $fd): array
+    {
+        return explode(',', $this->table->get($fd, 'listening'));
+    }
+
+    public function getAllListeners(): array
+    {
+        $collection = [];
+        foreach($this->table as $key => $value) {
+            $collection[$key] = explode(',', $value['listening']);
+        }
+        return $collection;
+    }
+}
+```
+
+The client in Javasript then starts listening a specific action by sending a new message at the connection opening:
+
+```html
+<div>
+    <div><button onclick="sendMessage('example-first-action', 'first')">First Action</button></div>
+    <div><button onclick="sendMessage('example-second-action', 'second')">Second Action</button></div>
+    <div id="output"></div>
+</div>
+<script type="text/javascript">
+    var channel = 'actionschannel';
+    var websocket = new WebSocket('ws://127.0.0.1:8001');
+    websocket.onopen = function(e) {
+        websocket.send(JSON.stringify({
+            'action': 'channel-connect',
+            'channel': channel,
+        }));
+        
+        // This starts the process of listening to actions from the current client.
+        websocket.send(JSON.stringify({
+            'action': 'add-listener',
+            'listener': 'example-first-action',
+        }));
+    };
+    websocket.onmessage = function (evt) {
+        document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
+    };
+    function sendMessage(action, message) {
+        websocket.send(JSON.stringify({
+            'action': action,
+            'params': {'content': message}
+        }));
+    }
+</script>
+```
+
+Once those changes are in place, you'll be able to see this (notice that we are in the same channel, but both are listening only to the actions that are subscribed for):
+
+![Example Server with Listeners](./imgs/example-server-listeners.gif)
 
 ## Tests
 
