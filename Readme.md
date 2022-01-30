@@ -288,7 +288,7 @@ That's all, with this, you would have the following:
 
 Let's see the difference from this example from the previous (Using Channels):
 
-At the `SocketMessageRouter` preparation, we have one extra action being called: ``.
+At the `SocketMessageRouter` preparation, we have one extra action being called: `AddListenerAction`.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
