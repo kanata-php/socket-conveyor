@@ -23,5 +23,8 @@
         "test": [
             "vendor/bin/phpunit --testsuite All"
         ]
-    }
+    },
+    "bin": [
+        "start-ws-server"
+    ]
 }

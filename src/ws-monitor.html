@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Service</title>
+    <style>
+        #container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        #controllers {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto;
+        }
+
+        #id:before {
+            content: "Connection id: ";
+        }
+
+        #data {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        #buttons #action-stop-server,
+        #buttons #action-start-server {
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        #buttons #action-stop-server {
+            border: 1px solid #000;
+        }
+
+        #buttons #action-start-server {
+            border: 1px solid #000;
+        }
+
+        #container #data {
+            background-color: red;
+        }
+    </style>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #controllers {
+            margin-top: 10px;
+        }
+
+        #monitor .content {
+            position: relative;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 1px 3px rgba(10, 10, 10, 0.7);
+            overflow: hidden;
+            z-index: 3;
+            background: #141414;
+        }
+
+        #monitor .content:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            box-shadow: inset 0 0 5px 5px rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            background: radial-gradient(ellipse at center, rgba(51, 255, 51, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+            z-index: -1;
+        }
+
+        #monitor .content-scan-area {
+            width: calc(100% - 40px);
+            box-sizing: content-box;
+            height: 20em;
+            margin: 20px;
+            overflow-y: hidden;
+            white-space: pre-wrap;
+            font-family: monospace;
+            color: #3f3;
+            text-shadow: 0 0 1px rgba(51, 255, 51, 0.8);
+        }
+        #monitor .content-scan-area em {
+            color: #141414;
+            background-color: #3f3;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+
+    <div id="controllers">
+        <div id="buttons">
+            <input type="button" id="action-stop-server" name="stop-server" value="Stop" />
+            <input type="button" id="action-start-server" name="start-server" value="Start" />
+        </div>
+    </div>
+
+    <div id="monitor">
+        <div class="content off">
+            <div class="content-scan-area">...</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let ws = new WebSocket('ws://127.0.0.1:8080/');
+
+    let monitor_state = {
+        status: '',
+    };
+
+    ws.onopen = function() {
+        ws.send('hello');
+    };
+
+    ws.onmessage = function(resp) {
+        let data = JSON.parse(resp.data);
+        let change = false;
+
+        if (monitor_state.status !== data['data']) {
+            change = true;
+            monitor_state.status = data['data'];
+        }
+
+        if (change && data['data'] === 'alive') {
+            let output = '<em> WebSocket Server On! </em><br/><br/>';
+            output += 'Connection id: <em>' + data['id'] + '</em>';
+            document.querySelector('#monitor .content .content-scan-area').innerHTML = output;
+        } else if (change && data['data'] === 'dead') {
+            document.querySelector('#monitor .content .content-scan-area').innerHTML = '<em> WebSocket Server Stopped! </em>';
+        }
+    };
+
+    document.getElementById('action-start-server').addEventListener('click', () => {
+        ws.send('start');
+        document.querySelector('#monitor .content .content-scan-area').innerHTML += '<br/><br/>Starting Server...';
+    });
+
+    document.getElementById('action-stop-server').addEventListener('click', () => {
+        ws.send('stop');
+        document.querySelector('#monitor .content .content-scan-area').innerHTML += '<br/><br/>Stopping Server...';
+    });
+</script>
+
+</body>
+</html>

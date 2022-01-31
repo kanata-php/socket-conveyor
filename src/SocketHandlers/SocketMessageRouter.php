@@ -2,6 +2,9 @@
 
 namespace Conveyor\SocketHandlers;
 
+use Conveyor\Actions\AddListenerAction;
+use Conveyor\Actions\BaseAction;
+use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
@@ -32,9 +35,22 @@ class SocketMessageRouter implements SocketHandlerInterface
     protected mixed $parsedData;
 
     public function __construct(
-        protected ?PersistenceInterface $persistence = null
+        protected ?PersistenceInterface $persistence = null,
+        protected array $actions = []
     ) {
+        $this->startActions();
         $this->loadChannels();
+    }
+
+    public function startActions()
+    {
+        $this->add(new ChannelConnectAction);
+        $this->add(new AddListenerAction);
+        $this->add(new BaseAction);
+
+        foreach ($this->actions as $action) {
+            $this->add(new $action);
+        }
     }
 
     /**

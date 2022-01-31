@@ -1,0 +1,35 @@
+<div>
+    <div>
+        <button onClick="sendMessage('example-first-action', 'first')">First Action</button>
+    </div>
+    <div>
+        <button onClick="sendMessage('example-second-action', 'second')">Second Action</button>
+    </div>
+    <div id="output"></div>
+</div>
+<script type="text/javascript">
+    var channel = 'actionschannel';
+    var websocket = new WebSocket('ws://127.0.0.1:8003');
+    websocket.onopen = function (e) {
+        websocket.send(JSON.stringify({
+            'action': 'channel-connect',
+            'channel': channel,
+        }));
+
+        // This starts the process of listening to actions from the current client.
+        websocket.send(JSON.stringify({
+            'action': 'add-listener',
+            'listener': 'example-first-action',
+        }));
+    };
+    websocket.onmessage = function (evt) {
+        document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
+    };
+
+    function sendMessage(action, message) {
+        websocket.send(JSON.stringify({
+            'action': action,
+            'params': {'content': message}
+        }));
+    }
+</script>

@@ -21,9 +21,9 @@
 - [Description](#description)
 - [How it works](#how-it-works)
 - [Usage](#usage)
-    - [Simple Use](#simple-use)
-    - [Using Channels](#using-channels)
-    - [Listening to Actions](#listening-to-actions)
+    - [Case 1: Simple Use](#case-1-simple-use)
+    - [Case 2: Using Channels](#case-2-using-channels)
+    - [Case 3: Listening to Actions](#case-3-listening-to-actions)
 - [Tests](#tests)
 - [Author](#author)
 - [License](#-license)
@@ -45,14 +45,30 @@ This package assumes that the application is receiving socket messages with a so
 
 The main example is set in the `tests ` directory, but here is how it works:
 
-
-![Conveyor Process](./imgs/conveyor-process.png)
-
+<p align="center">
+<img src="./imgs/conveyor-process.png" width="500"/>
+</p>
 
 
 ## Usage
 
-### Simple Use
+Following we have 3 examples:
+
+**Case 1**: The simple case, where a user communicates in real-time fashion but won't broadcast any data to other users.
+
+**Case 2**: The channel case, where a user communicates with other users in real-time using channels.
+
+**Case 3**: The listener case, where a user can participate in a channel but only listen to specific actions. 
+
+The following we have a basic example in [OpenSwoole](https://openswoole.com).
+
+### Case 1: Simple Use
+
+<p align="center">
+<img src="./imgs/conveyor-case-1.jpg" width="500"/>
+</p>
+
+At this example the user will receive back a real-time messages from the server after sending a message.
 
 At this library, there is the presumption that the socket message has a *JSON* format. That said, the following standard is expected to be followed by the messages, so they can match specific *Actions*. The minimum format is this:
 
@@ -63,9 +79,7 @@ At this library, there is the presumption that the socket message has a *JSON* f
 }
 ```
 
-It can be used in any WebSocket library. Following we have a basic example in [OpenSwoole](https://openswoole.com):
-
-First, write some actions:
+First, write some action handlers:
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -140,9 +154,17 @@ Thats it! Now, to communicate in real-time with this service, on your HTML you c
 
 How it looks like:
 
-![Example Server](./imgs/example-server.gif)
+<p align="center">
+<img src="./imgs/example-server.gif" width="500"/>
+</p>
 
-### Using Channels
+### Case 2: Using Channels
+
+<p align="center">
+<img src="./imgs/conveyor-case-2.jpg" width="500"/>
+</p>
+
+At this case it is possible for clients sharing a channel to communicate to each other by broadcasting messages and data through this channel.
 
 The procedure here requires one extra step during the instantiation: the connection action. The connection action will link in a persistent manner the connection FD to a channel.
 
@@ -185,13 +207,10 @@ $persistenceService = new SocketChannelsTable; // this is an example of the Pers
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
-    $socketRouter = new SocketMessageRouter($persistenceService);
-    
-    // This makes it possible for the router to accept connections to channels.
-    $socketRouter->add(new ChannelConnectAction);
-    
-    $socketRouter->add(new ExampleFirstCreateAction);
-    $socketRouter->add(new ExampleSecondCreateAction);
+    $socketRouter = new SocketMessageRouter($persistenceService, [
+        ExampleFirstCreateAction::class,
+        ExampleSecondCreateAction::class,
+    ]);
     $socketRouter($frame->data, $frame->fd, $server);
 });
 
@@ -282,9 +301,17 @@ With these changes to the server, you can have different implementations on the 
 
 That's all, with this, you would have the following:
 
-![Example Server with Channels](./imgs/example-server-channels.gif)
+<p align="center">
+<img src="./imgs/example-server-channels.gif" width="500"/>
+</p>
 
-### Listening to Actions
+### Case 3: Listening to Actions
+
+<p align="center">
+<img src="./imgs/conveyor-case-3.jpg" width="500"/>
+</p>
+
+At this example clients can filter messages that they receive by adding listeners to the ones they want. If there are not listeners registered, they will receive all.
 
 Let's see the difference from this example from the previous (Using Channels):
 
@@ -302,14 +329,10 @@ $persistenceService = new SocketChannelsTable; // this is an example of the Pers
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
-    $socketRouter = new SocketMessageRouter($persistenceService);
-    $socketRouter->add(new ChannelConnectAction);
-    
-    // this allows listening procedures to happen in the current routing.
-    $socketRouter->add(new AddListenerAction);
-    
-    $socketRouter->add(new ExampleFirstCreateAction);
-    $socketRouter->add(new ExampleSecondCreateAction);
+    $socketRouter = new SocketMessageRouter($persistenceService, [
+        ExampleFirstCreateAction::class,
+        ExampleSecondCreateAction::class,
+    ]);
     $socketRouter($frame->data, $frame->fd, $server);
 });
 
@@ -424,6 +447,16 @@ The client in Javasript then starts listening a specific action by sending a new
 Once those changes are in place, you'll be able to see this (notice that we are in the same channel, but both are listening only to the actions that are subscribed for):
 
 ![Example Server with Listeners](./imgs/example-server-listeners.gif)
+
+## Commands
+
+This package comes with a binary command (`./start-ws-server`) to start a managed WebSocket Server. If you don't overwrite the default options, it comes with a sample Server and Client that you can use to build something else or extend and customize. After the installation composer will copy the command to the root of your project's directory.
+
+Once you run the following comment you'll be able to visit `localhost:8080` and see the manager to start or stop the server.
+
+```shell
+php ./start-ws-server
+```
 
 ## Tests
 
