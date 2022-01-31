@@ -41,6 +41,7 @@ This package enables you to work with socket messages with routes strategy. For 
 
 This package assumes that the application is receiving socket messages with a socket server. As an example of how to accomplish that with PHP, you can use the [OpenSwoole](https://openswoole.com/).
 
+This package has a Client NPM package to facilitate the work, go check it here: https://www.npmjs.com/package/socket-conveyor-client.
 
 ## How it works
 
