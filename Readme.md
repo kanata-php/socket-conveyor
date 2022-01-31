@@ -24,6 +24,7 @@
     - [Case 1: Simple Use](#case-1-simple-use)
     - [Case 2: Using Channels](#case-2-using-channels)
     - [Case 3: Listening to Actions](#case-3-listening-to-actions)
+- [Commands](#commands)
 - [Tests](#tests)
 - [Author](#author)
 - [License](#-license)
@@ -450,13 +451,17 @@ Once those changes are in place, you'll be able to see this (notice that we are 
 
 ## Commands
 
-This package comes with a binary command (`./start-ws-server`) to start a managed WebSocket Server. If you don't overwrite the default options, it comes with a sample Server and Client that you can use to build something else or extend and customize. After the installation composer will copy the command to the root of your project's directory.
+This package comes with a binary command (`./start-ws-server`) to start a managed WebSocket Server. If you don't overwrite the default options, it comes with a sample Server and Client that you can use to build something else or extend and customize. After the installation composer will copy the command to the binary's directory inside vendor (`./vendor/bin/start-ws-server`) of your project's directory.
 
 Once you run the following comment you'll be able to visit `localhost:8080` and see the manager to start or stop the server.
 
 ```shell
-php ./start-ws-server
+php ./vendor/bin/start-ws-server
 ```
+
+<p align="center">
+<img src="./imgs/managed-ws-server.png" width="500"/>
+</p>
 
 ## Tests
 
