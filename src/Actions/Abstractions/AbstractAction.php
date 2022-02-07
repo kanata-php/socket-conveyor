@@ -66,7 +66,7 @@ abstract class AbstractAction implements ActionInterface
             foreach (array_keys($this->channels) as $fd) {
                 if (
                     $fd !== $this->fd
-                    && $this->isFdListeningChannel($fd)
+                    && $this->isFdListeningAction($fd)
                 ) {
                     $this->server->push($fd, $data);
                 }
@@ -77,7 +77,7 @@ abstract class AbstractAction implements ActionInterface
         $this->server->push($this->fd, $data);
     }
 
-    protected function isFdListeningChannel(int $fd): bool
+    protected function isFdListeningAction(int $fd): bool
     {
         return !isset($this->listeners[$fd])
             || count($this->listeners[$fd]) === 0
