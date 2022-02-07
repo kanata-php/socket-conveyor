@@ -159,13 +159,13 @@ class SocketMessageRouter implements SocketHandlerInterface
             return;
         }
 
-        $listenedChannels = $this->persistence->getAllListeners();
+        $listenedActions = $this->persistence->getAllListeners();
 
-        if (count($listenedChannels) === 0) {
+        if (count($listenedActions) === 0) {
             return;
         }
 
-        $action->setListeners($listenedChannels);
+        $action->setListeners($listenedActions);
     }
 
     public function closeConnections()
