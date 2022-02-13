@@ -1,17 +1,18 @@
 <?php
 
-namespace Econoroute\Actions;
+namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Econoroute\Models\FdTeamAssociation;
+use Conveyor\Actions\Traits\HasPersistence;
 use Error;
 use Exception;
 use InvalidArgumentException;
 
 class AssocUserToFdAction extends AbstractAction
 {
-    /** @var string */
-    protected $name = 'assoc-user-to-fd-action';
+    use HasPersistence;
+
+    protected string $name = 'assoc-user-to-fd-action';
 
     /**
      * @param array $data
@@ -33,23 +34,7 @@ class AssocUserToFdAction extends AbstractAction
             throw new Exception('FD not specified!');
         }
 
-        // We need to clean any reference to the given FD in case it still exist.
-        try {
-            $association = FdTeamAssociation::getInstance()->where('fd', '=', $this->fd);
-            $association->delete();
-        } catch (Exception|Error $e) {
-            // --
-        }
-
-        // Associate the current team to that FD.
-        try {
-            FdTeamAssociation::getInstance()->createRecord([
-                'fd' => $this->fd,
-                'team_id' => $data['params']['content']['teamId'],
-            ]);
-        } catch (Exception|Error $e) {
-            // --
-        }
+        $this->persistence->assoc($this->fd, $data['params']['content']['userId']);
     }
 
     /**
@@ -60,8 +45,8 @@ class AssocUserToFdAction extends AbstractAction
      */
     public function validateData(array $data) : void
     {
-        if (!isset($data['params']['content']['teamId'])) {
-            throw new InvalidArgumentException('The teamID is required to associate connection to team!');
+        if (!isset($data['params']['content']['userId'])) {
+            throw new InvalidArgumentException('The userId is required to associate connection to team!');
         }
     }
 }

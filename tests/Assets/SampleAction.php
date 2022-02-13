@@ -6,12 +6,9 @@ use Exception;
 use InvalidArgumentException;
 use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\Traits\ProcedureActionTrait;
 
 class SampleAction extends  AbstractAction
 {
-    use ProcedureActionTrait;
-
     protected string $name = 'sample-action';
     protected int $fd;
 

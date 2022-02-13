@@ -8,6 +8,7 @@ class SamplePersistence implements PersistenceInterface
 {
     protected array $data = [];
     protected array $listeners = [];
+    protected array $associations = [];
 
     public function getListener(int $fd): array
     {
@@ -41,5 +42,25 @@ class SamplePersistence implements PersistenceInterface
     public function getAllConnections(): array
     {
         return $this->data;
+    }
+
+    public function assoc(int $fd, int $userId): void
+    {
+        $this->associations[$fd] = $userId;
+    }
+
+    public function disassoc(int $fd): void
+    {
+        unset($this->associations[$fd]);
+    }
+
+    public function getAssoc(int $fd): int
+    {
+        return $this->associations[$fd];
+    }
+
+    public function getAllAssocs(): array
+    {
+        return $this->associations;
     }
 }

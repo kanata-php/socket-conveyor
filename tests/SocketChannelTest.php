@@ -15,7 +15,9 @@ class SocketChannelTest extends SocketHandlerTestCase
 
     public function testCanAddHandlerForAction()
     {
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+        $persistence = new SamplePersistence;
+
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
         
         $this->assertInstanceOf(SocketMessageRouter::class, $socketRouter);
         $this->assertInstanceOf(SampleAction::class, $sampleAction);
@@ -52,15 +54,16 @@ class SocketChannelTest extends SocketHandlerTestCase
             'channel' => $channelName,
         ]);
 
-        $this->checkSingleSend($socketRouter, $server);
-
         ($socketRouter)($connectionData, 1, $server); // connect fd 1
         ($socketRouter)($connectionData, 2, $server); // connect fd 2
         ($socketRouter)($connectionData, 3, $server); // connect fd 3
 
         $this->userKeys = []; // refresh userKeys
 
-        $this->checkBroadcastSend($socketRouter, $server);
+        // need to be refreshed (this is how it is supposed to work - one instantiation per message event)
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
+
+        $this->checkBroadcastSend($socketRouter, $server, $channelName);
     }
 
     public function testCanListenToAction()
@@ -137,10 +140,12 @@ class SocketChannelTest extends SocketHandlerTestCase
 
     private function checkBroadcastSend(
         SocketHandlerInterface $socketRouter,
-        SampleSocketServer $server
+        SampleSocketServer $server,
+        string $channelName
     ) {
         $broadcastData = json_encode([
             'action' => 'sample-broadcast-action',
+            'channel' => $channelName,
         ]);
         ($socketRouter)($broadcastData, 1, $server); // broadcast to fds 1 and 2
 

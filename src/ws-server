@@ -32,8 +32,6 @@ if (!defined('PHPUNIT_COMPOSER_INSTALL')) {
 require PHPUNIT_COMPOSER_INSTALL;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\AddListenerAction;
-use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
@@ -119,6 +117,30 @@ class SocketChannelsTable implements PersistenceInterface
             $collection[$key] = explode(',', $value['listening']);
         }
         return $collection;
+    }
+
+    public function assoc(int $fd, int $userId): void
+    {
+        // TODO: Implement assoc() method.
+        return;
+    }
+
+    public function disassoc(int $fd): void
+    {
+        // TODO: Implement disassoc() method.
+        return;
+    }
+
+    public function getAssoc(int $fd): int
+    {
+        // TODO: Implement getAssoc() method.
+        return 0;
+    }
+
+    public function getAllAssocs(): array
+    {
+        // TODO: Implement getAllAssocs() method.
+        return [];
     }
 }
 

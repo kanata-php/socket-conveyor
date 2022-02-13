@@ -3,11 +3,14 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
+use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use InvalidArgumentException;
 
 class ChannelConnectAction extends AbstractAction
 {
+    use HasPersistence;
+
     protected string $name = 'channel-connect';
 
     public function validateData(array $data): void

@@ -221,7 +221,9 @@ class SocketMessageRouter implements SocketHandlerInterface
 
         $this->setFd($action, $fd);
         $this->setServer($action, $server);
-        $this->setPersistence($action, $this->persistence);
+        if ($this->persistence) {
+            $this->setPersistence($action, $this->persistence);
+        }
 
         $this->setChannel($action, $fd);
         $this->setListeners($action);

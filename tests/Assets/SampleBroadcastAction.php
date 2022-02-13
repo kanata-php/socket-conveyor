@@ -2,15 +2,14 @@
 
 namespace Tests\Assets;
 
+use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use InvalidArgumentException;
-use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\Traits\ProcedureActionTrait;
 
 class SampleBroadcastAction extends AbstractAction
 {
-    use ProcedureActionTrait;
+    use HasPersistence;
 
     protected string $name = 'sample-broadcast-action';
     protected int $fd;

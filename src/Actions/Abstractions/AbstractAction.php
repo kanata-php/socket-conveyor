@@ -14,6 +14,17 @@ abstract class AbstractAction implements ActionInterface
     protected ?array $channels = null;
     protected array $listeners = [];
 
+    /**
+     * @param array $data
+     * @return mixed
+     * @throws Exception
+     */
+    public function __invoke(array $data): mixed
+    {
+        $this->validateData($data);
+        return $this->execute($data);
+    }
+
     public function setServer(mixed $server): void
     {
         $this->server = $server;
