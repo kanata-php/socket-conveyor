@@ -24,6 +24,7 @@
     - [Case 1: Simple Use](#case-1-simple-use)
     - [Case 2: Using Channels](#case-2-using-channels)
     - [Case 3: Listening to Actions](#case-3-listening-to-actions)
+    - [Case 4: Associate User with Connection](#case-4-associate-user-with-connection)
 - [Commands](#commands)
 - [Tests](#tests)
 - [Author](#author)
@@ -54,7 +55,7 @@ The main example is set in the `tests ` directory, but here is how it works:
 
 ## Usage
 
-Following we have 3 examples:
+Following we have 4 examples:
 
 **Case 1**: The simple case, where a user communicates in real-time fashion but won't broadcast any data to other users.
 
@@ -63,6 +64,8 @@ Following we have 3 examples:
 **Case 3**: The listener case, where a user can participate in a channel but only listen to specific actions. 
 
 The following we have a basic example in [OpenSwoole](https://openswoole.com).
+
+**Case 4**: Associate an application user id with a connection (fd).
 
 ### Case 1: Simple Use
 
@@ -449,6 +452,24 @@ The client in Javasript then starts listening a specific action by sending a new
 Once those changes are in place, you'll be able to see this (notice that we are in the same channel, but both are listening only to the actions that are subscribed for):
 
 ![Example Server with Listeners](./imgs/example-server-listeners.gif)
+
+
+### Case 4: Associate User with Connection
+
+This functionality is for applications that need to have associations between connections (fd) and users. This is useful when you need to execute actions that need to know the context and decide upon that. One good example is a server that serves at the same time multiple users, but won't answer users the same way depending on the procedure executed. That way, you can have actions that will process some data and broadcast to connections only what each connection needs to receive for that procedure.
+
+For this functionality, you only need one extra action to be dispatched:
+
+```javascript
+websocket.send(JSON.stringify({
+    'action': 'assoc-user-to-fd-action',
+    'userId': 1,
+}));
+```
+
+This code will associate the user "1" with the current connection.
+
+> **Important:** This functionality might need some more treatment so we know for sure that a given user owns a given connection. That can be done by the single key procedure with the application running Socket Conveyor, where you generate one key for a user via an HTTP request, and use that key in the header to be authorized by the actions that need such context. 
 
 ## Commands
 
