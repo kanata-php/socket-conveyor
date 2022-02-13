@@ -29,7 +29,7 @@
     function sendMessage(action, message) {
         websocket.send(JSON.stringify({
             'action': action,
-            'params': {'content': message}
+            'data': message,
         }));
     }
 </script>

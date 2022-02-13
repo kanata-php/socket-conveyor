@@ -34,7 +34,7 @@ class AssocUserToFdAction extends AbstractAction
             throw new Exception('FD not specified!');
         }
 
-        $this->persistence->assoc($this->fd, $data['params']['content']['userId']);
+        $this->persistence->assoc($this->fd, $data['userId']);
     }
 
     /**
@@ -45,7 +45,7 @@ class AssocUserToFdAction extends AbstractAction
      */
     public function validateData(array $data) : void
     {
-        if (!isset($data['params']['content']['userId'])) {
+        if (!isset($data['userId'])) {
             throw new InvalidArgumentException('The userId is required to associate connection to team!');
         }
     }

@@ -49,6 +49,8 @@ class SocketChannelTest extends SocketHandlerTestCase
 
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
 
+        $this->checkSingleSend($socketRouter, $server);
+
         $connectionData = json_encode([
             'action' => 'channel-connect',
             'channel' => $channelName,

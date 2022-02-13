@@ -85,9 +85,9 @@ interface PersistenceInterface
      * Get user-id for a fd.
      *
      * @param int $fd
-     * @return int
+     * @return ?int
      */
-    public function getAssoc(int $fd): int;
+    public function getAssoc(int $fd): ?int;
 
     /**
      * Retrieve all associations.

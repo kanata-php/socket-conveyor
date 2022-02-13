@@ -54,8 +54,12 @@ class SamplePersistence implements PersistenceInterface
         unset($this->associations[$fd]);
     }
 
-    public function getAssoc(int $fd): int
+    public function getAssoc(int $fd): ?int
     {
+        if (!isset($this->associations[$fd])) {
+            return null;
+        }
+
         return $this->associations[$fd];
     }
 

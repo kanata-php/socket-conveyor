@@ -16,7 +16,7 @@ class BaseAction extends AbstractAction
 
     public function execute(array $data): mixed
     {
-        $this->send($data['params']['content'], $this->fd);
+        $this->send($data['data'], $this->fd);
         return null;
     }
 }

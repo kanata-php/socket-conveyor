@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Conveyor\Actions\AddListenerAction;
+use Conveyor\Actions\AssocUserToFdAction;
 use Conveyor\Actions\ChannelConnectAction;
 use Tests\Assets\SampleAction;
 use PHPUnit\Framework\TestCase;
@@ -36,6 +37,7 @@ class SocketHandlerTestCase extends TestCase
 
         $socketRouter->add(new ChannelConnectAction);
         $socketRouter->add(new AddListenerAction);
+        $socketRouter->add(new AssocUserToFdAction);
         $socketRouter->add(new SampleBroadcastAction);
         $socketRouter->add(new SampleBroadcastAction2);
         $socketRouter->add(new SampleAction);
