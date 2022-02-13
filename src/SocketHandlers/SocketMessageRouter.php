@@ -121,17 +121,6 @@ class SocketMessageRouter implements SocketHandlerInterface
      * @param array $data
      * @return void
      */
-    public function validateChannelConnectAction(array $data): void
-    {
-        if (!isset($data['channel'])) {
-            throw new InvalidArgumentException('Channel connection must specify "channel"!');
-        }
-    }
-
-    /**
-     * @param array $data
-     * @return void
-     */
     public function validateAddListenerAction(array $data): void
     {
         if (!isset($data['listener'])) {
@@ -232,8 +221,10 @@ class SocketMessageRouter implements SocketHandlerInterface
 
         $this->setFd($action, $fd);
         $this->setServer($action, $server);
+        $this->setPersistence($action, $this->persistence);
+
         $this->setChannel($action, $fd);
-        $this->setListeners($action, $fd);
+        $this->setListeners($action);
 
         $this->closeConnections();
 
@@ -257,8 +248,6 @@ class SocketMessageRouter implements SocketHandlerInterface
             $this->parsedData['action'] === 'channel-connect'
             && method_exists($this, 'validateChannelConnectAction')
         ) {
-            // @throws InvalidArgumentException
-            $this->validateChannelConnectAction($this->parsedData);
             // @throws Exception
             $this->connectFdToChannel($this->parsedData);
         }
@@ -430,6 +419,20 @@ class SocketMessageRouter implements SocketHandlerInterface
     {
         $this->server = $server;
         $action->setServer($server);
+    }
+
+    /**
+     * Set persistence to the action instance.
+     *
+     * @param ActionInterface $action
+     * @param PersistenceInterface $persistence
+     * @return void
+     */
+    public function setPersistence(ActionInterface $action, PersistenceInterface $persistence): void
+    {
+        if (method_exists($action, 'setPersistence')) {
+            $action->setPersistence($persistence);
+        }
     }
 
     /**
