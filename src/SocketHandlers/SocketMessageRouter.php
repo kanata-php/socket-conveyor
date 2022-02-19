@@ -2,6 +2,7 @@
 
 namespace Conveyor\SocketHandlers;
 
+use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\Actions\BaseAction;
 use Conveyor\Actions\ChannelConnectAction;
@@ -42,14 +43,39 @@ class SocketMessageRouter implements SocketHandlerInterface
         $this->loadChannels();
     }
 
-    public function startActions()
+    /**
+     * @return void
+     * @throws Exception
+     */
+    protected function startActions()
     {
         $this->add(new ChannelConnectAction);
         $this->add(new AddListenerAction);
         $this->add(new BaseAction);
 
         foreach ($this->actions as $action) {
-            $this->add(new $action);
+            if (is_string($action)) {
+                $this->add(new $action);
+                continue;
+            } else if (is_array($action)) {
+                $this->startActionWithMiddlewares($action);
+                continue;
+            }
+            throw new Exception('Not valid action: ' . json_encode($action));
+        }
+    }
+
+    /**
+     * @param array $action
+     * @return void
+     * @throws Exception
+     */
+    protected function startActionWithMiddlewares(array $action)
+    {
+        $actionInstance = new $action[0];
+        $this->add($actionInstance);
+        for ($i = 1; $i < count($action); $i++) {
+            $this->middleware($actionInstance->getName(), $action[$i]);
         }
     }
 
@@ -66,7 +92,7 @@ class SocketMessageRouter implements SocketHandlerInterface
     /**
      * @return void
      */
-    public function loadChannels(): void
+    protected function loadChannels(): void
     {
         if (null === $this->persistence) {
             return;

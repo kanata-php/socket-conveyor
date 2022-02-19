@@ -25,6 +25,7 @@
     - [Case 2: Using Channels](#case-2-using-channels)
     - [Case 3: Listening to Actions](#case-3-listening-to-actions)
     - [Case 4: Associate User with Connection](#case-4-associate-user-with-connection)
+    - [Case 5: Using Middlewares](#case-5-using-middlewares)
 - [Commands](#commands)
 - [Tests](#tests)
 - [Author](#author)
@@ -469,7 +470,54 @@ websocket.send(JSON.stringify({
 
 This code will associate the user "1" with the current connection.
 
-> **Important:** This functionality might need some more treatment so we know for sure that a given user owns a given connection. That can be done by the single key procedure with the application running Socket Conveyor, where you generate one key for a user via an HTTP request, and use that key in the header to be authorized by the actions that need such context. 
+> **Important:** This functionality might need some more treatment, so we know for sure that a given user owns a given connection. That can be done by the single key procedure with the application running Socket Conveyor, where you generate one key for a user via an HTTP request, and use that key in the header to be authorized by the actions that need such context. 
+
+### Case 5: Using Middlewares
+
+The usage of middlewares might help to secure your websocket server, making sure specific validations and conditions are met in order to proceed. At Socket Conveyor middlewares are attached to actions at the socket router's instance. The way to do that is as follows:
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+use Conveyor\SocketHandlers\SocketMessageRouter;
+use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
+
+class Middleware1 extends MiddlewareInterface
+{
+    public function __invoke($payload)
+    {
+        // do somethign here
+        return $payload;
+    }
+}
+
+$persistenceService = new SocketChannelsTable; // this is an example of the PersistenceInterface that needs to be set so the Socket Router knows how to persist its data.
+$websocket = new Server('0.0.0.0', 8001);
+$websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
+    echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
+    
+    // adding with the constructor
+    $socketRouter = new SocketMessageRouter($persistenceService, [
+        ActionWithoutMiddleware::class,
+        [ActionWithMiddleware::class, new Middleware1, function($payload) {return $payload;}],
+    ]);
+    
+    // adding after the instance is set
+    $action = new ActionWithMiddleware2;
+    $socketRouter->add($action);
+    $socketRouter->middleware($action->getName(), new Middleware1);
+    $socketRouter->middleware($action->getName(), function($payload) {return $payload;});
+    
+    $socketRouter->middleware();
+    $socketRouter($frame->data, $frame->fd, $server);
+});
+
+$websocket->start();
+```
+
+Middlewares at Socket Conveyor are callables. Any callable is accepted. This is reason you can add functions as middlewares. Even though the system is pretty flexible on that side, we strongly suggest you to implement the interface `Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface`.
 
 ## Commands
 

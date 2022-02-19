@@ -74,12 +74,12 @@ interface PersistenceInterface
     public function assoc(int $fd, int $userId): void;
 
     /**
-     * Disassociate a user from a fd.
+     * Disassociate a user from a userId.
      *
-     * @param int $fd
+     * @param int $userId
      * @return void
      */
-    public function disassoc(int $fd): void;
+    public function disassoc(int $userId): void;
 
     /**
      * Get user-id for a fd.

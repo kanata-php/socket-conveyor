@@ -2,8 +2,10 @@
 
 namespace Tests;
 
+use Error;
 use stdClass;
 use Exception;
+use Tests\Assets\NotValidMiddleware;
 use Tests\Assets\SampleAction;
 use Tests\Assets\SampleMiddleware;
 use Tests\Assets\SampleMiddleware2;
@@ -76,6 +78,40 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         ]);
         $result = ($socketRouter)($data, 1, new stdClass);
         $this->assertTrue($result);
+    }
+
+    public function testCantAddInvalidMiddleware()
+    {
+        $this->expectError(Error::class);
+
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+
+        $socketRouter->middleware($sampleAction->getName(), new NotValidMiddleware);
+    }
+
+    public function testCanAddMiddlewareThroughConstructor()
+    {
+        $sampleAction = new SampleAction;
+        $socketRouter = new SocketMessageRouter(null, [
+            [SampleAction::class, new SampleMiddleware],
+            [SampleAction::class, function(){}],
+        ]);
+
+        $data = json_encode([
+            'action' => $sampleAction->getName(),
+            'token'  => 'valid-token',
+        ]);
+        $result = ($socketRouter)($data, 1, new stdClass);
+        $this->assertTrue($result);
+    }
+
+    public function testCantAddInvalidMiddlewareThroughConstructor()
+    {
+        $this->expectError(Error::class);
+
+        new SocketMessageRouter(null, [
+            [SampleAction::class, new NotValidMiddleware]
+        ]);
     }
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndExecute()

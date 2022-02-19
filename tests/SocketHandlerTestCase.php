@@ -30,7 +30,7 @@ class SocketHandlerTestCase extends TestCase
     {
         $sampleAction = $this->getSampleAction();
         
-        $socketRouter = new SocketMessageRouter($persistence);
+        $socketRouter = $this->getCleanSocketMessageRouter($persistence);
         $resultOfAddMethod = $socketRouter->add($sampleAction);
 
         $this->assertInstanceOf(get_class($resultOfAddMethod), $socketRouter);
@@ -43,5 +43,10 @@ class SocketHandlerTestCase extends TestCase
         $socketRouter->add(new SampleAction);
 
         return [$socketRouter, $sampleAction];
+    }
+
+    protected function getCleanSocketMessageRouter(?SamplePersistence $persistence = null): SocketMessageRouter
+    {
+        return new SocketMessageRouter($persistence);
     }
 }
