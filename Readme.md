@@ -71,7 +71,7 @@ The following we have a basic example in [OpenSwoole](https://openswoole.com).
 ### Case 1: Simple Use
 
 <p align="center">
-<img src="./imgs/conveyor-case-1.jpg" width="500"/>
+<img src="./imgs/conveyor-case-1.png" width="500"/>
 </p>
 
 At this example the user will receive back a real-time messages from the server after sending a message.
@@ -167,7 +167,7 @@ How it looks like:
 ### Case 2: Using Channels
 
 <p align="center">
-<img src="./imgs/conveyor-case-2.jpg" width="500"/>
+<img src="./imgs/conveyor-case-2.png" width="500"/>
 </p>
 
 At this case it is possible for clients sharing a channel to communicate to each other by broadcasting messages and data through this channel.
@@ -314,7 +314,7 @@ That's all, with this, you would have the following:
 ### Case 3: Listening to Actions
 
 <p align="center">
-<img src="./imgs/conveyor-case-3.jpg" width="500"/>
+<img src="./imgs/conveyor-case-3.png" width="500"/>
 </p>
 
 At this example clients can filter messages that they receive by adding listeners to the ones they want. If there are not listeners registered, they will receive all.
