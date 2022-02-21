@@ -168,6 +168,15 @@ class SocketMessageRouter implements SocketHandlerInterface
         ));
     }
 
+    public function cleanListeners(int $fd): void
+    {
+        if (null === $this->persistence) {
+            return;
+        }
+
+        $this->persistence->stopListenersForFd($fd);
+    }
+
     public function setListeners(ActionInterface $action): void
     {
         if (null === $this->persistence) {
@@ -239,6 +248,8 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     public function handle(string $data, int $fd, mixed $server)
     {
+        $this->cleanListeners($fd);
+
         /** @var ActionInterface */
         $action = $this->parseData($data);
 

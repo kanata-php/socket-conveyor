@@ -29,6 +29,20 @@ class SamplePersistence implements PersistenceInterface
         return $this->listeners;
     }
 
+    public function stopListener(int $fd, string $action): bool
+    {
+        $this->listeners[$fd] = array_filter($this->listeners[$fd], function($item) use ($action) {
+            return $item !== $action;
+        });
+        return true;
+    }
+
+    public function stopListenersForFd(int $fd): bool
+    {
+        unset($this->listeners[$fd]);
+        return true;
+    }
+
     public function connect(int $fd, string $channel): void
     {
         $this->data[$fd] = $channel;

@@ -60,6 +60,23 @@ interface PersistenceInterface
      */
     public function getAllListeners(): array;
 
+    /**
+     * Stop listener.
+     *
+     * @param int $fd
+     * @param string $action
+     * @return bool
+     */
+    public function stopListener(int $fd, string $action): bool;
+
+    /**
+     * Stop listeners for fd.
+     *
+     * @param int $fd
+     * @return bool
+     */
+    public function stopListenersForFd(int $fd): bool;
+
     // -----------------------------------------------------
     // User Associations
     // -----------------------------------------------------
