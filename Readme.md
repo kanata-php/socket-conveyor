@@ -62,9 +62,7 @@ Following we have 4 examples:
 
 **Case 2**: The channel case, where a user communicates with other users in real-time using channels.
 
-**Case 3**: The listener case, where a user can participate in a channel but only listen to specific actions. 
-
-The following we have a basic example in [OpenSwoole](https://openswoole.com).
+**Case 3**: The listener case, where a user can participate in a channel but only listen to specific actions.
 
 **Case 4**: Associate an application user id with a connection (fd).
 
@@ -215,7 +213,6 @@ $websocket->on('message', function (Server $server, Frame $frame) use ($persiste
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
     $socketRouter = new SocketMessageRouter($persistenceService, [
         ExampleFirstCreateAction::class,
-        ExampleSecondCreateAction::class,
     ]);
     $socketRouter($frame->data, $frame->fd, $server);
 });
@@ -288,6 +285,7 @@ With these changes to the server, you can have different implementations on the 
     var channel = 'actionschannel';
     var websocket = new WebSocket('ws://127.0.0.1:8001');
     websocket.onopen = function(e) {
+        // connect to a channel
         websocket.send(JSON.stringify({
             'action': 'channel-connect',
             'channel': channel,
@@ -299,7 +297,7 @@ With these changes to the server, you can have different implementations on the 
     function sendMessage(action, message) {
         websocket.send(JSON.stringify({
             'action': action,
-            'params': {'content': message}
+            'data': message
         }));
     }
 </script>

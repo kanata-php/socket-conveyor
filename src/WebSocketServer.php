@@ -32,7 +32,7 @@ class WebSocketServer
     const SERVER_ALIVE = 'alive';
 
     /**
-     * Key for http status.
+     * Key for ws status.
      *
      * @var string
      */
