@@ -179,26 +179,31 @@ The procedure here requires one extra step during the instantiation: the connect
 }
 ```
 
-The Actions can be the same as the simple example. The Server initialization (remembering that this example is for OpenSwoole) will be a little different:
+The way to use it with vanilla JS is as follows:
 
-To begin with, the actions, when calling for the method "send" will consider the third parameter to point out that they are sending a message to the entire channel, e.g.:
-
-```php
-class ExampleFirstCreateAction extends AbstractAction
-{
-    protected string $name = 'example-first-action';
-    public function execute(array $data): mixed
-    {
-        // This method will broadcast message to the entire channel
-        // if we set the third parameter (toChannel) to true.
-        $this->send('Example First Action Executed!', null, true);
-        return null;
-    }
-    public function validateData(array $data) : void {}
-}
+```html
+<script>
+    websocket.send(JSON.stringify({
+        'action': 'channel-connect',
+        'channel': 'my-channel',
+    }));
+</script>
 ```
 
-The Socker Router instantiation also suffers a small change, so 
+To start sending messages to channels, you do this:
+
+```html
+<script>
+    websocket.send(JSON.stringify({
+        'action': 'channel-action',
+        'data': 'my-message',
+    }));
+</script>
+```
+
+> **Important:** Notice that the `action` field is required and must have `channel-action` as value for your message to be sent to the channel. The field `data` must be named as such, and the content must be a string. 
+
+The Socket Router instantiation also suffers a small change: 
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -211,9 +216,7 @@ $persistenceService = new SocketChannelsTable; // this is an example of the Pers
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
-    $socketRouter = new SocketMessageRouter($persistenceService, [
-        ExampleFirstCreateAction::class,
-    ]);
+    $socketRouter = new SocketMessageRouter($persistenceService);
     $socketRouter($frame->data, $frame->fd, $server);
 });
 
@@ -277,8 +280,7 @@ With these changes to the server, you can have different implementations on the 
 
 ```html
 <div>
-    <div><button onclick="sendMessage('example-first-action', 'first')">First Action</button></div>
-    <div><button onclick="sendMessage('example-second-action', 'second')">Second Action</button></div>
+    <div><button onclick="sendMessage('Hello')">Say Hello</button></div>
     <div id="output"></div>
 </div>
 <script type="text/javascript">
@@ -294,9 +296,9 @@ With these changes to the server, you can have different implementations on the 
     websocket.onmessage = function (evt) {
         document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
     };
-    function sendMessage(action, message) {
+    function sendMessage(message) {
         websocket.send(JSON.stringify({
-            'action': action,
+            'action': 'channel-action',
             'data': message
         }));
     }
@@ -308,6 +310,22 @@ That's all, with this, you would have the following:
 <p align="center">
 <img src="./imgs/example-server-channels.gif" width="500"/>
 </p>
+
+> You can also send messages to channels from the server, for that, you invoke this at your custom Action class:
+> ```php
+> class SendMessageToChannelAction extends AbstractAction
+> {
+>     protected string $name = 'example-action';
+>     public function execute(array $data): mixed
+>     {
+>         // This method will broadcast message to the entire channel
+>         // if we set the third parameter ($toChannel) to true.
+>         $this->send('Example Action Executed!', null, true);
+>         return null;
+>     }
+>     public function validateData(array $data) : void {}
+> }
+> ```
 
 ### Case 3: Listening to Actions
 
