@@ -40,6 +40,17 @@ abstract class AbstractAction implements ActionInterface
         $this->channels = $channels;
     }
 
+    public function getCurrentChannel(): ?string
+    {
+        foreach ($this->channels as $fd => $channel) {
+            if ($fd === $this->fd) {
+                return $channel;
+            }
+        }
+
+        return null;
+    }
+
     public function setListeners(array $listeners): void
     {
         $this->listeners = array_map(fn($item) => array_filter($item), $listeners);
