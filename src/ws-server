@@ -142,6 +142,16 @@ class SocketChannelsTable implements PersistenceInterface
         // TODO: Implement getAllAssocs() method.
         return [];
     }
+
+    public function stopListener(int $fd, string $action): bool
+    {
+        // TODO: Implement stopListener() method.
+    }
+
+    public function stopListenersForFd(int $fd): bool
+    {
+        // TODO: Implement stopListenersForFd() method.
+    }
 }
 
 $persistenceService = new SocketChannelsTable;
