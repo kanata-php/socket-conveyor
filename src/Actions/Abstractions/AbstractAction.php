@@ -2,16 +2,18 @@
 
 namespace Conveyor\Actions\Abstractions;
 
+use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use Conveyor\Actions\Interfaces\ActionInterface;
 
 abstract class AbstractAction implements ActionInterface
 {
+    use HasPersistence;
+
     protected array $data;
     protected int $fd;
     protected mixed $server = null;
     protected ?string $channel = null;
-    protected ?array $channels = null;
     protected array $listeners = [];
 
     /**
@@ -35,25 +37,15 @@ abstract class AbstractAction implements ActionInterface
         $this->fd = $fd;
     }
 
-    public function setChannels(array $channels): void
-    {
-        $this->channels = $channels;
-    }
-
     public function getCurrentChannel(): ?string
     {
-        foreach ($this->channels as $fd => $channel) {
+        foreach ($this->channelPersistence->getAllConnections() as $fd => $channel) {
             if ($fd === $this->fd) {
                 return $channel;
             }
         }
 
         return null;
-    }
-
-    public function setListeners(array $listeners): void
-    {
-        $this->listeners = array_map(fn($item) => array_filter($item), $listeners);
     }
 
     public function getName() : string
@@ -74,6 +66,8 @@ abstract class AbstractAction implements ActionInterface
             throw new Exception('Current Server instance doesn\'t have "send" method.');
         }
 
+        $received = []; // this is meant to prevent duplicated messages to be sent
+
         $data = json_encode([
             'action' => $this->getName(),
             'data' => $data,
@@ -84,26 +78,36 @@ abstract class AbstractAction implements ActionInterface
             return;
         }
 
-        if ($toChannel && null !== $this->channels) {
-            foreach (array_keys($this->channels) as $fd) {
-                if (
-                    $fd !== $this->fd
-                    && $this->isFdListeningAction($fd)
-                ) {
-                    $this->server->push($fd, $data);
+        // listeners
+        if (null !== $this->listenerPersistence) {
+            foreach ($this->listenerPersistence->getAllListeners() as $fd => $listened) {
+                if ($fd === $this->fd || !in_array($this->getName(), $listened)) {
+                    continue;
                 }
+                $this->server->push($fd, $data);
+                $received[] = $fd;
             }
-            return;
         }
 
-        $this->server->push($this->fd, $data);
-    }
+        if ($toChannel && null !== $this->channelPersistence) {
+            $connections = $this->channelPersistence->getAllConnections();
+            $currentChannel = isset($connections[$this->fd]) ? $connections[$this->fd] : null;
+            foreach ($connections as $fd => $channel) {
+                if (
+                    $fd === $this->fd
+                    || in_array($fd, $received)
+                    || $channel !== $currentChannel
+                ) {
+                    continue;
+                }
+                $this->server->push($fd, $data);
+                $received[] = $fd;
+            }
+        }
 
-    protected function isFdListeningAction(int $fd): bool
-    {
-        return !isset($this->listeners[$fd])
-            || count($this->listeners[$fd]) === 0
-            || in_array($this->getName(), $this->listeners[$fd]);
+        if (!$toChannel && !in_array($this->fd, $received)) {
+            $this->server->push($this->fd, $data);
+        }
     }
 
     /**

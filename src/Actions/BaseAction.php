@@ -7,7 +7,9 @@ use Exception;
 
 class BaseAction extends AbstractAction
 {
-    protected string $name = 'base-action';
+    const ACTION_NAME = 'base-action';
+
+    protected string $name = self::ACTION_NAME;
 
     public function validateData(array $data): void
     {

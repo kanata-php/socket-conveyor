@@ -1,15 +1,14 @@
 <?php
 
-namespace Tests\Assets;
+namespace Conveyor\Actions;
 
 use Exception;
 use InvalidArgumentException;
-use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
 
-class SampleAction extends  AbstractAction
+class BroadcastAction extends AbstractAction
 {
-    const ACTION_NAME = 'sample-action';
+    const ACTION_NAME = 'broadcast-action';
 
     protected string $name = self::ACTION_NAME;
     protected int $fd;
@@ -21,6 +20,7 @@ class SampleAction extends  AbstractAction
      */
     public function execute(array $data): mixed
     {
+        $this->send('message-back', null, true);
         return true;
     }
 

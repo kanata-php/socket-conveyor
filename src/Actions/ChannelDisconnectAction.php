@@ -3,14 +3,13 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 
 class ChannelDisconnectAction extends AbstractAction
 {
-    use HasPersistence;
-    
-    protected string $name = 'channel-disconnect';
+    const ACTION_NAME = 'channel-disconnect';
+
+    protected string $name = self::ACTION_NAME;
 
     public function validateData(array $data): void
     {

@@ -3,16 +3,14 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\Traits\HasPersistence;
-use Error;
 use Exception;
 use InvalidArgumentException;
 
 class AssocUserToFdAction extends AbstractAction
 {
-    use HasPersistence;
+    const ACTION_NAME = 'assoc-user-to-fd-action';
 
-    protected string $name = 'assoc-user-to-fd-action';
+    protected string $name = self::ACTION_NAME;
 
     /**
      * @param array $data
@@ -24,17 +22,24 @@ class AssocUserToFdAction extends AbstractAction
      */
     public function execute(array $data): mixed
     {
-        $this->connectTeamToFd($data);
+        $this->connectUserToFd($data);
         return null;
     }
 
-    public function connectTeamToFd(array $data): void
+    public function connectUserToFd(array $data): void
     {
         if (null === $this->fd) {
             throw new Exception('FD not specified!');
         }
 
-        $this->persistence->assoc($this->fd, $data['userId']);
+        // TODO: this will be removed
+        if (null !== $this->persistence) {
+            $this->persistence->assoc($this->fd, $data['userId']);
+        }
+
+        if (null !== $this->userAssocPersistence) {
+            $this->userAssocPersistence->assoc($this->fd, $data['userId']);
+        }
     }
 
     /**

@@ -9,5 +9,4 @@ interface ActionInterface
     public function getName() : string;
     public function setFd(int $fd): void;
     public function setServer(mixed $server): void;
-    public function setChannels(array $channels): void;
 }

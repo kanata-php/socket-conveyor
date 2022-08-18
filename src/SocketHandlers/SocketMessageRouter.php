@@ -2,14 +2,14 @@
 
 namespace Conveyor\SocketHandlers;
 
-use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\Actions\BaseAction;
 use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\Interfaces\ActionInterface;
+use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
-use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
+use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use Exception;
 use InvalidArgumentException;
@@ -18,15 +18,7 @@ use League\Pipeline\PipelineBuilder;
 
 class SocketMessageRouter implements SocketHandlerInterface
 {
-    /**
-     * @var array Format: [$fd => $channelName, ...]
-     */
-    protected array $channels = [];
-
-    /**
-     * @var array Format: [$fd => [$listener1, $listener2, ...]]
-     */
-    protected array $listeners = [];
+    use HasPersistence;
 
     protected array $pipelineMap = [];
     protected array $handlerMap = [];
@@ -35,12 +27,33 @@ class SocketMessageRouter implements SocketHandlerInterface
     protected ?int $fd = null;
     protected mixed $parsedData;
 
+    /**
+     * @param null|array|GenericPersistenceInterface $persistence
+     * @param array $actions
+     * @throws Exception
+     */
     public function __construct(
-        protected ?PersistenceInterface $persistence = null,
+        null|array|GenericPersistenceInterface $persistence = null,
         protected array $actions = []
     ) {
+        $this->preparePersistence($persistence);
         $this->startActions();
-        $this->loadChannels();
+    }
+
+    private function preparePersistence(null|array|GenericPersistenceInterface $persistence)
+    {
+        if (null === $persistence) {
+            return;
+        }
+
+        if (!is_array($persistence)) {
+            $this->setPersistence($persistence);
+            return;
+        }
+
+        foreach ($persistence as $item) {
+            $this->setPersistence($item);
+        }
     }
 
     /**
@@ -89,135 +102,59 @@ class SocketMessageRouter implements SocketHandlerInterface
         return $this->handle($data, $fd, $server);
     }
 
-    /**
-     * @return void
-     */
-    protected function loadChannels(): void
-    {
-        if (null === $this->persistence) {
-            return;
-        }
-
-        $this->channels = $this->persistence->getAllConnections();
-        $this->listeners = $this->persistence->getAllListeners();
-    }
-
-    public function connectFdToChannel(array $data): void
-    {
-        if (null === $this->fd) {
-            throw new Exception('FD not specified!');
-        }
-
-        $channel = $data['channel'];
-
-        $this->channels[$this->fd] = $channel;
-
-        $this->persistence->connect($this->fd, $channel);
-    }
-
-    public function connectListenerToFd(array $data): void
-    {
-        if (null === $this->fd) {
-            throw new Exception('FD not specified!');
-        }
-
-        $listener = $data['listener'];
-
-        $this->channels[$this->fd] = $listener;
-
-        $this->persistence->listen($this->fd, $data['listener']);
-    }
-
-    /**
-     * Find channel for current FD.
-     *
-     * @param int $fd
-     * @return string|null
-     */
-    public function matchChannel(int $fd): string|null
-    {
-        if (!isset($this->channels[$fd])) {
-            return null;
-        }
-
-        return $this->channels[$fd];
-    }
-
-    /**
-     * @param array $data
-     * @return void
-     */
-    public function validateAddListenerAction(array $data): void
-    {
-        if (!isset($data['listener'])) {
-            throw new InvalidArgumentException('Add listener must specify "listener"!');
-        }
-    }
-
-    public function setChannel(ActionInterface $action, int $fd): void
-    {
-        $channel = $this->matchChannel($fd);
-
-        if (null === $channel) {
-            return;
-        }
-
-        $action->setChannels(array_filter(
-            $this->channels,
-            fn($item) => $item === $channel
-        ));
-    }
-
     public function cleanListeners(int $fd): void
     {
-        if (null === $this->persistence) {
-            return;
+        if (null !== $this->persistence) {
+            $this->persistence->stopListenersForFd($fd);
+        } elseif (null !== $this->listenerPersistence) {
+            $this->listenerPersistence->stopListenersForFd($fd);
         }
-
-        $this->persistence->stopListenersForFd($fd);
     }
 
-    public function setListeners(ActionInterface $action): void
-    {
-        if (null === $this->persistence) {
-            return;
-        }
-
-        $listenedActions = $this->persistence->getAllListeners();
-
-        if (count($listenedActions) === 0) {
-            return;
-        }
-
-        $action->setListeners($listenedActions);
-    }
-
+    /**
+     * This is a health check for connections to channels. Here we remove not necessary connections.
+     *
+     * @return void
+     */
     public function closeConnections()
     {
         if (
             !isset($this->server->connections)
-            || null === $this->persistence
+            || (
+                null === $this->persistence
+                && null === $this->channelPersistence
+            )
         ) {
             return;
         }
 
-        $registeredConnections = $this->persistence->getAllConnections();
+        if (null !== $this->persistence) {
+            $registeredConnections = $this->persistence->getAllConnections();
+        } elseif (null !== $this->channelPersistence) {
+            $registeredConnections = $this->channelPersistence->getAllConnections();
+        } else {
+            return;
+        }
 
         $existingConnections = [];
         foreach ($this->server->connections as $connection) {
-            $existingConnections[] = $connection;
+            if ($this->server->isEstablished($connection)) {
+                $existingConnections[] = $connection;
+            }
         }
 
-        $closedConnections = array_filter(array_keys(
-            $registeredConnections),
+        $closedConnections = array_filter(
+            array_keys($registeredConnections),
             fn($item) => !in_array($item, $existingConnections)
         );
 
         foreach ($closedConnections as $connection) {
-            $this->persistence->disconnect($connection);
+            if (null !== $this->persistence) {
+                $this->persistence->disconnect($connection);
+            } elseif (null !== $this->channelPersistence) {
+                $this->channelPersistence->disconnect($connection);
+            }
         }
-
-        $this->channels = $registeredConnections;
     }
 
     /**
@@ -230,7 +167,6 @@ class SocketMessageRouter implements SocketHandlerInterface
     final public function validateData(array $data) : void
     {
         if (!isset($data['action'])) {
-            throw new InvalidArgumentException('Missing action key in data!');
             throw new InvalidArgumentException('Missing action key in data!');
         }
 
@@ -258,15 +194,10 @@ class SocketMessageRouter implements SocketHandlerInterface
 
         $this->setFd($action, $fd);
         $this->setServer($action, $server);
-        if ($this->persistence) {
-            $this->setPersistence($action, $this->persistence);
-        }
-
-        $this->setChannel($action, $fd);
-        $this->setListeners($action);
-
+        $this->registerActionPersistence($action);
         $this->closeConnections();
 
+        // TODO: test pipeline
         try {
             /** @throws Exception */
             $pipeline->process($this);
@@ -275,34 +206,7 @@ class SocketMessageRouter implements SocketHandlerInterface
             throw $e;
         }
 
-        $this->handleChannelConnection();
-        $this->handleActionListeners();
-
         return $action->execute($this->parsedData);
-    }
-
-    private function handleChannelConnection()
-    {
-        if (
-            $this->parsedData['action'] === 'channel-connect'
-            && method_exists($this, 'validateChannelConnectAction')
-        ) {
-            // @throws Exception
-            $this->connectFdToChannel($this->parsedData);
-        }
-    }
-
-    private function handleActionListeners()
-    {
-        if (
-            $this->parsedData['action'] === 'add-listener'
-            && method_exists($this, 'validateAddListenerAction')
-        ) {
-            // @throws InvalidArgumentException
-            $this->validateAddListenerAction($this->parsedData);
-            // @throws Exception
-            $this->connectListenerToFd($this->parsedData);
-        }
     }
 
     /**
@@ -460,14 +364,33 @@ class SocketMessageRouter implements SocketHandlerInterface
         $action->setServer($server);
     }
 
+    private function registerActionPersistence(ActionInterface $action)
+    {
+        if (null !== $this->persistence) {
+            $this->setActionPersistence($action, $this->persistence);
+        }
+
+        if (null !== $this->channelPersistence) {
+            $this->setActionPersistence($action, $this->channelPersistence);
+        }
+
+        if (null !== $this->userAssocPersistence) {
+            $this->setActionPersistence($action, $this->userAssocPersistence);
+        }
+
+        if (null !== $this->listenerPersistence) {
+            $this->setActionPersistence($action, $this->listenerPersistence);
+        }
+    }
+
     /**
      * Set persistence to the action instance.
      *
      * @param ActionInterface $action
-     * @param PersistenceInterface $persistence
+     * @param GenericPersistenceInterface $persistence
      * @return void
      */
-    public function setPersistence(ActionInterface $action, PersistenceInterface $persistence): void
+    public function setActionPersistence(ActionInterface $action, GenericPersistenceInterface $persistence): void
     {
         if (method_exists($action, 'setPersistence')) {
             $action->setPersistence($persistence);

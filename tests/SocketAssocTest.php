@@ -5,9 +5,12 @@ namespace Tests;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use stdClass;
 use Tests\Assets\SampleAction;
+use Tests\Assets\SampleChannelPersistence;
+use Tests\Assets\SampleListenerPersistence;
 use Tests\Assets\SamplePersistence;
 use Tests\Assets\SampleSocketServer;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Tests\Assets\SampleUserAssocPersistence;
 
 class SocketAssocTest extends SocketHandlerTestCase
 {
@@ -21,10 +24,10 @@ class SocketAssocTest extends SocketHandlerTestCase
         $this->assertInstanceOf(SampleAction::class, $sampleAction);
     }
 
-    public function testCanExecuteChannelConnectAction()
+    public function testCanExecuteUserAssocAction()
     {
         $userId = 10;
-        $persistence = new SamplePersistence;
+        $persistence = new SampleUserAssocPersistence;
 
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
 

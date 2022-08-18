@@ -11,7 +11,9 @@ class SampleBroadcastAction extends AbstractAction
 {
     use HasPersistence;
 
-    protected string $name = 'sample-broadcast-action';
+    const ACTION_NAME = 'sample-broadcast-action';
+
+    protected string $name = self::ACTION_NAME;
     protected int $fd;
 
     /**

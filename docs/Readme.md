@@ -197,8 +197,9 @@ require __DIR__.'/vendor/autoload.php';
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 
-$persistenceService = new SocketChannelsTable; // this is an example of the PersistenceInterface that needs to be set so the Socket Router knows how to persist its data.
+$persistenceService = new SocketChannelPersistenceTable;
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
@@ -207,59 +208,6 @@ $websocket->on('message', function (Server $server, Frame $frame) use ($persiste
 });
 
 $websocket->start();
-```
-
-An example of the `Conveyor\Actions\Interfaces\PersistenceInterface` for the persistence of the channels information is the following. Notice that this example uses `Swoole\Table`, but it can use any external persistent storage behind the interface.
-
-```php
-use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
-use Swoole\Table;
-
-class SocketChannelsTable implements PersistenceInterface
-{
-    protected Table $table;
-
-    public function __construct()
-    {
-        $this->table = new Table(10024);
-        $this->table->column('channel', Table::TYPE_STRING, 40);
-        $this->table->create();
-    }
-
-    public function connect(int $fd, string $channel): void
-    {
-        $this->table->set($fd, ['channel' => $channel]);
-    }
-
-    public function disconnect(int $fd): void
-    {
-        $this->table->del($fd);
-    }
-
-    public function getAllConnections(): array
-    {
-        $collection = [];
-        foreach($this->table as $key => $value) {
-            $collection[$key] = $value['channel'];
-        }
-        return $collection;
-    }
-    
-    public function listen(int $fd, string $action): void
-    {
-        return; // not needed for this example
-    }
-
-    public function getListener(int $fd): array
-    {
-        return []; // not needed for this example
-    }
-
-    public function getAllListeners(): array
-    {
-        return []; // not needed for this example
-    }
-}
 ```
 
 With these changes to the server, you can have different implementations on the client-side. Each implementation, in a different context, connects to a different channel. As an example, we have the following HTML example. When connected, it will make sure the current connection belongs to a given channel. To connect another implementation to a different channel, you just need to use a different channel parameter.
@@ -520,6 +468,18 @@ $websocket->start();
 ```
 
 Middlewares at Socket Conveyor are callables. Any callable is accepted. This is reason you can add functions as middlewares. Even though the system is pretty flexible on that side, we strongly suggest you to implement the interface `Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface`.
+
+## Available Actions
+
+This package comes with some out-of-the-box Actions:
+
+### Base Action
+
+### Channel Connect Action
+
+### Channel Disconnect ACtion
+
+### Add Listener Action
 
 ## Commands
 

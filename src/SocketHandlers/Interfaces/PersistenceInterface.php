@@ -2,7 +2,11 @@
 
 namespace Conveyor\SocketHandlers\Interfaces;
 
-interface PersistenceInterface
+/**
+ * @deprecated 2.0.0 This interface will be deprecated. Use ChannelPersistenceInterface,
+ *                   ListenerPersistenceInterface or UserAssocPersistenceInterface.
+ */
+interface PersistenceInterface extends GenericPersistenceInterface
 {
     // -----------------------------------------------------
     // Channels

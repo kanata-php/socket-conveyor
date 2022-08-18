@@ -3,15 +3,14 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use InvalidArgumentException;
 
 class ChannelConnectAction extends AbstractAction
 {
-    use HasPersistence;
+    const ACTION_NAME = 'channel-connect';
 
-    protected string $name = 'channel-connect';
+    protected string $name = self::ACTION_NAME;
 
     public function validateData(array $data): void
     {
@@ -35,9 +34,14 @@ class ChannelConnectAction extends AbstractAction
 
         $channel = $data['channel'];
 
-        $this->channels[$this->fd] = $channel;
+        // TODO: this will be removed
+        if (null !== $this->persistence) {
+            $this->persistence->connect($this->fd, $channel);
+        }
 
-        $this->persistence->connect($this->fd, $channel);
+        if (null !== $this->channelPersistence) {
+            $this->channelPersistence->connect($this->fd, $channel);
+        }
 
         return null;
     }

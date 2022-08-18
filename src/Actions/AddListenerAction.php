@@ -3,22 +3,43 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
+use InvalidArgumentException;
 
 class AddListenerAction extends AbstractAction
 {
-    use HasPersistence;
+    const ACTION_NAME = 'add-listener';
 
-    protected string $name = 'add-listener';
+    protected string $name = self::ACTION_NAME;
 
     public function validateData(array $data): void
     {
-        return;
+        if (!isset($data['listener'])) {
+            throw new InvalidArgumentException('Add listener must specify "listener"!');
+        }
     }
 
     public function execute(array $data): mixed
     {
+        $this->validateData($data);
+
+
+        if (null === $this->fd) {
+            throw new Exception('FD not specified!');
+        }
+
+        if (null === $this->persistence && null === $this->listenerPersistence) {
+            throw new Exception('Persistence not set!');
+        }
+
+        if (null !== $this->persistence) {
+            $this->persistence->listen(fd: $this->fd, action: $data['listener']);
+        }
+
+        if (null !== $this->listenerPersistence) {
+            $this->listenerPersistence->listen(fd: $this->fd, action: $data['listener']);
+        }
+
         return null;
     }
 }
