@@ -158,14 +158,18 @@ class SocketMessageRouter implements SocketHandlerInterface
     }
 
     /**
-     * @param array $data
+     * @param ?array $data
      *
      * @return void
      *
      * @throws InvalidArgumentException|InvalidActionException
      */
-    final public function validateData(array $data) : void
+    final public function validateData(?array $data) : void
     {
+        if (null === $data) {
+            return; // base action
+        }
+
         if (!isset($data['action'])) {
             throw new InvalidArgumentException('Missing action key in data!');
         }
@@ -220,6 +224,13 @@ class SocketMessageRouter implements SocketHandlerInterface
     public function parseData(string $data) : ActionInterface
     {
         $this->parsedData = json_decode($data, true);
+
+        if (null === $this->parsedData) {
+            $this->parsedData = [
+                'action' => BaseAction::ACTION_NAME,
+                'data' => $data,
+            ];
+        }
 
         // @throws InvalidArgumentException|InvalidActionException
         $this->validateData($this->parsedData);

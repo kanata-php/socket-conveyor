@@ -12,6 +12,7 @@ use Tests\Assets\SampleMiddleware2;
 use Tests\Assets\SampleExceptionHandler;
 use Tests\Assets\SampleCustomException;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Tests\Assets\SampleSocketServer;
 
 class SocketMessageRouterTest extends SocketHandlerTestCase
 {
@@ -208,5 +209,21 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             $this->assertTrue('stdClass' === get_class($exceptionHandler->server), 'Not expected value at server parameter.');
             throw $e;
         }
+    }
+
+    public function testCantSendPlainText()
+    {
+        $counter = 0;
+
+        $server = new SampleSocketServer(function () use (&$counter) {
+            $counter++;
+        });
+
+        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+
+        $data = 'some message';
+        $result = ($socketRouter)($data, 1, $server);
+
+        $this->assertEquals(1, $counter);
     }
 }
