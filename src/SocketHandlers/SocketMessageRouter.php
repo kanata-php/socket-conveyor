@@ -201,7 +201,6 @@ class SocketMessageRouter implements SocketHandlerInterface
         $this->registerActionPersistence($action);
         $this->closeConnections();
 
-        // TODO: test pipeline
         try {
             /** @throws Exception */
             $pipeline->process($this);

@@ -222,7 +222,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
         $data = 'some message';
-        $result = ($socketRouter)($data, 1, $server);
+        ($socketRouter)($data, 1, $server);
 
         $this->assertEquals(1, $counter);
     }

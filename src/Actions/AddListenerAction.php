@@ -14,8 +14,8 @@ class AddListenerAction extends AbstractAction
 
     public function validateData(array $data): void
     {
-        if (!isset($data['listener'])) {
-            throw new InvalidArgumentException('Add listener must specify "listener"!');
+        if (!isset($data['listen'])) {
+            throw new InvalidArgumentException('Add listener must specify "listen"!');
         }
     }
 
@@ -33,11 +33,11 @@ class AddListenerAction extends AbstractAction
         }
 
         if (null !== $this->persistence) {
-            $this->persistence->listen(fd: $this->fd, action: $data['listener']);
+            $this->persistence->listen(fd: $this->fd, action: $data['listen']);
         }
 
         if (null !== $this->listenerPersistence) {
-            $this->listenerPersistence->listen(fd: $this->fd, action: $data['listener']);
+            $this->listenerPersistence->listen(fd: $this->fd, action: $data['listen']);
         }
 
         return null;

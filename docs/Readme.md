@@ -385,7 +385,7 @@ The client in Javasript then starts listening a specific action by sending a new
         // This starts the process of listening to actions from the current client.
         websocket.send(JSON.stringify({
             'action': 'add-listener',
-            'listener': 'example-first-action',
+            'listen': 'example-first-action',
         }));
     };
     websocket.onmessage = function (evt) {

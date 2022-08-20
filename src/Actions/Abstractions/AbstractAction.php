@@ -66,8 +66,6 @@ abstract class AbstractAction implements ActionInterface
             throw new Exception('Current Server instance doesn\'t have "send" method.');
         }
 
-        $received = []; // this is meant to prevent duplicated messages to be sent
-
         $data = json_encode([
             'action' => $this->getName(),
             'data' => $data,
@@ -79,34 +77,87 @@ abstract class AbstractAction implements ActionInterface
         }
 
         // listeners
+        $listeners = $this->getListeners();
+
+        if ($toChannel && null !== $this->channelPersistence) {
+            $this->broadcastToChannel($data, $listeners);
+            return;
+        }
+
+        if (!$toChannel && null !== $listeners) {
+            $this->fanout($data, $listeners);
+            return;
+        }
+
+        if (!$toChannel) {
+            $this->server->push($this->fd, $data);
+        }
+    }
+
+    /**
+     * Broadcast outside of channels.
+     *
+     * @param string $data
+     * @param array|null $listeners
+     * @return void
+     */
+    private function fanout(string $data, ?array $listeners = null)
+    {
+        $counter = 0;
+        foreach ($this->server->connections as $fd) {
+            if (
+                !$this->server->isEstablished($fd)
+                || (null !== $listeners && !in_array($fd, $listeners))
+            ) {
+                continue;
+            }
+            $this->server->push($fd, $data);
+        }
+    }
+
+    /**
+     * Get listeners for the current listener persistence.
+     *
+     * @return array|null
+     */
+    private function getListeners(): ?array
+    {
         if (null !== $this->listenerPersistence) {
+            $listeners = [];
             foreach ($this->listenerPersistence->getAllListeners() as $fd => $listened) {
                 if ($fd === $this->fd || !in_array($this->getName(), $listened)) {
                     continue;
                 }
-                $this->server->push($fd, $data);
-                $received[] = $fd;
+                $listeners[] = $fd;
             }
+            return $listeners;
         }
 
-        if ($toChannel && null !== $this->channelPersistence) {
-            $connections = $this->channelPersistence->getAllConnections();
-            $currentChannel = isset($connections[$this->fd]) ? $connections[$this->fd] : null;
-            foreach ($connections as $fd => $channel) {
-                if (
-                    $fd === $this->fd
-                    || in_array($fd, $received)
-                    || $channel !== $currentChannel
-                ) {
-                    continue;
-                }
-                $this->server->push($fd, $data);
-                $received[] = $fd;
-            }
-        }
+        return null;
+    }
 
-        if (!$toChannel && !in_array($this->fd, $received)) {
-            $this->server->push($this->fd, $data);
+    /**
+     * Broadcast when messaging to channel.
+     *
+     * @param string $data
+     * @param array|null $listeners
+     * @return void
+     */
+    private function broadcastToChannel(string $data, ?array $listeners = null): void
+    {
+        $connections = array_filter(
+            $this->channelPersistence->getAllConnections(),
+            fn($c) => $c === $this->getCurrentChannel()
+        );
+        foreach ($connections as $fd => $channel) {
+            if (
+                $fd === $this->fd
+                // if listening and not to this channel
+                || (null !== $listeners && !in_array($fd, $listeners))
+            ) {
+                continue;
+            }
+            $this->server->push($fd, $data);
         }
     }
 

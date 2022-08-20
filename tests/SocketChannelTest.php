@@ -19,16 +19,6 @@ class SocketChannelTest extends SocketHandlerTestCase
 {
     public array $userKeys = [];
 
-    public function testCanAddHandlerForAction()
-    {
-        $persistence = new SamplePersistence;
-
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
-        
-        $this->assertInstanceOf(SocketMessageRouter::class, $socketRouter);
-        $this->assertInstanceOf(SampleAction::class, $sampleAction);
-    }
-
     public function testCanExecuteChannelConnectAction()
     {
         $channelName = 'test-channel';
@@ -52,6 +42,7 @@ class SocketChannelTest extends SocketHandlerTestCase
         $channelName = 'test-channel';
         $persistence = new SampleChannelPersistence;
         $server = new SampleSocketServer([$this, 'sampleCallback']);
+        $server->connections = [1, 2, 3];
 
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
 
@@ -95,12 +86,10 @@ class SocketChannelTest extends SocketHandlerTestCase
         $channelName = 'test-channel';
         $channelName2 = 'test-channel-two';
 
-        $broadcastActionName = SampleBroadcastAction::ACTION_NAME;
-        $broadcastActionName2 = SampleBroadcastAction2::ACTION_NAME;
-
         $listenerPersistence = new SampleListenerPersistence;
         $channelPersistence = new SampleChannelPersistence;
         $server = new SampleSocketServer([$this, 'sampleCallback']);
+        $server->connections = [1, 2, 3, 4, 5];
 
         [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter([
             $listenerPersistence, $channelPersistence
@@ -112,15 +101,14 @@ class SocketChannelTest extends SocketHandlerTestCase
             'action' => ChannelConnectAction::ACTION_NAME,
             'channel' => $channelName,
         ]);
+        ($socketRouter)($connectionData, 1, $server); // connect fd 1
+        ($socketRouter)($connectionData, 2, $server); // connect fd 2
 
         $connectionData2 = json_encode([
             'action' => ChannelConnectAction::ACTION_NAME,
             'channel' => $channelName2,
         ]);
-
-        ($socketRouter)($connectionData, 1, $server); // connect fd 1
-        ($socketRouter)($connectionData, 2, $server); // connect fd 2
-        ($socketRouter)($connectionData, 3, $server); // connect fd 3
+        ($socketRouter)($connectionData2, 3, $server); // connect fd 3
         ($socketRouter)($connectionData2, 4, $server); // connect fd 4
         ($socketRouter)($connectionData2, 5, $server); // connect fd 5
 
@@ -128,16 +116,15 @@ class SocketChannelTest extends SocketHandlerTestCase
 
         $listenToActionData = json_encode([
             'action' => AddListenerAction::ACTION_NAME,
-            'listener' => $broadcastActionName,
+            'listen' => SampleBroadcastAction::ACTION_NAME,
         ]);
+        ($socketRouter)($listenToActionData, 1, $server); // connect fd 1
+        ($socketRouter)($listenToActionData, 2, $server); // connect fd 2
 
         $listenToActionData2 = json_encode([
             'action' => AddListenerAction::ACTION_NAME,
-            'listener' => $broadcastActionName2,
+            'listen' => SampleBroadcastAction2::ACTION_NAME,
         ]);
-
-        ($socketRouter)($listenToActionData, 1, $server); // connect fd 1
-        ($socketRouter)($listenToActionData, 2, $server); // connect fd 2
         ($socketRouter)($listenToActionData2, 3, $server); // connect fd 3
         ($socketRouter)($listenToActionData2, 4, $server); // connect fd 4
         ($socketRouter)($listenToActionData2, 5, $server); // connect fd 5
@@ -149,7 +136,7 @@ class SocketChannelTest extends SocketHandlerTestCase
         ]);
         ($socketRouter)($broadcastData, 2, $server); // broadcast fd 2
 
-        $this->assertCount(2, $this->userKeys);
+        $this->assertCount(1, $this->userKeys);
 
         // test $listenToActionData2
 
@@ -158,9 +145,9 @@ class SocketChannelTest extends SocketHandlerTestCase
         $broadcastData = json_encode([
             'action' => SampleBroadcastAction::ACTION_NAME,
         ]);
-        ($socketRouter)($broadcastData, 3, $server); // this will broadcast to channel (fds 1 and 2)
+        ($socketRouter)($broadcastData, 3, $server); // this will broadcast to 0 because this is sending message with an action not listened by its channel
 
-        $this->assertCount(2, $this->userKeys);
+        $this->assertCount(0, $this->userKeys);
     }
 
     public function sampleCallback(int $fd) {

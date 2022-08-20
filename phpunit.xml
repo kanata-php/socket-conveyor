@@ -6,6 +6,7 @@
     <testsuite name="All">
       <file>tests/SocketMessageRouterTest.php</file>
       <file>tests/SocketChannelTest.php</file>
+      <file>tests/SocketListenerTest.php</file>
       <file>tests/SocketAssocTest.php</file>
       <file>tests/SocketChannelPersistenceTableTest.php</file>
       <file>tests/SocketUserAssocPersistenceTableTest.php</file>

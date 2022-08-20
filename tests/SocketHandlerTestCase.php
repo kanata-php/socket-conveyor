@@ -5,6 +5,7 @@ namespace Tests;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\Actions\AssocUserToFdAction;
 use Conveyor\Actions\ChannelConnectAction;
+use Conveyor\Actions\FanoutAction;
 use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
 use Tests\Assets\SampleAction;
 use PHPUnit\Framework\TestCase;
@@ -44,6 +45,7 @@ class SocketHandlerTestCase extends TestCase
         $socketRouter->add(new SampleBroadcastAction2);
         $socketRouter->add(new SampleAction);
         $socketRouter->add(new SampleReturnAction);
+        $socketRouter->add(new FanoutAction);
 
         return [$socketRouter, $sampleAction];
     }
