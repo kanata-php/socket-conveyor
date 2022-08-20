@@ -5,13 +5,17 @@ namespace Conveyor\Actions\Abstractions;
 use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use Conveyor\Actions\Interfaces\ActionInterface;
+use InvalidArgumentException;
 
 abstract class AbstractAction implements ActionInterface
 {
     use HasPersistence;
 
     protected array $data;
+
+    /** @var int Origin Fd */
     protected int $fd;
+
     protected mixed $server = null;
     protected ?string $channel = null;
     protected array $listeners = [];
@@ -19,12 +23,24 @@ abstract class AbstractAction implements ActionInterface
     /**
      * @param array $data
      * @return mixed
-     * @throws Exception
+     * @throws Exception|InvalidArgumentException
      */
     public function __invoke(array $data): mixed
     {
+        /** @throws InvalidArgumentException */
+        $this->baseValidator($data);
+
+        /** @throws InvalidArgumentException */
         $this->validateData($data);
+
         return $this->execute($data);
+    }
+
+    private function baseValidator(array $data): void
+    {
+        if (!isset($data['action'])) {
+            throw new InvalidArgumentException('Actions required \'action\' field to be created!');
+        }
     }
 
     public function setServer(mixed $server): void
@@ -32,9 +48,25 @@ abstract class AbstractAction implements ActionInterface
         $this->server = $server;
     }
 
+    /**
+     * @return mixed
+     */
+    public function getServer()
+    {
+        return $this->server;
+    }
+
     public function setFd(int $fd): void
     {
         $this->fd = $fd;
+    }
+
+    /**
+     * @return int
+     */
+    public function getFd(): int
+    {
+        return $this->fd;
     }
 
     public function getCurrentChannel(): ?string
@@ -55,13 +87,16 @@ abstract class AbstractAction implements ActionInterface
 
     /**
      * @param string $data
-     * @param int|null $fd
+     * @param int|null $fd Destination Fd
      * @param bool $toChannel
      * @return void
      * @throws Exception
      */
-    public function send(string $data, ?int $fd = null, bool $toChannel = false): void
-    {
+    public function send(
+        string $data,
+        ?int $fd = null,
+        bool $toChannel = false
+    ): void {
         if (!method_exists($this->server, 'push')) {
             throw new Exception('Current Server instance doesn\'t have "send" method.');
         }
@@ -69,6 +104,7 @@ abstract class AbstractAction implements ActionInterface
         $data = json_encode([
             'action' => $this->getName(),
             'data' => $data,
+            'fd' => $this->getFd(), // origin fd
         ]);
 
         if (null !== $fd) {
@@ -76,7 +112,7 @@ abstract class AbstractAction implements ActionInterface
             return;
         }
 
-        // listeners
+        /** @var ?array $listeners */
         $listeners = $this->getListeners();
 
         if ($toChannel && null !== $this->channelPersistence) {
@@ -84,13 +120,13 @@ abstract class AbstractAction implements ActionInterface
             return;
         }
 
-        if (!$toChannel && null !== $listeners) {
+        if (!$toChannel && null === $fd) {
             $this->fanout($data, $listeners);
             return;
         }
 
         if (!$toChannel) {
-            $this->server->push($this->fd, $data);
+            $this->server->push($this->getFd(), $data);
         }
     }
 
@@ -103,7 +139,6 @@ abstract class AbstractAction implements ActionInterface
      */
     private function fanout(string $data, ?array $listeners = null)
     {
-        $counter = 0;
         foreach ($this->server->connections as $fd) {
             if (
                 !$this->server->isEstablished($fd)

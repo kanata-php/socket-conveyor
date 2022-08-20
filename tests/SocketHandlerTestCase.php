@@ -13,7 +13,6 @@ use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 use Tests\Assets\SampleBroadcastAction;
 use Tests\Assets\SampleBroadcastAction2;
-use Tests\Assets\SamplePersistence;
 use Tests\Assets\SampleReturnAction;
 
 class SocketHandlerTestCase extends TestCase

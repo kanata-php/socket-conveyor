@@ -5,16 +5,11 @@ namespace Tests;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\FanoutAction;
-use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
-use stdClass;
-use Tests\Assets\SampleAction;
 use Tests\Assets\SampleBroadcastAction;
 use Tests\Assets\SampleBroadcastAction2;
 use Tests\Assets\SampleChannelPersistence;
 use Tests\Assets\SampleListenerPersistence;
-use Tests\Assets\SamplePersistence;
 use Tests\Assets\SampleSocketServer;
-use Conveyor\SocketHandlers\SocketMessageRouter;
 
 class SocketListenerTest extends SocketHandlerTestCase
 {

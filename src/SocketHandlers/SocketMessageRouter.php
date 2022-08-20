@@ -209,7 +209,7 @@ class SocketMessageRouter implements SocketHandlerInterface
             throw $e;
         }
 
-        return $action->execute($this->parsedData);
+        return $action($this->parsedData);
     }
 
     /**

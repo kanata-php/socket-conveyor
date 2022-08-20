@@ -8,6 +8,7 @@
       <file>tests/SocketChannelTest.php</file>
       <file>tests/SocketListenerTest.php</file>
       <file>tests/SocketAssocTest.php</file>
+      <file>tests/SocketFanoutTest.php</file>
       <file>tests/SocketChannelPersistenceTableTest.php</file>
       <file>tests/SocketUserAssocPersistenceTableTest.php</file>
       <file>tests/SocketListenerPersistenceTableTest.php</file>

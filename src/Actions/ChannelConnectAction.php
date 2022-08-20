@@ -12,13 +12,6 @@ class ChannelConnectAction extends AbstractAction
 
     protected string $name = self::ACTION_NAME;
 
-    public function validateData(array $data): void
-    {
-        if (!isset($data['channel'])) {
-            throw new InvalidArgumentException('Channel connection must specify "channel"!');
-        }
-    }
-
     /**
      * @param array $data
      * @return mixed
@@ -44,5 +37,12 @@ class ChannelConnectAction extends AbstractAction
         }
 
         return null;
+    }
+
+    public function validateData(array $data): void
+    {
+        if (!isset($data['channel'])) {
+            throw new InvalidArgumentException('Channel connection must specify "channel"!');
+        }
     }
 }

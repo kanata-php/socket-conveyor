@@ -3,7 +3,6 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Exception;
 
 class ChannelDisconnectAction extends AbstractAction
 {

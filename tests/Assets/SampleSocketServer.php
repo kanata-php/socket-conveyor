@@ -12,7 +12,7 @@ class SampleSocketServer
 
     public function push(int $fd, string $data)
     {
-        call_user_func($this->callback, $fd);
+        call_user_func($this->callback, $fd, $data);
     }
 
     public function isEstablished(int $fd)

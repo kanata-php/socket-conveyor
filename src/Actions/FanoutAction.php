@@ -20,7 +20,7 @@ class FanoutAction extends AbstractAction
      */
     public function execute(array $data): mixed
     {
-        $this->send('message-back');
+        $this->send($data['data']);
         return true;
     }
 
@@ -32,44 +32,8 @@ class FanoutAction extends AbstractAction
      */
     public function validateData(array $data) : void
     {
-        if (!isset($data['action'])) {
-            throw new InvalidArgumentException('SampleAction required \'action\' field to be created!');
+        if (!isset($data['data'])) {
+            throw new InvalidArgumentException('FanoutAction required \'data\' field to be created!');
         }
-    }
-
-    /**
-     * @return int $fd
-     *
-     * @return void
-     */
-    public function setFd(int $fd): void
-    {
-        $this->fd = $fd;
-    }
-
-    /**
-     * @return int
-     */
-    public function getFd(): int
-    {
-        return $this->fd;
-    }
-
-    /**
-     * @return mixed $server
-     *
-     * @return void
-     */
-    public function setServer($server): void
-    {
-        $this->server = $server;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getServer()
-    {
-        return $this->server;
     }
 }

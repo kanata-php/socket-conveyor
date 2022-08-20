@@ -3,7 +3,7 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
-use Exception;
+use InvalidArgumentException;
 
 class BaseAction extends AbstractAction
 {
@@ -13,7 +13,9 @@ class BaseAction extends AbstractAction
 
     public function validateData(array $data): void
     {
-        return;
+        if (!isset($data['data'])) {
+            throw new InvalidArgumentException('BaseAction required \'data\' field to be created!');
+        }
     }
 
     public function execute(array $data): mixed
