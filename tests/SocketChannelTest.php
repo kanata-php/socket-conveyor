@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Conveyor\Actions\BroadcastAction;
+use Tests\Assets\SecondaryBroadcastAction;
 
 class SocketChannelTest extends SocketHandlerTestCase
 {
@@ -50,5 +51,26 @@ class SocketChannelTest extends SocketHandlerTestCase
             $this->userKeys,
             fn($d) => $message === json_decode($d)->data,
         ));
+    }
+
+    public function testBroadcastIgnoreListenersToOtherActions()
+    {
+        $this->server->connections[] = 3;
+
+        $message = 'sample-message';
+        $channelName = 'test-channel';
+
+        $this->connectToChannel(1, $channelName);
+        $this->connectToChannel(2, $channelName);
+        $this->connectToChannel(3, $channelName);
+
+        $this->listenToAction(1, SecondaryBroadcastAction::ACTION_NAME);
+
+        $this->sendData(2, json_encode([
+            'action' => BroadcastAction::ACTION_NAME,
+            'data' => $message,
+        ]));
+
+        $this->assertCount(1, $this->userKeys);
     }
 }

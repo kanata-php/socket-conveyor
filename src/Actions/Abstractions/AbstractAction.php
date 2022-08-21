@@ -174,10 +174,17 @@ abstract class AbstractAction implements ActionInterface
         );
 
         foreach ($connections as $fd => $channel) {
+            $isOnlyListeningOtherActions = null === $listeners
+                && $this->isListeningAnyAction($fd);
             $isNotListeningThisAction = null !== $listeners
                 && !in_array($fd, $listeners);
 
-            if ($fd === $this->fd || $isNotListeningThisAction) {
+            if (
+                !$this->server->isEstablished($fd)
+                || $fd === $this->fd
+                || $isNotListeningThisAction
+                || $isOnlyListeningOtherActions
+            ) {
                 continue;
             }
 

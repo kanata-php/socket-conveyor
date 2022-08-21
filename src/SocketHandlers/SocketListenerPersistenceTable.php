@@ -58,8 +58,6 @@ class SocketListenerPersistenceTable implements ListenerPersistenceInterface
 
     public function stopListenersForFd(int $fd): bool
     {
-        return $this->table->set($fd, [
-            'listening' => '',
-        ]);
+        return $this->table->del($fd);
     }
 }

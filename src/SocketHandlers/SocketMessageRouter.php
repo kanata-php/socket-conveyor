@@ -201,8 +201,6 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     public function handle(string $data, int $fd, mixed $server)
     {
-        $this->cleanListeners($fd);
-
         /** @var ActionInterface */
         $action = $this->parseData($data);
 

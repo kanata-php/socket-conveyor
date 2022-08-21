@@ -40,7 +40,7 @@ class SocketListenerTest extends SocketHandlerTestCase
         $this->assertCount(1, $this->userKeys);
     }
 
-    public function testCantBroadcastToListenersWithoutToChannel()
+    public function testCantBroadcastToListenersWithoutChannel()
     {
         $message = 'sample-message';
 
@@ -79,6 +79,40 @@ class SocketListenerTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
         $this->assertCount(1, $this->userKeys);
+
+        $this->userKeys = [];
+
+        // message to be ignored
+        $this->sendData(1, json_encode([
+            'action' => SecondaryFanoutAction::ACTION_NAME,
+            'data' => $message,
+        ]));
+
+        $this->assertCount(1, $this->userKeys);
+    }
+
+    public function testCanFanoutToListenersCrossRequests()
+    {
+        $message = 'sample-message';
+
+        $this->server->connections[] = 3; // this won't listen
+
+        $this->listenToAction(1, FanoutAction::ACTION_NAME);
+
+        $this->listenToAction(2, FanoutAction::ACTION_NAME);
+
+        // message to be considered
+        $this->sendData(1, json_encode([
+            'action' => FanoutAction::ACTION_NAME,
+            'data' => $message,
+        ]));
+        $this->assertCount(1, $this->userKeys);
+
+        $this->router = $this->prepareSocketMessageRouter([
+            'channel' => $this->channelPersistence,
+            'listen' => $this->listenerPersistence,
+            'userAssoc' => $this->userAssocPersistence,
+        ]);
 
         $this->userKeys = [];
 
