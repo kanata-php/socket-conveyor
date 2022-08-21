@@ -2,11 +2,8 @@
 
 namespace Tests;
 
-use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\FanoutAction;
 use InvalidArgumentException;
-use Tests\Assets\SampleChannelPersistence;
-use Tests\Assets\SampleSocketServer;
 
 class SocketFanoutTest extends SocketHandlerTestCase
 {
@@ -15,21 +12,17 @@ class SocketFanoutTest extends SocketHandlerTestCase
     public function testCanExecuteFanoutAction()
     {
         $message = 'some-message';
-        $persistence = new SampleChannelPersistence;
-        $server = new SampleSocketServer([$this, 'sampleCallback']);
-        $server->connections = [1, 2, 3, 4, 5];
 
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
+        $this->server->connections[] = 3;
+        $this->server->connections[] = 4;
+        $this->server->connections[] = 5;
 
-        $this->userKeys = []; // refresh userKeys
-
-        $fanoutData = json_encode([
+        $this->sendData(1, json_encode([
             'action' => FanoutAction::ACTION_NAME,
             'data' => $message,
-        ]);
-        ($socketRouter)($fanoutData, 1, $server);
+        ]));
 
-        $this->assertCount(5, array_filter(
+        $this->assertCount(4, array_filter(
             $this->userKeys,
             fn($d) => $message === json_decode($d)->data
         ));
@@ -38,29 +31,18 @@ class SocketFanoutTest extends SocketHandlerTestCase
     public function testCanExecuteFanoutActionRegardlessOfChannel()
     {
         $message = 'some-message';
-        $persistence = new SampleChannelPersistence;
-        $server = new SampleSocketServer([$this, 'sampleCallback']);
-        $server->connections = [1, 2, 3, 4, 5];
+        $this->server->connections[] = 3;
+        $this->server->connections[] = 4;
+        $this->server->connections[] = 5;
 
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
+        $this->connectToChannel(1, 'some-channel');
 
-        $this->userKeys = []; // refresh userKeys
-
-        $channelData = json_encode([
-            'action' => ChannelConnectAction::ACTION_NAME,
-            'channel' => 'some-channel',
-        ]);
-        ($socketRouter)($channelData, 1, $server);
-
-        $this->userKeys = []; // refresh userKeys
-
-        $fanoutData = json_encode([
+        $this->sendData(1, json_encode([
             'action' => FanoutAction::ACTION_NAME,
             'data' => $message,
-        ]);
-        ($socketRouter)($fanoutData, 1, $server);
+        ]));
 
-        $this->assertCount(5, array_filter(
+        $this->assertCount(4, array_filter(
             $this->userKeys,
             fn($d) => $message === json_decode($d)->data
         ));
@@ -68,24 +50,15 @@ class SocketFanoutTest extends SocketHandlerTestCase
 
     public function testCantExecuteFanoutActionWithoutData()
     {
+        $this->server->connections[] = 3;
+        $this->server->connections[] = 4;
+        $this->server->connections[] = 5;
+
         $this->expectException(InvalidArgumentException::class);
 
-        $persistence = new SampleChannelPersistence;
-        $server = new SampleSocketServer([$this, 'sampleCallback']);
-        $server->connections = [1, 2, 3, 4, 5];
-
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter($persistence);
-
-        $this->userKeys = []; // refresh userKeys
-
-        $fanoutData = json_encode([
+        $this->sendData(1, json_encode([
             'action' => FanoutAction::ACTION_NAME,
             // missing 'data'
-        ]);
-        ($socketRouter)($fanoutData, 1, $server);
-    }
-
-    public function sampleCallback(int $fd, string $data) {
-        $this->userKeys[$fd] = $data;
+        ]));
     }
 }

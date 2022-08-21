@@ -2,17 +2,17 @@
 
 namespace Tests\Assets;
 
+use Conveyor\Helpers\Arr;
 use Conveyor\SocketHandlers\Interfaces\ListenerPersistenceInterface;
 
 class SampleListenerPersistence implements ListenerPersistenceInterface
 {
     protected array $data = [];
     protected array $listeners = [];
-    protected array $associations = [];
 
-    public function getListener(int $fd): array
+    public function getListener(int $fd): ?array
     {
-        return $this->listeners[$fd];
+        return Arr::get($this->listeners, $fd);
     }
 
     public function listen(int $fd, string $action): void

@@ -27,9 +27,15 @@ class SocketListenerPersistenceTable implements ListenerPersistenceInterface
         ]);
     }
 
-    public function getListener(int $fd): array
+    public function getListener(int $fd): ?array
     {
-        return array_filter(explode(',', $this->table->get($fd, 'listening')));
+        $record = $this->table->get($fd, 'listening');
+
+        if (!$record) {
+            return null;
+        }
+
+        return array_filter(explode(',', $record));
     }
 
     public function getAllListeners(): array

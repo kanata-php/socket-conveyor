@@ -4,53 +4,104 @@ namespace Tests;
 
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\Actions\AssocUserToFdAction;
+use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\FanoutAction;
 use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
-use Tests\Assets\SampleAction;
 use PHPUnit\Framework\TestCase;
-use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use Tests\Assets\SampleBroadcastAction;
-use Tests\Assets\SampleBroadcastAction2;
+use Tests\Assets\SampleChannelPersistence;
+use Tests\Assets\SampleListenerPersistence;
 use Tests\Assets\SampleReturnAction;
+use Tests\Assets\SampleSocketServer;
+use Tests\Assets\SampleUserAssocPersistence;
+use Tests\Assets\SecondaryBroadcastAction;
+use Tests\Assets\SecondaryFanoutAction;
 
 class SocketHandlerTestCase extends TestCase
 {
+    public array $userKeys = [];
+
+    public SampleChannelPersistence $channelPersistence;
+    public SampleListenerPersistence $listenerPersistence;
+    public SampleUserAssocPersistence $userAssocPersistence;
+    public SocketMessageRouter $router;
+    public SampleSocketServer $server;
+
     /**
-     * @return ActionInterface
+     * @before
      */
-    protected function getSampleAction() : ActionInterface
+    public function setUpRouter()
     {
-        return new SampleAction();
+        $this->channelPersistence = new SampleChannelPersistence;
+        $this->listenerPersistence = new SampleListenerPersistence;
+        $this->userAssocPersistence = new SampleUserAssocPersistence;
+
+        $this->router = $this->prepareSocketMessageRouter([
+            'channel' => $this->channelPersistence,
+            'listen' => $this->listenerPersistence,
+            'userAssoc' => $this->userAssocPersistence,
+        ]);
     }
 
     /**
-     * @return array
+     * @before
      */
-    protected function prepareSocketMessageRouter(null|array|GenericPersistenceInterface $persistence = null)
+    public function setUpServer()
     {
-        $sampleAction = $this->getSampleAction();
+        $this->server = new SampleSocketServer([$this, 'sampleCallback']);
+        $this->server->connections = [1, 2];
+    }
 
-        $socketRouter = $this->getCleanSocketMessageRouter($persistence);
-        $resultOfAddMethod = $socketRouter->add($sampleAction);
+    protected function prepareSocketMessageRouter(null|array|GenericPersistenceInterface $persistence = null): SocketMessageRouter
+    {
+        $socketRouter = new SocketMessageRouter($persistence);
 
-        $this->assertInstanceOf(get_class($resultOfAddMethod), $socketRouter);
+        $resultOfAddMethod = $socketRouter->add(new ChannelConnectAction);
+        $this->assertInstanceOf(SocketMessageRouter::class, $resultOfAddMethod);
 
-        $socketRouter->add(new ChannelConnectAction);
         $socketRouter->add(new AddListenerAction);
         $socketRouter->add(new AssocUserToFdAction);
-        $socketRouter->add(new SampleBroadcastAction);
-        $socketRouter->add(new SampleBroadcastAction2);
-        $socketRouter->add(new SampleAction);
+        $socketRouter->add(new BroadcastAction);
+        $socketRouter->add(new SecondaryBroadcastAction);
         $socketRouter->add(new SampleReturnAction);
         $socketRouter->add(new FanoutAction);
+        $socketRouter->add(new SecondaryFanoutAction);
 
-        return [$socketRouter, $sampleAction];
+        return $socketRouter;
     }
 
-    protected function getCleanSocketMessageRouter(null|array|GenericPersistenceInterface $persistence = null): SocketMessageRouter
+    public function sampleCallback(int $fd, string $data): void
     {
-        return new SocketMessageRouter($persistence);
+        $this->userKeys[$fd] = $data;
+    }
+
+    public function connectToChannel(int $fd, string $channel): void
+    {
+        ($this->router)(json_encode([
+            'action' => ChannelConnectAction::ACTION_NAME,
+            'channel' => $channel,
+        ]), $fd, $this->server);
+    }
+
+    public function listenToAction(int $fd, string $action): void
+    {
+        ($this->router)(json_encode([
+            'action' => AddListenerAction::ACTION_NAME,
+            'listen' => $action,
+        ]), $fd, $this->server);
+    }
+
+    public function assocUser(int $fd, int $userId): void
+    {
+        ($this->router)(json_encode([
+            'action' => 'assoc-user-to-fd-action',
+            'userId' => $userId,
+        ]), $fd, $this->server);
+    }
+
+    public function sendData(int $fd, string $data): void
+    {
+        ($this->router)($data, $fd, $this->server);
     }
 }

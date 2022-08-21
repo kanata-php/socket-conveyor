@@ -8,6 +8,7 @@ use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Exceptions\InvalidActionException;
+use Conveyor\Helpers\Arr;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
@@ -85,6 +86,10 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     protected function startActionWithMiddlewares(array $action)
     {
+        if ($this->hasExists($action[0]::ACTION_NAME)) {
+            throw new Exception('Action added twice!');
+        }
+
         $actionInstance = new $action[0];
         $this->add($actionInstance);
         for ($i = 1; $i < count($action); $i++) {
@@ -238,11 +243,16 @@ class SocketMessageRouter implements SocketHandlerInterface
     }
 
     /**
-     * @return array
+     * @param ?string $path Path in array using dot notation.
+     * @return mixed
      */
-    public function getParsedData() : array
+    public function getParsedData(?string $path = null) : mixed
     {
-        return $this->parsedData;
+        if (null === $path) {
+            return $this->parsedData;
+        }
+
+        return Arr::get($this->parsedData, $path);
     }
 
     /**
@@ -288,7 +298,6 @@ class SocketMessageRouter implements SocketHandlerInterface
      *
      * @param string $action
      * @param Callable $middleware
-     *
      * @return void
      */
     public function middleware(string $action, callable $middleware) : void
@@ -304,7 +313,6 @@ class SocketMessageRouter implements SocketHandlerInterface
      * Get an Action by name
      *
      * @param string $name
-     *
      * @return ActionInterface|null
      */
     public function getAction(string $name)
@@ -313,12 +321,22 @@ class SocketMessageRouter implements SocketHandlerInterface
     }
 
     /**
+     * Check if actions already exists in this router instance.
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function hasExists(string $name): bool
+    {
+        return isset($this->handlerMap[$name]);
+    }
+
+    /**
      * Add a Middleware Exception Handler.
      * This handler does some custom processing in case
      * of an exception.
      *
      * @param ExceptionHandlerInterface $handler
-     *
      * @return void
      */
     public function addMiddlewareExceptionHandler(ExceptionHandlerInterface $handler): void
@@ -330,9 +348,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      * Process a registered exception.
      *
      * @param Exception $e
-     *
      * @return void
-     *
      * @throws Exception
      */
     public function processException(Exception $e): void

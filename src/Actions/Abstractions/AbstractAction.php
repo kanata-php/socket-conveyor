@@ -2,6 +2,7 @@
 
 namespace Conveyor\Actions\Abstractions;
 
+use Conveyor\Actions\Traits\HasListener;
 use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use Conveyor\Actions\Interfaces\ActionInterface;
@@ -9,7 +10,7 @@ use InvalidArgumentException;
 
 abstract class AbstractAction implements ActionInterface
 {
-    use HasPersistence;
+    use HasPersistence, HasListener;
 
     protected array $data;
 
@@ -140,35 +141,22 @@ abstract class AbstractAction implements ActionInterface
     private function fanout(string $data, ?array $listeners = null)
     {
         foreach ($this->server->connections as $fd) {
+            $isOnlyListeningOtherActions = null === $listeners
+                && $this->isListeningAnyAction($fd);
+            $isNotListeningThisAction = null !== $listeners
+                && !in_array($fd, $listeners);
+
             if (
                 !$this->server->isEstablished($fd)
-                || (null !== $listeners && !in_array($fd, $listeners))
+                || $isNotListeningThisAction
+                || $fd === $this->getFd()
+                || $isOnlyListeningOtherActions
             ) {
                 continue;
             }
+
             $this->server->push($fd, $data);
         }
-    }
-
-    /**
-     * Get listeners for the current listener persistence.
-     *
-     * @return array|null
-     */
-    private function getListeners(): ?array
-    {
-        if (null !== $this->listenerPersistence) {
-            $listeners = [];
-            foreach ($this->listenerPersistence->getAllListeners() as $fd => $listened) {
-                if ($fd === $this->fd || !in_array($this->getName(), $listened)) {
-                    continue;
-                }
-                $listeners[] = $fd;
-            }
-            return $listeners;
-        }
-
-        return null;
     }
 
     /**
@@ -184,14 +172,15 @@ abstract class AbstractAction implements ActionInterface
             $this->channelPersistence->getAllConnections(),
             fn($c) => $c === $this->getCurrentChannel()
         );
+
         foreach ($connections as $fd => $channel) {
-            if (
-                $fd === $this->fd
-                // if listening and not to this channel
-                || (null !== $listeners && !in_array($fd, $listeners))
-            ) {
+            $isNotListeningThisAction = null !== $listeners
+                && !in_array($fd, $listeners);
+
+            if ($fd === $this->fd || $isNotListeningThisAction) {
                 continue;
             }
+
             $this->server->push($fd, $data);
         }
     }

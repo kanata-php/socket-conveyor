@@ -17,9 +17,9 @@ interface ListenerPersistenceInterface extends GenericPersistenceInterface
      * Get the listener for a specific fd.
      *
      * @param int $fd
-     * @return array
+     * @return ?array
      */
-    public function getListener(int $fd): array;
+    public function getListener(int $fd): ?array;
 
     /**
      * Retrieve a list of all fds with its listened actions.

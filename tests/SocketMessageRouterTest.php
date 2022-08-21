@@ -18,92 +18,97 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 {
     public function testCanAddHandlerForAction()
     {
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
-        
-        $this->assertInstanceOf(SocketMessageRouter::class, $socketRouter);
-        $this->assertInstanceOf(SampleAction::class, $sampleAction);
+        $this->router->add(new SampleAction);
+        $this->assertInstanceOf(SocketMessageRouter::class, $this->router);
+        $this->assertInstanceOf(
+            SampleAction::class,
+            $this->router->getAction(SampleAction::ACTION_NAME),
+        );
     }
 
     public function testCanExecuteAction()
     {
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
-
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
-        ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
-
-        $this->assertTrue($result);
+        $this->router->add(new SampleAction);
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
+        ]));
+        $this->assertCount(1, $this->userKeys);
     }
 
     public function testCanSetAndGetFdFromAction()
     {
         $fd = 1;
-        
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
-        ]);
-        $result = ($socketRouter)($data, $fd, new stdClass);
+        $this->router->add(new SampleAction);
 
-        $this->assertTrue($result);
-        $this->assertTrue($fd === $socketRouter->getAction($sampleAction->getName())->getFd());
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
+        ]));
+
+        $fdFromAction = $this->router->getAction(SampleAction::ACTION_NAME)->getFd();
+
+        $this->assertTrue($fd === $fdFromAction);
     }
 
     public function testCanSetAndGetServerFromAction()
     {
-        $server = new stdClass;
-        $server->label = 'test-server';
-        
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+        $this->router->add(new SampleAction);
 
         $data = json_encode([
-            'action' => $sampleAction->getName(),
+            'action' => SampleAction::ACTION_NAME,
         ]);
-        $result = ($socketRouter)($data, 1, $server);
+        ($this->router)($data, 1, $this->server);
 
-        $this->assertTrue($result);
-        $this->assertTrue($server === $socketRouter->getAction($sampleAction->getName())->getServer());
+        $serverFromAction = $this->router
+            ->getAction(SampleAction::ACTION_NAME)
+            ->getServer();
+
+        $this->assertTrue($this->server === $serverFromAction);
     }
 
     public function testCanAddMiddlewareToPipelineOfHandlerAndExecute()
     {
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+        $this->router->add(new SampleAction);
 
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
 
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
             'token'  => 'valid-token',
-        ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
-        $this->assertTrue($result);
+        ]));
+
+        $this->assertCount(1, $this->userKeys);
     }
 
-    public function testCantAddInvalidMiddleware()
+    public function testCantAddActionAlreadyAddedThroughConstructor()
     {
-        $this->expectError(Error::class);
+        $this->expectException(Exception::class);
 
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
-
-        $socketRouter->middleware($sampleAction->getName(), new NotValidMiddleware);
+        new SocketMessageRouter(null, [
+            [SampleAction::class, new SampleMiddleware],
+            [SampleAction::class, function(){}],
+        ]);
     }
 
     public function testCanAddMiddlewareThroughConstructor()
     {
-        $sampleAction = new SampleAction;
         $socketRouter = new SocketMessageRouter(null, [
-            [SampleAction::class, new SampleMiddleware],
-            [SampleAction::class, function(){}],
+            [
+                SampleAction::class,
+                function ($p) {
+                    $this->userKeys[$p->getFd()] = $p->getParsedData('action');
+                    return $p;
+                },
+            ],
         ]);
 
         $data = json_encode([
-            'action' => $sampleAction->getName(),
+            'action' => SampleAction::ACTION_NAME,
             'token'  => 'valid-token',
         ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
-        $this->assertTrue($result);
+        ($socketRouter)($data, 1, $this->server);
+
+        $this->assertCount(1, $this->userKeys);
     }
 
     public function testCantAddInvalidMiddlewareThroughConstructor()
@@ -117,113 +122,92 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndExecute()
     {
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+        $this->router->add(new SampleAction);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
 
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware2);
-
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
             'token'  => 'valid-token',
             'second-verification'  => 'valid',
-        ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
-        $this->assertTrue($result);
+        ]));
+
+        $this->assertCount(1, $this->userKeys);
     }
 
     public function testCanAddMiddlewareToPipelineOfHandlerAndFail()
     {
         $this->expectException(Exception::class);
 
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
 
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
-
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
             'token'  => 'invalid-token',
-        ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
+        ]));
     }
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndFailFirst()
     {
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Invalid Token');
-        
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware2);
+        $this->router->add(new SampleAction);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
 
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
             'token'  => 'invalid-token',
             'second-verification'  => 'valid',
-        ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
+        ]));
     }
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndFailSecond()
     {
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Invalid Second verification');
-        
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
 
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware2);
+        $this->router->add(new SampleAction);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
 
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
+        $this->sendData(1, json_encode([
+            'action' => SampleAction::ACTION_NAME,
             'token'  => 'valid-token',
             'second-verification'  => 'invalid',
-        ]);
-        $result = ($socketRouter)($data, 1, new stdClass);
+        ]));
     }
 
     public function testCanAddCustomExceptionMessageAfterMiddlewareException()
     {
+        $exceptionHandler = new SampleExceptionHandler;
+
         $this->expectException(SampleCustomException::class);
         $this->expectExceptionMessage('This is a test custom exception!');
 
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
-
-        $socketRouter->middleware($sampleAction->getName(), new SampleMiddleware);
-
-        $exceptionHandler = new SampleExceptionHandler;
-        $socketRouter->addMiddlewareExceptionHandler($exceptionHandler);
-
-        $data = json_encode([
-            'action' => $sampleAction->getName(),
-            'token'  => 'invalid-token',
-        ]);
+        $this->router->add(new SampleAction);
+        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $this->router->addMiddlewareExceptionHandler($exceptionHandler);
 
         try {
-            $socketRouter->handle($data, 1, new stdClass);
+            $this->sendData(1, json_encode([
+                'action' => SampleAction::ACTION_NAME,
+                'token'  => 'invalid-token',
+            ]));
         } catch (Exception $e) {
             // let's verify the parameters that reached the exception handler.
             $this->assertTrue('Exception' === get_class($exceptionHandler->e), 'Not expected value at exception parameter.');
             $this->assertTrue(is_array($exceptionHandler->parsedData), 'Not expected value at data parameter.');
             $this->assertTrue(is_int($exceptionHandler->fd), 'Not expected value at fd parameter.');
-            $this->assertTrue('stdClass' === get_class($exceptionHandler->server), 'Not expected value at server parameter.');
+            $this->assertTrue(SampleSocketServer::class === get_class($exceptionHandler->server), 'Not expected value at server parameter.');
             throw $e;
         }
     }
 
     public function testCantSendPlainText()
     {
-        $counter = 0;
-
-        $server = new SampleSocketServer(function () use (&$counter) {
-            $counter++;
-        });
-
-        [$socketRouter, $sampleAction] = $this->prepareSocketMessageRouter();
-
-        $data = 'some message';
-        ($socketRouter)($data, 1, $server);
-
-        $this->assertEquals(1, $counter);
+        $this->sendData(1, 'some message');
+        $this->assertCount(1, $this->userKeys);
     }
 }

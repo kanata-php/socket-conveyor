@@ -51,14 +51,13 @@ class SocketUserAssocPersistenceTableTest extends TestCase
 
     public function testCanDisassoc()
     {
-        $fd = 1;
         $userId = 2;
 
         $this->assertFalse(
             in_array($userId, $this->data->getAllAssocs())
         );
 
-        $this->assocUser($fd, $userId);
+        $this->assocUser(1, $userId);
 
         $this->assertTrue(
             in_array($userId, $this->data->getAllAssocs())
