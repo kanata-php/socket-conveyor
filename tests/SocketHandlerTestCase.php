@@ -60,12 +60,9 @@ class SocketHandlerTestCase extends TestCase
         $resultOfAddMethod = $socketRouter->add(new ChannelConnectAction);
         $this->assertInstanceOf(SocketMessageRouter::class, $resultOfAddMethod);
 
-        $socketRouter->add(new AddListenerAction);
-        $socketRouter->add(new AssocUserToFdAction);
-        $socketRouter->add(new BroadcastAction);
+        // sample actions
         $socketRouter->add(new SecondaryBroadcastAction);
         $socketRouter->add(new SampleReturnAction);
-        $socketRouter->add(new FanoutAction);
         $socketRouter->add(new SecondaryFanoutAction);
 
         return $socketRouter;

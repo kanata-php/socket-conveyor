@@ -3,8 +3,12 @@
 namespace Conveyor\SocketHandlers;
 
 use Conveyor\Actions\AddListenerAction;
+use Conveyor\Actions\AssocUserToFdAction;
 use Conveyor\Actions\BaseAction;
+use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
+use Conveyor\Actions\ChannelDisconnectAction;
+use Conveyor\Actions\FanoutAction;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Exceptions\InvalidActionException;
@@ -63,9 +67,13 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     protected function startActions()
     {
-        $this->add(new ChannelConnectAction);
         $this->add(new AddListenerAction);
+        $this->add(new AssocUserToFdAction);
         $this->add(new BaseAction);
+        $this->add(new BroadcastAction);
+        $this->add(new ChannelConnectAction);
+        $this->add(new ChannelDisconnectAction);
+        $this->add(new FanoutAction);
 
         foreach ($this->actions as $action) {
             if (is_string($action)) {
