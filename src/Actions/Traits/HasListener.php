@@ -8,7 +8,8 @@ trait HasListener
 
     private function isListeningAnyAction(int $fd): bool
     {
-        return null !== $this->listenerPersistence->getListener($fd);
+        return null !== $this->listenerPersistence
+            && null !== $this->listenerPersistence->getListener($fd);
     }
 
     /**
