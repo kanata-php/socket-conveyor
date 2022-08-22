@@ -25,15 +25,15 @@ composer require kanata-php/socket-conveyor
 
 ## Description
 
-This package enables you to work with socket messages using routing strategy. For that, you just add an Action Handler implementing the `ActionInterface` to the `SocketMessageRouter` and watch the magic happen!
+This package enables you to work with socket messages using routing strategy. It comes with some solutions such as channel or action listeners, but you can implement your own by extending the `AbstractAction`.
 
-As an example of how to accomplish that with PHP, you can use the [OpenSwoole](https://openswoole.com/). You can find out more how to use WebSockets with OpenSwoole [here](https://www.youtube.com/watch?v=Vgw5Ibqc15k).
+This package is built with [OpenSwoole](https://openswoole.com/) in mind, but it works with any websocket implementation. Please let me know if you find issues! You can find out more how to use WebSockets with OpenSwoole [here](https://www.youtube.com/watch?v=Vgw5Ibqc15k).
 
 > This package has a Client NPM package to facilitate the work, go check it here: https://www.npmjs.com/package/socket-conveyor-client.
 
 ## How it works
 
-The main example is set in the `tests ` directory, but here is how it works:
+Here is how it works:
 
 <p align="center">
 <img src="./imgs/conveyor-process.png" width="500"/>
@@ -44,11 +44,11 @@ The main example is set in the `tests ` directory, but here is how it works:
 
 Following we have 4 examples:
 
-**Case 1**: The simple case, where a user communicates in real-time fashion but won't broadcast any data to other users.
+**Case 1**: The simple case, where messages happen in real-time fashion between client and server but won't broadcast to other clients.
 
-**Case 2**: The channel case, where a user communicates with other users in real-time using channels.
+**Case 2**: The channel case, where messages get broadcast to all other clients within the same channel.
 
-**Case 3**: The listener case, where a user can participate in a channel but only listen to specific actions.
+**Case 3**: The listener case, where clients can filter which messages (by action) they will receive.
 
 **Case 4**: Associate an application user id with a connection (fd).
 
@@ -60,44 +60,16 @@ Following we have 4 examples:
 
 At this example the user will receive back a real-time messages from the server after sending a message.
 
-At this library, there is the presumption that the socket message has a *JSON* format. That said, the following standard is expected to be followed by the messages, so they can match specific *Actions*. The minimum format is this:
+At this library, there is the presumption that the socket message has a *JSON* format, if not, the `Conveyor\Actions\BaseAction` will be the handler and the text will be added as the "data" parameter of that action. That said, the following standard is expected to be followed by the messages in general, so they can match specific *Actions*. The minimum format is this:
 
 ```json
 {
     "action": "base-action",
-    "other-parameters": "here goes other fields necessary for the Actions processing..."
+    "data": "here goes other fields necessary for the Actions processing..."
 }
 ```
 
 First, write some action handlers:
-
-```php
-require __DIR__.'/vendor/autoload.php';
-
-use Conveyor\Actions\Abstractions\AbstractAction;
-
-class ExampleFirstCreateAction extends AbstractAction
-{
-    protected string $name = 'example-first-action';
-    public function execute(array $data): mixed
-    {
-        $this->send('Example First Action Executed!', $this->fd);
-        return null;
-    }
-    public function validateData(array $data) : void {}
-}
-
-class ExampleSecondCreateAction extends AbstractAction
-{
-    protected string $name = 'example-second-action';
-    public function execute(array $data): mixed
-    {
-        $this->send('Example Second Action Executed!', $this->fd);
-        return null;
-    }
-    public function validateData(array $data) : void {}
-}
-```
 
 Second, at your Open Swoole Web Socket server, register `SocketMessageRouter` with your actions at your `OnMessage` event handler:
 
@@ -110,10 +82,7 @@ use Conveyor\SocketHandlers\SocketMessageRouter;
 
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) {
-    echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
     $socketRouter = new SocketMessageRouter;
-    $socketRouter->add(new ExampleFirstCreateAction);
-    $socketRouter->add(new ExampleSecondCreateAction);
     $socketRouter($frame->data, $frame->fd, $server);
 });
 
@@ -124,8 +93,11 @@ Thats it! Now, to communicate in real-time with this service, on your HTML you c
 
 ```html
 <div>
-    <div><button onclick="sendMessage('example-first-action', 'first')">First Action</button></div>
-    <div><button onclick="sendMessage('example-second-action', 'second')">Second Action</button></div>
+    <div><button onclick="sendMessage(JSON.stringify({
+            'action': 'base-action',
+            'data': 'first',
+        }))">Base Action</button></div>
+    <div><button onclick="sendMessage('second')">Simple Text</button></div>
     <div id="output"></div>
 </div>
 <script type="text/javascript">
@@ -133,14 +105,13 @@ Thats it! Now, to communicate in real-time with this service, on your HTML you c
     websocket.onmessage = function (evt) {
         document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
     };
-    function sendMessage(action, message) {
-        websocket.send(JSON.stringify({
-            'action': action,
-            'params': {'content': message}
-        }));
+    function sendMessage(message) {
+        websocket.send(message);
     }
 </script>
 ```
+
+> Notice that these 2 buttons result in the same action.
 
 How it looks like:
 
@@ -157,6 +128,8 @@ How it looks like:
 At this case it is possible for clients sharing a channel to communicate to each other by broadcasting messages and data through this channel.
 
 The procedure here requires one extra step during the instantiation: the connection action. The connection action will link in a persistent manner the connection FD to a channel.
+
+> If you are using the client lib of this package you won't need to manually open a connection by yourself as the client already does that out of the box. You can find it here: https://www.npmjs.com/package/socket-conveyor-client 
 
 ```json
 {
@@ -176,18 +149,15 @@ The way to use it with vanilla JS is as follows:
 </script>
 ```
 
-To start sending messages to channels, you do this:
+After connecting to a channel, all messages sent by that client will be within that channel. You can disconnect from a channel by sending this message:
 
 ```html
 <script>
     websocket.send(JSON.stringify({
-        'action': 'channel-action',
-        'data': 'my-message',
+        'action': 'channel-disconnect',
     }));
 </script>
 ```
-
-> **Important:** Notice that the `action` field is required and must have `channel-action` as value for your message to be sent to the channel. The field `data` must be named as such, and the content must be a string.
 
 The Socket Router instantiation also suffers a small change:
 
@@ -200,9 +170,9 @@ use Conveyor\SocketHandlers\SocketMessageRouter;
 use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 
 $persistenceService = new SocketChannelPersistenceTable;
+
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
-    echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
     $socketRouter = new SocketMessageRouter($persistenceService);
     $socketRouter($frame->data, $frame->fd, $server);
 });
@@ -210,12 +180,22 @@ $websocket->on('message', function (Server $server, Frame $frame) use ($persiste
 $websocket->start();
 ```
 
-With these changes to the server, you can have different implementations on the client-side. Each implementation, in a different context, connects to a different channel. As an example, we have the following HTML example. When connected, it will make sure the current connection belongs to a given channel. To connect another implementation to a different channel, you just need to use a different channel parameter.
+With these changes to the server, you can have different implementations on the client-side. Each implementation, in a different context, connects to a different channel. As an example, we have the following HTML example. When connected, the given connection will participate on a given channel.
+
+> **Important**: to broadcast messages to all clients in the same channel, you'll need to use the `broadcast-action` action like. You can take a look on the file `Conveyor\Actions\BroadcastAction` to see how broadcasting actions works like. If you want to know how to broadcast outside channel borders, take a look at the "Fanout" actions.
 
 ```html
 <div>
-    <div><button onclick="sendMessage('Hello')">Say Hello</button></div>
-    <div id="output"></div>
+    <form id="message-form" onsubmit="return sendMessage()">
+        <div>
+            <input id="message-box" autocomplete="off" type="text" placeholder="The message goes here..."/>
+        </div>
+        <input type="submit" value="Submit"/>
+    </form>
+
+    <div>
+        <ul id="output"></ul>
+    </div>
 </div>
 <script type="text/javascript">
     var channel = 'actionschannel';
@@ -228,13 +208,14 @@ With these changes to the server, you can have different implementations on the 
         }));
     };
     websocket.onmessage = function (evt) {
-        document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
+        document.getElementById('output').innerHTML = evt.data;
     };
-    function sendMessage(message) {
+    function sendMessage() {
         websocket.send(JSON.stringify({
-            'action': 'channel-action',
-            'data': message
+            'action': 'broadcast-action',
+            'data': document.getElementById('message-box').value,
         }));
+        return false;
     }
 </script>
 ```
@@ -245,21 +226,6 @@ That's all, with this, you would have the following:
 <img src="./imgs/example-server-channels.gif" width="500"/>
 </p>
 
-> You can also send messages to channels from the server, for that, you invoke this at your custom Action class:
-> ```php
-> class SendMessageToChannelAction extends AbstractAction
-> {
->     protected string $name = 'example-action';
->     public function execute(array $data): mixed
->     {
->         // This method will broadcast message to the entire channel
->         // if we set the third parameter ($toChannel) to true.
->         $this->send('Example Action Executed!', null, true);
->         return null;
->     }
->     public function validateData(array $data) : void {}
-> }
-> ```
 
 ### Case 3: Listening to Actions
 
@@ -267,11 +233,9 @@ That's all, with this, you would have the following:
 <img src="./imgs/conveyor-case-3.png" width="500"/>
 </p>
 
-At this example clients can filter messages that they receive by adding listeners to the ones they want. If there are not listeners registered, they will receive all.
+At this example clients can filter messages that they receive by adding listeners to the ones they want. If there are no listeners registered, they will receive all broadcast or fanout actions.
 
-Let's see the difference from this example from the previous (Using Channels):
-
-At the `SocketMessageRouter` preparation, we have one extra action being called: `AddListenerAction`.
+At the `SocketMessageRouter` preparation, we have one extra action being called: `Conveyor\Actions\AddListenerAction`. Also, listeners require another persistence instance: `Conveyor\SocketHandlers\SocketListenerPersistenceTable`.
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -280,97 +244,27 @@ use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Conveyor\SocketHandlers\SocketListenerPersistenceTable;
 
-$persistenceService = new SocketChannelsTable; // this is an example of the PersistenceInterface that needs to be set so the Socket Router knows how to persist its data.
+$persistenceService = new SocketListenerPersistenceTable;
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
-    $socketRouter = new SocketMessageRouter($persistenceService, [
-        ExampleFirstCreateAction::class,
-        ExampleSecondCreateAction::class,
-    ]);
+    $socketRouter = new SocketMessageRouter($persistenceService);
     $socketRouter($frame->data, $frame->fd, $server);
 });
 
 $websocket->start();
 ```
 
-The implementation of the `PersistenceInterface` needs the listening methods implemented:
+The client in Javasript then starts listening to a specific action by sending a new message at the connection opening:
 
-```php
-use Conveyor\SocketHandlers\Interfaces\PersistenceInterface;
-use Swoole\Table;
-
-class SocketChannelsTable implements PersistenceInterface
-{
-    protected Table $table;
-
-    public function __construct()
-    {
-        $this->table = new Table(10024);
-        $this->table->column('channel', Table::TYPE_STRING, 40);
-        
-        // new field
-        $this->table->column('listening', Table::TYPE_STRING, 200);
-        
-        $this->table->create();
-    }
-
-    public function connect(int $fd, string $channel): void
-    {
-        $this->table->set($fd, ['channel' => $channel]);
-    }
-
-    public function disconnect(int $fd): void
-    {
-        $this->table->del($fd);
-    }
-
-    public function getAllConnections(): array
-    {
-        $collection = [];
-        foreach($this->table as $key => $value) {
-            $collection[$key] = $value['channel'];
-        }
-        return $collection;
-    }
-    
-    // new methods:
-    
-    public function listen(int $fd, string $action): void
-    {
-        $listening = $this->table->get($fd, 'listening');
-        $listeningArray = explode(',', $listening);
-        $listeningArray = array_filter($listeningArray);
-        $listeningArray[] = $action;
-        $this->table->set($fd, [
-            'channel' => $this->table->get($fd, 'channel'),
-            'listening' => implode(',', $listeningArray),
-        ]);
-    }
-
-    public function getListener(int $fd): array
-    {
-        return explode(',', $this->table->get($fd, 'listening'));
-    }
-
-    public function getAllListeners(): array
-    {
-        $collection = [];
-        foreach($this->table as $key => $value) {
-            $collection[$key] = explode(',', $value['listening']);
-        }
-        return $collection;
-    }
-}
-```
-
-The client in Javasript then starts listening a specific action by sending a new message at the connection opening:
+> At this example we assume that we have another broadcast action implemented "secondary-broadcast-action". That will be used to differentiate between the listened and the not listened broadcasted actions.
 
 ```html
 <div>
-    <div><button onclick="sendMessage('example-first-action', 'first')">First Action</button></div>
-    <div><button onclick="sendMessage('example-second-action', 'second')">Second Action</button></div>
+    <div><button onclick="sendMessage('broadcast-action', 'first')">First Action</button></div>
+    <div><button onclick="sendMessage('secondary-broadcast-action', 'second')">Second Action</button></div>
     <div id="output"></div>
 </div>
 <script type="text/javascript">
@@ -385,7 +279,7 @@ The client in Javasript then starts listening a specific action by sending a new
         // This starts the process of listening to actions from the current client.
         websocket.send(JSON.stringify({
             'action': 'add-listener',
-            'listen': 'example-first-action',
+            'listen': 'secondary-broadcast-action',
         }));
     };
     websocket.onmessage = function (evt) {
@@ -394,20 +288,20 @@ The client in Javasript then starts listening a specific action by sending a new
     function sendMessage(action, message) {
         websocket.send(JSON.stringify({
             'action': action,
-            'params': {'content': message}
+            'data': message,
         }));
     }
 </script>
 ```
 
-Once those changes are in place, you'll be able to see this (notice that we are in the same channel, but both are listening only to the actions that are subscribed for):
+Once those changes are in place, you'll be able to see this (notice that we are in the same channel, but both are receiving only to the actions they are subscribed for):
 
 ![Example Server with Listeners](./imgs/example-server-listeners.gif)
 
 
 ### Case 4: Associate User with Connection
 
-This functionality is for applications that need to have associations between connections (fd) and users. This is useful when you need to execute actions that need to know the context and decide upon that. One good example is a server that serves at the same time multiple users, but won't answer users the same way depending on the procedure executed. That way, you can have actions that will process some data and broadcast to connections only what each connection needs to receive for that procedure.
+This functionality is for applications that need to have associations between connections (fd) and users. This is useful when you need to execute actions that need to know the user and decide upon that. One good example is a server that serves at the same time multiple users, but won't answer users the same way depending on the procedure executed. That way, you can have actions that will process some data and broadcast to connections only what each connection needs to receive for that procedure.
 
 For this functionality, you only need one extra action to be dispatched:
 
@@ -420,11 +314,11 @@ websocket.send(JSON.stringify({
 
 This code will associate the user "1" with the current connection.
 
-> **Important:** This functionality might need some more treatment, so we know for sure that a given user owns a given connection. That can be done by the single key procedure with the application running Socket Conveyor, where you generate one key for a user via an HTTP request, and use that key in the header to be authorized by the actions that need such context.
+> **Advice:** It is recommended the usage of some token or secret to identify them before the websocket server accepting the association.
 
 ### Case 5: Using Middlewares
 
-The usage of middlewares might help to secure your websocket server, making sure specific validations and conditions are met in order to proceed. At Socket Conveyor middlewares are attached to actions at the socket router's instance. The way to do that is as follows:
+The usage of middlewares might help to secure your websocket server, making sure specific validations and conditions are met in order to proceed. At Socket Conveyor, middlewares are attached to actions at the socket router's instance. The way to do that is as follows:
 
 ```php
 require __DIR__.'/vendor/autoload.php';
@@ -432,6 +326,7 @@ require __DIR__.'/vendor/autoload.php';
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
 
 class Middleware1 extends MiddlewareInterface
@@ -443,7 +338,8 @@ class Middleware1 extends MiddlewareInterface
     }
 }
 
-$persistenceService = new SocketChannelsTable; // this is an example of the PersistenceInterface that needs to be set so the Socket Router knows how to persist its data.
+$persistenceService = new SocketChannelPersistenceTable;
+
 $websocket = new Server('0.0.0.0', 8001);
 $websocket->on('message', function (Server $server, Frame $frame) use ($persistenceService) {
     echo 'Received message (' . $frame->fd . '): ' . $frame->data . PHP_EOL;
@@ -451,39 +347,186 @@ $websocket->on('message', function (Server $server, Frame $frame) use ($persiste
     // adding with the constructor
     $socketRouter = new SocketMessageRouter($persistenceService, [
         ActionWithoutMiddleware::class,
-        [ActionWithMiddleware::class, new Middleware1, function($payload) {return $payload;}],
+        [
+            ActionWithMiddleware::class,
+            new Middleware1, // middleware 1
+            fn($payload) => $payload, // middleware 2
+            // ...
+        ],
     ]);
     
-    // adding after the instance is set
-    $action = new ActionWithMiddleware2;
-    $socketRouter->add($action);
-    $socketRouter->middleware($action->getName(), new Middleware1);
-    $socketRouter->middleware($action->getName(), function($payload) {return $payload;});
+    // is also possible adding after the instance is set:
+    // $action = new ActionWithMiddleware2;
+    // $socketRouter->add($action);
+    // $socketRouter->middleware($action->getName(), new Middleware1);
     
-    $socketRouter->middleware();
     $socketRouter($frame->data, $frame->fd, $server);
 });
 
 $websocket->start();
 ```
 
-Middlewares at Socket Conveyor are callables. Any callable is accepted. This is reason you can add functions as middlewares. Even though the system is pretty flexible on that side, we strongly suggest you to implement the interface `Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface`.
+Middlewares at Socket Conveyor are callables. Any callable is accepted. For is reason you can add functions as middlewares. Even though the system is pretty flexible on that side, we strongly suggest you to implement the interface `Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface`.
+
+### Case 6: Fanout Ation
+
+This is a global broadcast, that goes outside the borders of the channels.
+
+> **Important:** when a client is listening to actions other than the one you send, that client won't receive it. It happens because listeners are a type of action filters.
+
+```php
+require __DIR__.'/vendor/autoload.php';
+
+use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+use Conveyor\SocketHandlers\SocketMessageRouter;
+use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
+
+$websocket = new Server('0.0.0.0', 8001);
+$websocket->on('message', function (Server $server, Frame $frame) {
+    $socketRouter = new SocketMessageRouter();
+    $socketRouter($frame->data, $frame->fd, $server);
+});
+
+$websocket->start();
+```
+
+```html
+<div>
+    <div><button onclick="sendMessage('Hello')">Say Hello</button></div>
+    <div id="output"></div>
+</div>
+<script type="text/javascript">
+    var websocket = new WebSocket('ws://127.0.0.1:8001');
+    websocket.onmessage = function (evt) {
+        document.getElementById('output').innerHTML = JSON.parse(evt.data).data;
+    };
+    function sendMessage(message) {
+        websocket.send(JSON.stringify({
+            'action': 'fanout-action',
+            'data': message
+        }));
+    }
+</script>
+```
+
+Messages sent with this example will be broadcasted to any client regardless of channels.
 
 ## Available Actions
 
-This package comes with some out-of-the-box Actions:
-
-### Base Action
-
-### Channel Connect Action
-
-### Channel Disconnect ACtion
+This package comes with some out-of-the-box Actions, but you can (and probably will need) build your own for your own needs by extending the existent ones or creating new.
 
 ### Add Listener Action
 
+> `Conveyor\Actions\AddListenerAction`
+
+Action responsible for adding listeners to a connection. This way messages will be fltered.
+
+Structure:
+
+```json
+{
+    "action": "add-listener",
+    "listen": "action-name"
+}
+```
+
+### Associate User to Fd
+
+> `Conveyor\Actions\AssocUserToFdAction`
+
+Action responsible for associating users to connections.
+
+Structure:
+
+```json
+{
+    "action": "",
+    "userId": 1
+}
+```
+
+### Base (default)
+
+> `Conveyor\Actions\BaseAction`
+
+This is the base action. Works like a ping pong, returning the message to the client who sent it.
+
+Structure:
+
+```json
+{
+    "action": "base-action",
+    "data": "message"
+}
+```
+
+> If the message sent to the server is plain text instead of json, this actino will be the one selected by Socket Conveyor.
+
+### Broadcast
+
+> `Conveyor\Actions\BroadcastAction`
+
+This is for messages to be broadcasted on the context of the connection that dispatches it.
+
+Structure:
+
+```json
+{
+    "action": "broadcast-action",
+    "data": "message"
+}
+```
+
+### Channel Connect
+
+> `Conveyor\Actions\ChannelConnectAction`
+
+Action used to connect to a channel.
+
+Structure:
+
+```json
+{
+    "action": "channel-connect",
+    "channel": "channel-name"
+}
+```
+
+### Channel Disconnect
+
+> `Conveyor\Actions\ChannelDisconnectAction`
+
+Action used to disconnect from a channel.
+
+Structure
+
+```json
+{
+    "action": "channel-disconnect"
+}
+```
+
+### Fanout
+
+> `Conveyor\Actions\FanoutAction`
+
+Action used to broadcast without context borders (to every client in the server).
+
+```json
+{
+    "action": "fanout-action",
+    "data": "message"
+}
+```
+
 ## Commands
 
-This package comes with a binary command (`./start-ws-server`) to start a managed WebSocket Server. If you don't overwrite the default options, it comes with a sample Server and Client that you can use to build something else or extend and customize. After the installation composer will copy the command to the binary's directory inside vendor (`./vendor/bin/start-ws-server`) of your project's directory.
+### Start Server
+
+> This is a sample of a managed WebSocket Server.
+
+Start a managed WebSocket Server. If you don't overwrite the default options, it comes with a sample Server and Client that you can use to build something else or extend and customize. After the installation composer will copy the command to the binary's directory inside vendor (`./vendor/bin/start-ws-server`) of your project's directory.
 
 Once you run the following comment you'll be able to visit `localhost:8080` and see the manager to start or stop the server.
 
