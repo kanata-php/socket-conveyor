@@ -442,7 +442,7 @@ Structure:
 
 ```json
 {
-    "action": "",
+    "action": "assoc-user-to-fd-action",
     "userId": 1
 }
 ```
