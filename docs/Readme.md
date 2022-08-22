@@ -36,7 +36,7 @@ This package is built with [OpenSwoole](https://openswoole.com/) in mind, but it
 Here is how it works:
 
 <p align="center">
-<img width="500" src="./imgs/conveyor-process.png" title="How it works"/>
+<img src="./imgs/conveyor-process.png" title="How it works"/>
 </p>
 
 
@@ -55,7 +55,7 @@ Following we have 4 examples:
 ### Case 1: Simple Use
 
 <p align="center">
-<img width="500" style="border: 1px solid #000" src="./imgs/conveyor-case-1.png" title="Simple case"/>
+<img style="border: 1px solid #000" src="./imgs/conveyor-case-1.png" title="Simple case"/>
 </p>
 
 At this example the user will receive back a real-time messages from the server after sending a message.
@@ -116,13 +116,13 @@ Thats it! Now, to communicate in real-time with this service, on your HTML you c
 How it looks like:
 
 <p align="center">
-<img width="500" style="border: 1px solid #000" src="./imgs/example-server.gif" title="Example for base action"/>
+<img style="border: 1px solid #000" src="./imgs/example-server.gif" title="Example for base action"/>
 </p>
 
 ### Case 2: Using Channels
 
 <p align="center">
-<img width="500" style="border: 1px solid #000" src="./imgs/conveyor-case-2.png" title="Using channels"/>
+<img style="border: 1px solid #000" src="./imgs/conveyor-case-2.png" title="Using channels"/>
 </p>
 
 At this case it is possible for clients sharing a channel to communicate to each other by broadcasting messages and data through this channel.
@@ -223,14 +223,14 @@ With these changes to the server, you can have different implementations on the 
 That's all, with this, you would have the following:
 
 <p align="center">
-<img width="500" style="border: 1px solid #000" src="./imgs/example-server-channels.gif" title="Example Server with Channels"/>
+<img style="border: 1px solid #000" src="./imgs/example-server-channels.gif" title="Example Server with Channels"/>
 </p>
 
 
 ### Case 3: Listening to Actions
 
 <p align="center">
-<img width="500" style="border: 1px solid #000" src="./imgs/conveyor-case-3.png" title="Listening to actions"/>
+<img style="border: 1px solid #000" src="./imgs/conveyor-case-3.png" title="Listening to actions"/>
 </p>
 
 At this example clients can filter messages that they receive by adding listeners to the ones they want. If there are no listeners registered, they will receive all broadcast or fanout actions.
@@ -297,7 +297,7 @@ The client in Javasript then starts listening to a specific action by sending a 
 Once those changes are in place, you'll be able to see this (notice that we are in the same channel, but both are receiving only to the actions they are subscribed for):
 
 <p align="center">
-<img width="500" style="border: 1px solid #000" src="./imgs/example-server-listeners.gif" title="Example Server with Listeners"/>
+<img style="border: 1px solid #000" src="./imgs/example-server-listeners.gif" title="Example Server with Listeners"/>
 </p>
 
 ### Case 4: Associate User with Connection
