@@ -373,7 +373,7 @@ Middlewares at Socket Conveyor are callables. Any callable is accepted. For is r
 
 This is a global broadcast, that goes outside the borders of the channels.
 
-> **Important:** when a client is listening to actions other than the one you send, that client won't receive it. It happens because listeners are a type of action filters.
+> **Important:** when a client is listening to actions other than the one you send, that client won't receive it. It happens because listeners are "filters".
 
 ```php
 require __DIR__.'/vendor/autoload.php';

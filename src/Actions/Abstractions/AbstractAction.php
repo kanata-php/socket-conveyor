@@ -138,7 +138,7 @@ abstract class AbstractAction implements ActionInterface
      * @param array|null $listeners
      * @return void
      */
-    private function fanout(string $data, ?array $listeners = null)
+    protected function fanout(string $data, ?array $listeners = null)
     {
         foreach ($this->server->connections as $fd) {
             $isOnlyListeningOtherActions = null === $listeners
@@ -166,7 +166,7 @@ abstract class AbstractAction implements ActionInterface
      * @param array|null $listeners
      * @return void
      */
-    private function broadcastToChannel(string $data, ?array $listeners = null): void
+    protected function broadcastToChannel(string $data, ?array $listeners = null): void
     {
         $connections = array_filter(
             $this->channelPersistence->getAllConnections(),
