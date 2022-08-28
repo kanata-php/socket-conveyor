@@ -369,7 +369,7 @@ $websocket->start();
 
 Middlewares at Socket Conveyor are callables. Any callable is accepted. For is reason you can add functions as middlewares. Even though the system is pretty flexible on that side, we strongly suggest you to implement the interface `Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface`.
 
-### Case 6: Fanout Ation
+### Case 6: Fanout Action
 
 This is a global broadcast, that goes outside the borders of the channels.
 
@@ -421,7 +421,7 @@ This package comes with some out-of-the-box Actions, but you can (and probably w
 
 > `Conveyor\Actions\AddListenerAction`
 
-Action responsible for adding listeners to a connection. This way messages will be fltered.
+Action responsible for adding listeners to a connection. This way messages will be filtered.
 
 Structure:
 
