@@ -6,7 +6,7 @@ trait HasListener
 {
     use HasPersistence;
 
-    private function isListeningAnyAction(int $fd): bool
+    protected function isListeningAnyAction(int $fd): bool
     {
         return null !== $this->listenerPersistence
             && null !== $this->listenerPersistence->getListener($fd);
@@ -17,7 +17,7 @@ trait HasListener
      *
      * @return array|null Null if empty or not instantiated, array if listening.
      */
-    private function getListeners(): ?array
+    protected function getListeners(): ?array
     {
         if (null !== $this->listenerPersistence) {
             $listeners = [];
