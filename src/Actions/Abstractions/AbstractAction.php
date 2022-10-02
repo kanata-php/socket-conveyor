@@ -148,9 +148,12 @@ abstract class AbstractAction implements ActionInterface
 
             if (
                 !$this->server->isEstablished($fd)
-                || $isNotListeningThisAction
-                || $fd === $this->getFd()
-                || $isOnlyListeningOtherActions
+                || (
+                    // if listening any action, let's analyze
+                    $this->isListeningAnyAction($fd)
+                    && ($isNotListeningThisAction
+                        || $isOnlyListeningOtherActions)
+                )
             ) {
                 continue;
             }
@@ -181,9 +184,13 @@ abstract class AbstractAction implements ActionInterface
 
             if (
                 !$this->server->isEstablished($fd)
-                || $fd === $this->fd
-                || $isNotListeningThisAction
-                || $isOnlyListeningOtherActions
+                || $fd === $this->getFd()
+                || (
+                    // if listening any action, let's analyze
+                    $this->isListeningAnyAction($fd)
+                    && ($isNotListeningThisAction
+                        || $isOnlyListeningOtherActions)
+                )
             ) {
                 continue;
             }
