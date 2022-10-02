@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file.
 Updates should follow the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [1.1.8] - 2022-09-02
+
+### Fixed
+
+- Fixed bug with broadcast: listeners connection were causing message distribution, further changes regarding that.
+
+
 ## [1.1.7] - 2022-08-29
 
 ### Fixed
