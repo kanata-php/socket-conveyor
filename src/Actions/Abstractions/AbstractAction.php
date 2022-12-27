@@ -87,14 +87,14 @@ abstract class AbstractAction implements ActionInterface
     }
 
     /**
-     * @param string $data
+     * @param mixed $data
      * @param int|null $fd Destination Fd
      * @param bool $toChannel
      * @return void
      * @throws Exception
      */
     public function send(
-        string $data,
+        mixed $data,
         ?int $fd = null,
         bool $toChannel = false
     ): void {

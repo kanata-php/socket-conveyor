@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Conveyor\Actions\BroadcastAction;
 use Error;
 use stdClass;
 use Exception;
@@ -33,6 +34,29 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             'action' => SampleAction::ACTION_NAME,
         ]));
         $this->assertCount(1, $this->userKeys);
+    }
+
+    public function testCanBroadcastActionWithArrayData()
+    {
+        $verified = false;
+        $this->callbackVerification = function ($data) use (&$verified) {
+            $data = json_decode($data, true);
+            $verified = isset($data['data']['field1'])
+                && 'value1' === $data['data']['field1'];
+        };
+
+        $this->router->add(new BroadcastAction);
+        $this->connectToChannel(1, 'test-channel');
+        $this->connectToChannel(2, 'test-channel');
+        $this->listenToAction(2, BroadcastAction::ACTION_NAME);
+        $this->sendData(1, json_encode([
+            'action' => BroadcastAction::ACTION_NAME,
+            'data' => [
+                'field1' => 'value1',
+            ],
+        ]));
+        $this->assertCount(1, $this->userKeys);
+        $this->assertTrue($verified);
     }
 
     public function testCanSetAndGetFdFromAction()

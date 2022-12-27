@@ -23,7 +23,7 @@ class SocketFanoutTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
 
-        $this->assertCount(4, array_filter(
+        $this->assertCount(5, array_filter(
             $this->userKeys,
             fn($d) => $message === json_decode($d)->data
         ));
@@ -43,7 +43,7 @@ class SocketFanoutTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
 
-        $this->assertCount(4, array_filter(
+        $this->assertCount(5, array_filter(
             $this->userKeys,
             fn($d) => $message === json_decode($d)->data
         ));
@@ -64,7 +64,7 @@ class SocketFanoutTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
 
-        $this->assertCount(3, array_filter(
+        $this->assertCount(4, array_filter(
             $this->userKeys,
             fn($d) => $message === json_decode($d)->data
         ));

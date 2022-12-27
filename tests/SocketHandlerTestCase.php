@@ -28,6 +28,9 @@ class SocketHandlerTestCase extends TestCase
     public SocketMessageRouter $router;
     public SampleSocketServer $server;
 
+    /** @var null|callable */
+    public $callbackVerification = null;
+
     /**
      * @before
      */
@@ -71,6 +74,10 @@ class SocketHandlerTestCase extends TestCase
     public function sampleCallback(int $fd, string $data): void
     {
         $this->userKeys[$fd] = $data;
+
+        if (null !== $this->callbackVerification) {
+            ($this->callbackVerification)($data);
+        }
     }
 
     public function connectToChannel(int $fd, string $channel): void

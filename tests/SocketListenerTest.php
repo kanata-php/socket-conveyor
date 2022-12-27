@@ -63,34 +63,6 @@ class SocketListenerTest extends SocketHandlerTestCase
         $this->assertCount(0, $this->userKeys);
     }
 
-    public function testCanFanoutToListenersOnly()
-    {
-        $message = 'sample-message';
-
-        $this->server->connections[] = 3; // this won't listen
-
-        $this->listenToAction(1, FanoutAction::ACTION_NAME);
-
-        $this->listenToAction(2, FanoutAction::ACTION_NAME);
-
-        // message to be considered
-        $this->sendData(1, json_encode([
-            'action' => FanoutAction::ACTION_NAME,
-            'data' => $message,
-        ]));
-        $this->assertCount(1, $this->userKeys);
-
-        $this->userKeys = [];
-
-        // message to be ignored
-        $this->sendData(1, json_encode([
-            'action' => SecondaryFanoutAction::ACTION_NAME,
-            'data' => $message,
-        ]));
-
-        $this->assertCount(1, $this->userKeys);
-    }
-
     public function testCanFanoutToListenersCrossRequests()
     {
         $message = 'sample-message';
@@ -106,7 +78,7 @@ class SocketListenerTest extends SocketHandlerTestCase
             'action' => FanoutAction::ACTION_NAME,
             'data' => $message,
         ]));
-        $this->assertCount(1, $this->userKeys);
+        $this->assertCount(2, $this->userKeys);
 
         $this->router = $this->prepareSocketMessageRouter([
             'channel' => $this->channelPersistence,
@@ -117,7 +89,7 @@ class SocketListenerTest extends SocketHandlerTestCase
         $this->userKeys = [];
 
         // message to be ignored
-        $this->sendData(1, json_encode([
+        $this->sendData(2, json_encode([
             'action' => SecondaryFanoutAction::ACTION_NAME,
             'data' => $message,
         ]));
