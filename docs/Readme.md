@@ -42,6 +42,11 @@ Here is how it works:
 
 ## Usage
 
+> **Prerequisites**
+> - The message must contain specific keys depending on the action being triggered.
+> - If a simple non-JSON string is sent, it will be considered to be the BaseAction, which is the same as a ping/pong, responding to the same message that was sent.
+> - If a JSON string is sent, and the action requires a "data" key, the "data" key can be of any format. Notice that the message string must always be a valid JSON string at the end.
+
 Following we have 4 examples:
 
 **Case 1**: The simple case, where messages happen in real-time fashion between client and server but won't broadcast to other clients.
