@@ -94,7 +94,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     protected function startActionWithMiddlewares(array $action)
     {
-        if ($this->hasExists($action[0]::ACTION_NAME)) {
+        if ($this->hasAction($action[0]::ACTION_NAME)) {
             throw new Exception('Action added twice!');
         }
 
@@ -300,6 +300,20 @@ class SocketMessageRouter implements SocketHandlerInterface
     }
 
     /**
+     * It removes an action from the Router.
+     *
+     * @param ActionInterface|string $actionHandler
+     * @return SocketMessageRouter
+     */
+    public function remove(ActionInterface|string $action) : SocketMessageRouter
+    {
+        $actionName = is_string($action) ? $action : $action->getName();
+        unset($this->handlerMap[$actionName]);
+
+        return $this;
+    }
+
+    /**
      * Add a step for the current's action middleware.
      *
      * @param string $action
@@ -332,7 +346,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      * @param string $name
      * @return bool
      */
-    public function hasExists(string $name): bool
+    public function hasAction(string $name): bool
     {
         return isset($this->handlerMap[$name]);
     }

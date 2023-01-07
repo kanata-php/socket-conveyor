@@ -27,6 +27,18 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         );
     }
 
+    public function testCanRemoveHandlerForAction()
+    {
+        $this->router->add(new SampleAction);
+        $this->assertInstanceOf(SocketMessageRouter::class, $this->router);
+        $this->assertInstanceOf(
+            SampleAction::class,
+            $this->router->getAction(SampleAction::ACTION_NAME),
+        );
+        $this->router->remove(new SampleAction);
+        $this->assertFalse($this->router->hasAction(SampleAction::ACTION_NAME));
+    }
+
     public function testCanExecuteAction()
     {
         $this->router->add(new SampleAction);
