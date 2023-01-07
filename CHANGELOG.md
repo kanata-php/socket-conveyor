@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 Updates should follow the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [1.2.1] - 2023-01-07
+
+### Added
+
+- Changed server push calls to a separate method - useful when we need to extend action classes.
+
 ## [1.2.0] - 2023-01-06
 
 ### Added
