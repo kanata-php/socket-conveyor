@@ -109,7 +109,7 @@ abstract class AbstractAction implements ActionInterface
         ]);
 
         if (null !== $fd) {
-            $this->server->push($fd, $data);
+            $this->push($fd, $data);
             return;
         }
 
@@ -127,7 +127,7 @@ abstract class AbstractAction implements ActionInterface
         }
 
         if (!$toChannel) {
-            $this->server->push($this->getFd(), $data);
+            $this->push($this->getFd(), $data);
         }
     }
 
@@ -158,7 +158,7 @@ abstract class AbstractAction implements ActionInterface
                 continue;
             }
 
-            $this->server->push($fd, $data);
+            $this->push($fd, $data);
         }
     }
 
@@ -195,8 +195,13 @@ abstract class AbstractAction implements ActionInterface
                 continue;
             }
 
-            $this->server->push($fd, $data);
+            $this->push($fd, $data);
         }
+    }
+
+    public function push(int $fd, string $data)
+    {
+        $this->server->push($fd, $data);
     }
 
     /**
