@@ -11,7 +11,8 @@
         "symfony/var-dumper": "^6.1",
         "phpunit/phpunit": "^9.2",
         "mockery/mockery": "^1.4",
-        "codedungeon/phpunit-result-printer": "^0.30.0"
+        "codedungeon/phpunit-result-printer": "^0.30.0",
+        "openswoole/ide-helper": "^22.0"
     },
     "autoload": {
         "psr-4": {
@@ -23,6 +24,9 @@
         "test": [
             "vendor/bin/phpunit --testsuite All"
         ]
+    },
+    "suggest": {
+        "ext-openswoole": "This package requires at least one of Open Swoole or Swoole"
     },
     "bin": [
         "start-ws-server"

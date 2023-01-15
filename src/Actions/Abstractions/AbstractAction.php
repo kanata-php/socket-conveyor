@@ -21,6 +21,8 @@ abstract class AbstractAction implements ActionInterface
     protected ?string $channel = null;
     protected array $listeners = [];
 
+    protected bool $fresh = false;
+
     /**
      * @param array $data
      * @return mixed
@@ -47,6 +49,11 @@ abstract class AbstractAction implements ActionInterface
     public function setServer(mixed $server): void
     {
         $this->server = $server;
+    }
+
+    public function setFresh(bool $fresh): void
+    {
+        $this->fresh = $fresh;
     }
 
     /**

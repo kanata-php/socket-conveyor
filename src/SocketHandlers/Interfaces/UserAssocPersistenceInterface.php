@@ -35,4 +35,11 @@ interface UserAssocPersistenceInterface extends GenericPersistenceInterface
      * @return array Format:
      */
     public function getAllAssocs(): array;
+
+    /**
+     * Truncate the data storage.
+     *
+     * @return void
+     */
+    public function refresh(): void;
 }

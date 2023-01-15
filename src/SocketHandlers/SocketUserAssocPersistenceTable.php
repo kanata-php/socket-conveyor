@@ -3,7 +3,7 @@
 namespace Conveyor\SocketHandlers;
 
 use Conveyor\SocketHandlers\Interfaces\UserAssocPersistenceInterface;
-use Swoole\Table;
+use OpenSwoole\Table;
 
 class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
 {
@@ -11,9 +11,7 @@ class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
 
     public function __construct()
     {
-        $this->table = new Table(10024);
-        $this->table->column('user_id', Table::TYPE_INT, 10);
-        $this->table->create();
+        $this->createTable();
     }
 
     public function assoc(int $fd, int $userId): void
@@ -42,5 +40,28 @@ class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
             $collection[$key] = $value['user_id'];
         }
         return $collection;
+    }
+
+    /**
+     * Truncate the data storage.
+     *
+     * @return void
+     */
+    public function refresh(): void
+    {
+        $this->destroyTable();
+        $this->createTable();
+    }
+
+    private function createTable()
+    {
+        $this->table = new Table(10024);
+        $this->table->column('user_id', Table::TYPE_INT, 10);
+        $this->table->create();
+    }
+
+    private function destroyTable()
+    {
+        $this->table->destroy();
     }
 }

@@ -24,4 +24,9 @@ class SampleChannelPersistence implements ChannelPersistenceInterface
     {
         return $this->data;
     }
+
+    public function refresh(): void
+    {
+        $this->data = [];
+    }
 }

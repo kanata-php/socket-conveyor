@@ -29,6 +29,13 @@ interface ChannelPersistenceInterface extends GenericPersistenceInterface
     public function getAllConnections(): array;
 
     /**
+     * Truncate the data storage.
+     *
+     * @return void
+     */
+    public function refresh(): void;
+
+    /**
      * Get a channel for the given $fd.
      * @param int $fd
      * @return string

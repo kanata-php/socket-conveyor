@@ -39,7 +39,8 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     public function __construct(
         null|array|GenericPersistenceInterface $persistence = null,
-        protected array $actions = []
+        protected array $actions = [],
+        protected bool $fresh = false,
     ) {
         $this->preparePersistence($persistence);
         $this->startActions();
@@ -85,6 +86,8 @@ class SocketMessageRouter implements SocketHandlerInterface
             }
             throw new Exception('Not valid action: ' . json_encode($action));
         }
+
+        $this->applyFreshToActions();
     }
 
     /**
@@ -107,7 +110,7 @@ class SocketMessageRouter implements SocketHandlerInterface
 
     /**
      * @param string $data Data to be processed.
-     * @param int $fd File descriptor (connection).
+     * @param int $fd Sender's File descriptor (connection).
      * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
      */
     public function __invoke(string $data, int $fd, mixed $server)
@@ -194,7 +197,7 @@ class SocketMessageRouter implements SocketHandlerInterface
 
     /**
      * @param string $data Data to be processed.
-     * @param int $fd File descriptor (connection).
+     * @param int $fd Sender's File descriptor (connection).
      * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
      *
      * @throws Exception
@@ -449,5 +452,12 @@ class SocketMessageRouter implements SocketHandlerInterface
     public function getServer(): mixed
     {
         return $this->server;
+    }
+
+    protected function applyFreshToActions(): void
+    {
+        array_map(function($action) {
+            $action->setFresh($this->fresh);
+        }, $this->handlerMap);
     }
 }

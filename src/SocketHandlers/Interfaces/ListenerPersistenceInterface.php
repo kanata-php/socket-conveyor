@@ -44,4 +44,11 @@ interface ListenerPersistenceInterface extends GenericPersistenceInterface
      * @return bool
      */
     public function stopListenersForFd(int $fd): bool;
+
+    /**
+     * Truncate the data storage.
+     *
+     * @return void
+     */
+    public function refresh(): void;
 }

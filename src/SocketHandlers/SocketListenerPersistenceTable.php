@@ -3,7 +3,7 @@
 namespace Conveyor\SocketHandlers;
 
 use Conveyor\SocketHandlers\Interfaces\ListenerPersistenceInterface;
-use Swoole\Table;
+use OpenSwoole\Table;
 
 class SocketListenerPersistenceTable implements ListenerPersistenceInterface
 {
@@ -11,9 +11,7 @@ class SocketListenerPersistenceTable implements ListenerPersistenceInterface
 
     public function __construct()
     {
-        $this->table = new Table(10024);
-        $this->table->column('listening', Table::TYPE_STRING, 200);
-        $this->table->create();
+        $this->createTable();
     }
 
     public function listen(int $fd, string $action): void
@@ -59,5 +57,28 @@ class SocketListenerPersistenceTable implements ListenerPersistenceInterface
     public function stopListenersForFd(int $fd): bool
     {
         return $this->table->del($fd);
+    }
+
+    /**
+     * Truncate the data storage.
+     *
+     * @return void
+     */
+    public function refresh(): void
+    {
+        $this->destroyTable();
+        $this->createTable();
+    }
+
+    private function createTable()
+    {
+        $this->table = new Table(10024);
+        $this->table->column('listening', Table::TYPE_STRING, 200);
+        $this->table->create();
+    }
+
+    private function destroyTable()
+    {
+        $this->table->destroy();
     }
 }

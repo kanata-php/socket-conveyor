@@ -31,4 +31,9 @@ class SampleUserAssocPersistence implements UserAssocPersistenceInterface
     {
         return $this->associations;
     }
+
+    public function refresh(): void
+    {
+        $this->associations = [];
+    }
 }

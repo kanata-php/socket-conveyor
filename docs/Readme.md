@@ -39,6 +39,29 @@ Here is how it works:
 <img src="./imgs/conveyor-process.png" title="How it works"/>
 </p>
 
+Visit this video to understand with an example of how to route socket messages:
+
+[Routing Socket Messages](https://www.youtube.com/embed/qHZpSGErR3M ':include :type=iframe ')
+
+## Persistence
+
+Socket Conveyor uses persistence for its functionalities. The persistences available are for:
+
+- channels
+- listeners
+- user association
+
+> **Important:** By default, Socket Conveyor uses `OpenSwoole\Table` for persistence, which means that during server restart it will be fresh. When using a different persistence strategy, you'll need to refresh those persistence during server bootstrap.
+> 
+> For that, instantiate the `Conveyor\SocketHandlers\SockerMessageRouter`  once before the server starts, do that using a third parameter available at the router called "fresh". Set that to true to refresh the persistence items, that will invoke the method "refresh" available at the Action's interfaces.
+> 
+> e.g.:
+> ```
+> use Conveyor\SocketHandlers\SockerMessageRouter;
+> new SockerMessageRouter(fresh: true);
+> ```
+> 
+> When you don't do this using a persistence that lasts for more than the server restart, it will cause some data conflicts due to old data remaining.
 
 ## Usage
 
@@ -81,8 +104,8 @@ Second, at your Open Swoole Web Socket server, register `SocketMessageRouter` wi
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 
 $websocket = new Server('0.0.0.0', 8001);
@@ -169,8 +192,8 @@ The Socket Router instantiation also suffers a small change:
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 
@@ -245,8 +268,8 @@ At the `SocketMessageRouter` preparation, we have one extra action being called:
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 use Conveyor\SocketHandlers\SocketListenerPersistenceTable;
@@ -329,8 +352,8 @@ The usage of middlewares might help to secure your websocket server, making sure
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
@@ -383,8 +406,8 @@ This is a global broadcast, that goes outside the borders of the channels.
 ```php
 require __DIR__.'/vendor/autoload.php';
 
-use Swoole\WebSocket\Frame;
-use Swoole\WebSocket\Server;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 
@@ -525,24 +548,6 @@ Action used to broadcast without context borders (to every client in the server)
     "data": "message"
 }
 ```
-
-## Commands
-
-### Start Server
-
-> This is a sample of a managed WebSocket Server.
-
-Start a managed WebSocket Server. If you don't overwrite the default options, it comes with a sample Server and Client that you can use to build something else or extend and customize. After the installation composer will copy the command to the binary's directory inside vendor (`./vendor/bin/start-ws-server`) of your project's directory.
-
-Once you run the following comment you'll be able to visit `localhost:8080` and see the manager to start or stop the server.
-
-```shell
-php ./vendor/bin/start-ws-server
-```
-
-<p align="center">
-<img src="./imgs/managed-ws-server.png" width="500"/>
-</p>
 
 ## Tests
 

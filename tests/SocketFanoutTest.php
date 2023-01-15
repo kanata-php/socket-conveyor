@@ -56,6 +56,7 @@ class SocketFanoutTest extends SocketHandlerTestCase
         $this->server->connections[] = 4;
         $this->server->connections[] = 5;
 
+
         $this->connectToChannel(1, 'some-channel');
         $this->listenToAction(4, BroadcastAction::ACTION_NAME);
 

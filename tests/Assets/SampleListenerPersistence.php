@@ -42,5 +42,10 @@ class SampleListenerPersistence implements ListenerPersistenceInterface
         unset($this->listeners[$fd]);
         return true;
     }
+
+    public function refresh(): void
+    {
+        $this->listeners = [];
+    }
 }
 
