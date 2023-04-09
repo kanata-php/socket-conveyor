@@ -2,6 +2,7 @@
 
 namespace Conveyor\Actions\Abstractions;
 
+use Conveyor\Actions\Traits\HasChannel;
 use Conveyor\Actions\Traits\HasListener;
 use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
@@ -10,7 +11,7 @@ use InvalidArgumentException;
 
 abstract class AbstractAction implements ActionInterface
 {
-    use HasPersistence, HasListener;
+    use HasPersistence, HasListener, HasChannel;
 
     protected array $data;
 
@@ -124,7 +125,7 @@ abstract class AbstractAction implements ActionInterface
         $listeners = $this->getListeners();
 
         if ($toChannel && null !== $this->channelPersistence) {
-            $this->broadcastToChannel($data, $listeners);
+            $this->broadcast($data, $listeners);
             return;
         }
 
@@ -170,6 +171,25 @@ abstract class AbstractAction implements ActionInterface
     }
 
     /**
+     * Broadcast.
+     *
+     * @param string $data
+     * @param array|null $listeners
+     * @return void
+     */
+    protected function broadcast(string $data, ?array $listeners = null): void
+    {
+        // Only broadcast to channel when connected to one...
+        if (null !== $this->getCurrentChannel()) {
+            $this->broadcastToChannel($data, $listeners);
+            return;
+        }
+
+        // ...otherwise, broadcast to anybody outside channels.
+        $this->broadcastWithoutChannel($data, $listeners);
+    }
+
+    /**
      * Broadcast when messaging to channel.
      *
      * @param string $data
@@ -192,6 +212,40 @@ abstract class AbstractAction implements ActionInterface
             if (
                 !$this->server->isEstablished($fd)
                 || $fd === $this->getFd()
+                || (
+                    // if listening any action, let's analyze
+                    $this->isListeningAnyAction($fd)
+                    && ($isNotListeningThisAction
+                        || $isOnlyListeningOtherActions)
+                )
+            ) {
+                continue;
+            }
+
+            $this->push($fd, $data);
+        }
+    }
+
+    /**
+     * Broadcast when broadcasting without channel.
+     *
+     * @param string $data
+     * @param array|null $listeners
+     * @return void
+     */
+    protected function broadcastWithoutChannel(string $data, ?array $listeners = null): void
+    {
+        foreach ($this->server->connections as $fd) {
+            $isOnlyListeningOtherActions = null === $listeners
+                && $this->isListeningAnyAction($fd);
+            $isNotListeningThisAction = null !== $listeners
+                && !in_array($fd, $listeners);
+            $isConnectedToAnyChannel = $this->isConnectedToAnyChannel($fd);
+
+            if (
+                !$this->server->isEstablished($fd)
+                || $fd === $this->getFd()
+                || $isConnectedToAnyChannel
                 || (
                     // if listening any action, let's analyze
                     $this->isListeningAnyAction($fd)

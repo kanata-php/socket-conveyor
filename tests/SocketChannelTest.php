@@ -29,15 +29,17 @@ class SocketChannelTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
 
-        $this->assertTrue(!in_array(1, array_keys($this->userKeys)));
-        $this->assertTrue(!in_array(2, array_keys($this->userKeys)));
+        $this->assertTrue(in_array(1, array_keys($this->userKeys)));
+        $this->assertTrue(in_array(2, array_keys($this->userKeys)));
         $this->assertTrue(!in_array(3, array_keys($this->userKeys)));
 
         $this->connectToChannel(1, $channelName);
         $this->connectToChannel(2, $channelName);
         $this->connectToChannel(3, $channelName);
 
-        // test broadcast
+        // test broadcast to channel
+
+        $this->userKeys = [];
 
         $this->sendData(1, json_encode([
             'action' => BroadcastAction::ACTION_NAME,

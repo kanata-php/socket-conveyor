@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit 
+<phpunit
     bootstrap="vendor/autoload.php"
     printerClass="Codedungeon\PHPUnitPrettyResultPrinter\Printer">
   <testsuites>
     <testsuite name="All">
       <file>tests/SocketMessageRouterTest.php</file>
       <file>tests/SocketChannelTest.php</file>
+      <file>tests/SocketBroadcastTest.php</file>
       <file>tests/SocketListenerTest.php</file>
       <file>tests/SocketAssocTest.php</file>
       <file>tests/SocketFanoutTest.php</file>

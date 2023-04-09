@@ -49,7 +49,11 @@ class SocketMessageRouter implements SocketHandlerInterface
     private function preparePersistence(null|array|GenericPersistenceInterface $persistence)
     {
         if (null === $persistence) {
-            return;
+            $persistence = [
+                new SocketChannelPersistenceTable,
+                new SocketListenerPersistenceTable,
+                new SocketUserAssocPersistenceTable,
+            ];
         }
 
         if (!is_array($persistence)) {

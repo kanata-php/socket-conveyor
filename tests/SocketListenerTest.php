@@ -40,7 +40,7 @@ class SocketListenerTest extends SocketHandlerTestCase
         $this->assertCount(1, $this->userKeys);
     }
 
-    public function testCantBroadcastToListenersWithoutChannel()
+    public function testCanBroadcastToListenersWithoutChannel()
     {
         $message = 'sample-message';
 
@@ -60,7 +60,7 @@ class SocketListenerTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
 
-        $this->assertCount(0, $this->userKeys);
+        $this->assertCount(1, $this->userKeys);
     }
 
     public function testCanFanoutToListenersCrossRequests()
