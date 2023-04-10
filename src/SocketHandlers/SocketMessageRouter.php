@@ -46,6 +46,31 @@ class SocketMessageRouter implements SocketHandlerInterface
         $this->startActions();
     }
 
+    /**
+     * @param string $data
+     * @param int $fd
+     * @param mixed $server
+     * @param array $options Constructor options: $persistence, $actions, $fresh
+     * @return mixed
+     * @throws Exception
+     */
+    public static function run(
+        string $data,
+        int $fd,
+        mixed $server,
+        array $options = [],
+    ) {
+        return (new self(
+            persistence: $options['persistence'] ?? null,
+            actions: $options['actions'] ?? [],
+            fresh: $options['fresh'] ?? false,
+        ))(
+            data: $data,
+            fd: $fd,
+            server: $server,
+        );
+    }
+
     private function preparePersistence(null|array|GenericPersistenceInterface $persistence)
     {
         if (null === $persistence) {

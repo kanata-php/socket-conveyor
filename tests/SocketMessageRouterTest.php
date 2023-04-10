@@ -246,4 +246,10 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $this->sendData(1, 'some message');
         $this->assertCount(1, $this->userKeys);
     }
+
+    public function testCanCallStaticMethod()
+    {
+        SocketMessageRouter::run('some message', 1, $this->server);
+        $this->assertCount(1, $this->userKeys);
+    }
 }
