@@ -71,6 +71,15 @@ class SocketMessageRouter implements SocketHandlerInterface
         );
     }
 
+    /**
+     * @throws Exception
+     */
+    public static function refresh(
+        null|array|GenericPersistenceInterface $persistence = null,
+    ) {
+        new self(persistence: $persistence, fresh: true);
+    }
+
     private function preparePersistence(null|array|GenericPersistenceInterface $persistence)
     {
         if (null === $persistence) {

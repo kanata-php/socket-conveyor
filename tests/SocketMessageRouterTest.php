@@ -3,6 +3,8 @@
 namespace Tests;
 
 use Conveyor\Actions\BroadcastAction;
+use Conveyor\Actions\ChannelConnectAction;
+use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
 use Error;
 use stdClass;
 use Exception;
@@ -13,7 +15,10 @@ use Tests\Assets\SampleMiddleware2;
 use Tests\Assets\SampleExceptionHandler;
 use Tests\Assets\SampleCustomException;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use Tests\Assets\SampleReturnAction;
 use Tests\Assets\SampleSocketServer;
+use Tests\Assets\SecondaryBroadcastAction;
+use Tests\Assets\SecondaryFanoutAction;
 
 class SocketMessageRouterTest extends SocketHandlerTestCase
 {
@@ -251,5 +256,21 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
     {
         SocketMessageRouter::run('some message', 1, $this->server);
         $this->assertCount(1, $this->userKeys);
+    }
+
+    public function testCanCallRefreshPersistence()
+    {
+        $channelPersistence = new SocketChannelPersistenceTable;
+        $conveyor = new SocketMessageRouter($channelPersistence);
+        ($conveyor)(json_encode([
+            'action' => ChannelConnectAction::ACTION_NAME,
+            'channel' => 'test-channel',
+        ]), 1, $this->server);
+
+        $this->assertCount(1, $channelPersistence->getAllConnections());
+
+        SocketMessageRouter::refresh($channelPersistence);
+
+        $this->assertCount(0, $channelPersistence->getAllConnections());
     }
 }

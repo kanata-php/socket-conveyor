@@ -22,7 +22,8 @@ trait HasPersistence
      * @param GenericPersistenceInterface $persistence
      * @return void
      */
-    public function setPersistence(GenericPersistenceInterface $persistence): void {
+    public function setPersistence(GenericPersistenceInterface $persistence): void
+    {
         switch (true) {
             case is_a($persistence, ChannelPersistenceInterface::class):
                 $this->channelPersistence = $persistence;
