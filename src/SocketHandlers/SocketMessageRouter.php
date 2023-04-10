@@ -165,17 +165,12 @@ class SocketMessageRouter implements SocketHandlerInterface
     {
         if (
             !isset($this->server->connections)
-            || (
-                null === $this->persistence
-                && null === $this->channelPersistence
-            )
+            || null === $this->channelPersistence
         ) {
             return;
         }
 
-        if (null !== $this->persistence) {
-            $registeredConnections = $this->persistence->getAllConnections();
-        } elseif (null !== $this->channelPersistence) {
+        if (null !== $this->channelPersistence) {
             $registeredConnections = $this->channelPersistence->getAllConnections();
         } else {
             return;
@@ -194,9 +189,7 @@ class SocketMessageRouter implements SocketHandlerInterface
         );
 
         foreach ($closedConnections as $connection) {
-            if (null !== $this->persistence) {
-                $this->persistence->disconnect($connection);
-            } elseif (null !== $this->channelPersistence) {
+            if (null !== $this->channelPersistence) {
                 $this->channelPersistence->disconnect($connection);
             }
         }
@@ -444,10 +437,6 @@ class SocketMessageRouter implements SocketHandlerInterface
 
     private function registerActionPersistence(ActionInterface $action)
     {
-        if (null !== $this->persistence) {
-            $this->setActionPersistence($action, $this->persistence);
-        }
-
         if (null !== $this->channelPersistence) {
             $this->setActionPersistence($action, $this->channelPersistence);
         }

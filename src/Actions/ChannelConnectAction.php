@@ -27,11 +27,6 @@ class ChannelConnectAction extends AbstractAction
 
         $channel = $data['channel'];
 
-        // TODO: this will be removed
-        if (null !== $this->persistence) {
-            $this->persistence->connect($this->fd, $channel);
-        }
-
         if (null !== $this->channelPersistence) {
             $this->channelPersistence->connect($this->fd, $channel);
         }

@@ -32,11 +32,6 @@ class AssocUserToFdAction extends AbstractAction
             throw new Exception('FD not specified!');
         }
 
-        // TODO: this will be removed
-        if (null !== $this->persistence) {
-            $this->persistence->assoc($this->fd, $data['userId']);
-        }
-
         if (null !== $this->userAssocPersistence) {
             $this->userAssocPersistence->assoc($this->fd, $data['userId']);
         }

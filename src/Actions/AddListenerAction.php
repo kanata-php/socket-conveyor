@@ -28,12 +28,8 @@ class AddListenerAction extends AbstractAction
             throw new Exception('FD not specified!');
         }
 
-        if (null === $this->persistence && null === $this->listenerPersistence) {
+        if (null === $this->listenerPersistence) {
             throw new Exception('Persistence not set!');
-        }
-
-        if (null !== $this->persistence) {
-            $this->persistence->listen(fd: $this->fd, action: $data['listen']);
         }
 
         if (null !== $this->listenerPersistence) {
