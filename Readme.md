@@ -7,4 +7,4 @@ As an example of how to accomplish that with PHP, you can use the [OpenSwoole](h
 
 Built for PHP8.0+.
 
-See more at the [Documentation](https://kanata-php.github.io/socket-conveyor/).
+See more at the [Documentation](https://socketconveyor.com).
