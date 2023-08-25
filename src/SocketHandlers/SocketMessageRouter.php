@@ -2,35 +2,31 @@
 
 namespace Conveyor\SocketHandlers;
 
-use Conveyor\Actions\AddListenerAction;
-use Conveyor\Actions\AssocUserToFdAction;
+use Conveyor\Actions\ActionManager;
 use Conveyor\Actions\BaseAction;
-use Conveyor\Actions\BroadcastAction;
-use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Actions\ChannelDisconnectAction;
-use Conveyor\Actions\FanoutAction;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Helpers\Arr;
+use Conveyor\Models\Interfaces\GenericPersistenceInterface;
+use Conveyor\Models\SocketChannelPersistenceTable;
+use Conveyor\Models\SocketListenerPersistenceTable;
+use Conveyor\Models\SocketUserAssocPersistenceTable;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
-use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use Exception;
 use InvalidArgumentException;
 use League\Pipeline\Pipeline;
-use League\Pipeline\PipelineBuilder;
 
 class SocketMessageRouter implements SocketHandlerInterface
 {
     use HasPersistence;
 
-    protected array $pipelineMap = [];
-    protected array $handlerMap = [];
     protected null|ExceptionHandlerInterface $exceptionHandler = null;
     protected mixed $server = null;
     protected ?int $fd = null;
     protected mixed $parsedData;
+    protected ActionManager $actionManager;
 
     /**
      * @param null|array|GenericPersistenceInterface $persistence
@@ -39,11 +35,11 @@ class SocketMessageRouter implements SocketHandlerInterface
      */
     public function __construct(
         null|array|GenericPersistenceInterface $persistence = null,
-        protected array $actions = [],
+        array $actions = [],
         protected bool $fresh = false,
     ) {
         $this->preparePersistence($persistence);
-        $this->startActions();
+        $this->actionManager = ActionManager::make($actions, $fresh);
     }
 
     /**
@@ -72,6 +68,8 @@ class SocketMessageRouter implements SocketHandlerInterface
     }
 
     /**
+     * This is used to refresh persistence.
+     *
      * @throws Exception
      */
     public static function refresh(
@@ -97,52 +95,6 @@ class SocketMessageRouter implements SocketHandlerInterface
 
         foreach ($persistence as $item) {
             $this->setPersistence($item);
-        }
-    }
-
-    /**
-     * @return void
-     * @throws Exception
-     */
-    protected function startActions()
-    {
-        $this->add(new AddListenerAction);
-        $this->add(new AssocUserToFdAction);
-        $this->add(new BaseAction);
-        $this->add(new BroadcastAction);
-        $this->add(new ChannelConnectAction);
-        $this->add(new ChannelDisconnectAction);
-        $this->add(new FanoutAction);
-
-        foreach ($this->actions as $action) {
-            if (is_string($action)) {
-                $this->add(new $action);
-                continue;
-            } else if (is_array($action)) {
-                $this->startActionWithMiddlewares($action);
-                continue;
-            }
-            throw new Exception('Not valid action: ' . json_encode($action));
-        }
-
-        $this->applyFreshToActions();
-    }
-
-    /**
-     * @param array $action
-     * @return void
-     * @throws Exception
-     */
-    protected function startActionWithMiddlewares(array $action)
-    {
-        if ($this->hasAction($action[0]::ACTION_NAME)) {
-            throw new Exception('Action added twice!');
-        }
-
-        $actionInstance = new $action[0];
-        $this->add($actionInstance);
-        for ($i = 1; $i < count($action); $i++) {
-            $this->middleware($actionInstance->getName(), $action[$i]);
         }
     }
 
@@ -194,7 +146,7 @@ class SocketMessageRouter implements SocketHandlerInterface
 
         $closedConnections = array_filter(
             array_keys($registeredConnections),
-            fn($item) => !in_array($item, $existingConnections)
+            fn ($item) => !in_array($item, $existingConnections)
         );
 
         foreach ($closedConnections as $connection) {
@@ -211,7 +163,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      *
      * @throws InvalidArgumentException|InvalidActionException
      */
-    final public function validateData(?array $data) : void
+    final public function validateData(?array $data): void
     {
         if (null === $data) {
             return; // base action
@@ -221,28 +173,33 @@ class SocketMessageRouter implements SocketHandlerInterface
             throw new InvalidArgumentException('Missing action key in data!');
         }
 
-        if (!isset($this->handlerMap[$data['action']])) {
-            throw new InvalidActionException('Invalid Action! This action (' . $data['action'] . ') is not set.');
+        if (!$this->actionManager->hasAction($data['action'])) {
+            throw new InvalidActionException(
+                'Invalid Action! This action (' . $data['action'] . ') is not set.'
+            );
         }
     }
 
     /**
      * @param string $data Data to be processed.
      * @param int $fd Sender's File descriptor (connection).
-     * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
+     * @param mixed $server Server object, e.g. \OpenSwoole\WebSocket\Frame.
      *
      * @throws Exception
      */
     public function handle(string $data, int $fd, mixed $server)
     {
+        $this->fd = $fd;
+        $this->server = $server;
+
         /** @var ActionInterface */
         $action = $this->parseData($data);
+        $action->setFd($fd);
+        $action->setServer($server);
 
         /** @var Pipeline */
-        $pipeline = $this->getPipeline($action->getName());
+        $pipeline = $this->actionManager->getPipeline($action->getName());
 
-        $this->setFd($action, $fd);
-        $this->setServer($action, $server);
         $this->registerActionPersistence($action);
         $this->closeConnections();
 
@@ -265,7 +222,7 @@ class SocketMessageRouter implements SocketHandlerInterface
      *
      * @throws InvalidArgumentException|InvalidActionException|Exception
      */
-    public function parseData(string $data) : ActionInterface
+    public function parseData(string $data): ActionInterface
     {
         $this->parsedData = json_decode($data, true);
 
@@ -279,110 +236,20 @@ class SocketMessageRouter implements SocketHandlerInterface
         // @throws InvalidArgumentException|InvalidActionException
         $this->validateData($this->parsedData);
 
-        return $this->getAction($this->parsedData['action']);
+        return $this->actionManager->getAction($this->parsedData['action']);
     }
 
     /**
      * @param ?string $path Path in array using dot notation.
      * @return mixed
      */
-    public function getParsedData(?string $path = null) : mixed
+    public function getParsedData(?string $path = null): mixed
     {
         if (null === $path) {
             return $this->parsedData;
         }
 
         return Arr::get($this->parsedData, $path);
-    }
-
-    /**
-     * Prepare pipeline based on the current prepared handlers.
-     *
-     * @param string $action
-     *
-     * @return Pipeline
-     */
-    public function getPipeline(string $action) : Pipeline
-    {
-        $pipelineBuilder = new PipelineBuilder;
-
-        if (!isset($this->pipelineMap[$action])) {
-            return $pipelineBuilder->build();
-        }
-
-        foreach ($this->pipelineMap[$action] as $middleware) {
-            $pipelineBuilder->add($middleware);
-        }
-
-        return $pipelineBuilder->build();
-    }
-
-    /**
-     * Add an action to be handled. It returns a pipeline for
-     * eventual middlewares to be added for each.
-     *
-     * @param ActionInterface $actionHandler
-     *
-     * @return SocketMessageRouter
-     */
-    public function add(ActionInterface $actionHandler) : SocketMessageRouter
-    {
-        $actionName = $actionHandler->getName();
-        $this->handlerMap[$actionName] = $actionHandler;
-
-        return $this;
-    }
-
-    /**
-     * It removes an action from the Router.
-     *
-     * @param ActionInterface|string $actionHandler
-     * @return SocketMessageRouter
-     */
-    public function remove(ActionInterface|string $action) : SocketMessageRouter
-    {
-        $actionName = is_string($action) ? $action : $action->getName();
-        unset($this->handlerMap[$actionName]);
-
-        return $this;
-    }
-
-    /**
-     * Add a step for the current's action middleware.
-     *
-     * @param string $action
-     * @param Callable $middleware
-     * @return void
-     */
-    public function middleware(string $action, callable $middleware) : void
-    {
-        if (!isset($this->pipelineMap[$action])) {
-            $this->pipelineMap[$action] = [];
-        }
-
-        $this->pipelineMap[$action][] = $middleware;
-    }
-
-    /**
-     * Get an Action by name
-     *
-     * @param string $name
-     * @return ActionInterface|null
-     */
-    public function getAction(string $name)
-    {
-        return $this->handlerMap[$name];
-    }
-
-    /**
-     * Check if actions already exists in this router instance.
-     *
-     * @param string $name
-     * @return bool
-     */
-    public function hasAction(string $name): bool
-    {
-        return isset($this->handlerMap[$name]);
     }
 
     /**
@@ -411,19 +278,6 @@ class SocketMessageRouter implements SocketHandlerInterface
     }
 
     /**
-     * Set $fd (File descriptor) if method "setFd" exists.
-     *
-     * @param int $fd File descriptor.
-     *
-     * @return void
-     */
-    public function setFd(ActionInterface $action, int $fd): void
-    {
-        $this->fd = $fd;
-        $action->setFd($fd);
-    }
-
-    /**
      * @return int $fd File descriptor.
      */
     public function getFd(): int
@@ -431,45 +285,19 @@ class SocketMessageRouter implements SocketHandlerInterface
         return $this->fd;
     }
 
-    /**
-     * Set $server if method "setServer" exists.
-     *
-     * @param mixed $server Server object, e.g. Swoole\WebSocket\Server.
-     *
-     * @return void
-     */
-    public function setServer(ActionInterface $action, $server): void
-    {
-        $this->server = $server;
-        $action->setServer($server);
-    }
 
-    private function registerActionPersistence(ActionInterface $action)
+    private function registerActionPersistence(ActionInterface $action): void
     {
         if (null !== $this->channelPersistence) {
-            $this->setActionPersistence($action, $this->channelPersistence);
+            $this->actionManager->setActionPersistence($action, $this->channelPersistence);
         }
 
         if (null !== $this->userAssocPersistence) {
-            $this->setActionPersistence($action, $this->userAssocPersistence);
+            $this->actionManager->setActionPersistence($action, $this->userAssocPersistence);
         }
 
         if (null !== $this->listenerPersistence) {
-            $this->setActionPersistence($action, $this->listenerPersistence);
-        }
-    }
-
-    /**
-     * Set persistence to the action instance.
-     *
-     * @param ActionInterface $action
-     * @param GenericPersistenceInterface $persistence
-     * @return void
-     */
-    public function setActionPersistence(ActionInterface $action, GenericPersistenceInterface $persistence): void
-    {
-        if (method_exists($action, 'setPersistence')) {
-            $action->setPersistence($persistence);
+            $this->actionManager->setActionPersistence($action, $this->listenerPersistence);
         }
     }
 
@@ -481,10 +309,8 @@ class SocketMessageRouter implements SocketHandlerInterface
         return $this->server;
     }
 
-    protected function applyFreshToActions(): void
+    public function getActionManager(): ActionManager
     {
-        array_map(function($action) {
-            $action->setFresh($this->fresh);
-        }, $this->handlerMap);
+        return $this->actionManager;
     }
 }

@@ -1,14 +1,13 @@
 <?php
 
-namespace Conveyor\SocketHandlers;
+namespace Conveyor\Models;
 
-use Conveyor\SocketHandlers\Interfaces\ChannelPersistenceInterface;
+use Conveyor\Models\Abstractions\GenericPersistence;
+use Conveyor\Models\Interfaces\ChannelPersistenceInterface;
 use OpenSwoole\Table;
 
-class SocketChannelPersistenceTable implements ChannelPersistenceInterface
+class SocketChannelPersistenceTable extends GenericPersistence implements ChannelPersistenceInterface
 {
-    protected Table $table;
-
     public function __construct()
     {
         $this->createTable();
@@ -33,26 +32,10 @@ class SocketChannelPersistenceTable implements ChannelPersistenceInterface
         return $collection;
     }
 
-    /**
-     * Truncate the data storage.
-     *
-     * @return void
-     */
-    public function refresh(): void
-    {
-        $this->destroyTable();
-        $this->createTable();
-    }
-
-    private function createTable()
+    protected function createTable(): void
     {
         $this->table = new Table(10024);
         $this->table->column('channel', Table::TYPE_STRING, 40);
         $this->table->create();
-    }
-
-    private function destroyTable()
-    {
-        $this->table->destroy();
     }
 }

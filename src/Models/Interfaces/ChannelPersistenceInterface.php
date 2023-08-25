@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\SocketHandlers\Interfaces;
+namespace Conveyor\Models\Interfaces;
 
 interface ChannelPersistenceInterface extends GenericPersistenceInterface
 {
@@ -27,13 +27,6 @@ interface ChannelPersistenceInterface extends GenericPersistenceInterface
      * @return array Format: [fd => channel-name, ...]
      */
     public function getAllConnections(): array;
-
-    /**
-     * Truncate the data storage.
-     *
-     * @return void
-     */
-    public function refresh(): void;
 
     /**
      * Get a channel for the given $fd.

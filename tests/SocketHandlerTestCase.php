@@ -2,14 +2,12 @@
 
 namespace Tests;
 
+use Conveyor\Actions\ActionManager;
 use Conveyor\Actions\AddListenerAction;
-use Conveyor\Actions\AssocUserToFdAction;
-use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Actions\FanoutAction;
-use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
-use PHPUnit\Framework\TestCase;
+use Conveyor\Models\Interfaces\GenericPersistenceInterface;
 use Conveyor\SocketHandlers\SocketMessageRouter;
+use PHPUnit\Framework\TestCase;
 use Tests\Assets\SampleChannelPersistence;
 use Tests\Assets\SampleListenerPersistence;
 use Tests\Assets\SampleReturnAction;
@@ -59,14 +57,15 @@ class SocketHandlerTestCase extends TestCase
     protected function prepareSocketMessageRouter(null|array|GenericPersistenceInterface $persistence = null): SocketMessageRouter
     {
         $socketRouter = new SocketMessageRouter($persistence);
+        $actionManager = $socketRouter->getActionManager();
 
-        $resultOfAddMethod = $socketRouter->add(new ChannelConnectAction);
-        $this->assertInstanceOf(SocketMessageRouter::class, $resultOfAddMethod);
+        $resultOfAddMethod = $actionManager->add(new ChannelConnectAction);
+        $this->assertInstanceOf(ActionManager::class, $resultOfAddMethod);
 
         // sample actions
-        $socketRouter->add(new SecondaryBroadcastAction);
-        $socketRouter->add(new SampleReturnAction);
-        $socketRouter->add(new SecondaryFanoutAction);
+        $actionManager->add(new SecondaryBroadcastAction);
+        $actionManager->add(new SampleReturnAction);
+        $actionManager->add(new SecondaryFanoutAction);
 
         return $socketRouter;
     }

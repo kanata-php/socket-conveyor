@@ -2,7 +2,7 @@
 
 namespace Tests\Assets;
 
-use Conveyor\SocketHandlers\Interfaces\UserAssocPersistenceInterface;
+use Conveyor\Models\Interfaces\UserAssocPersistenceInterface;
 
 class SampleUserAssocPersistence implements UserAssocPersistenceInterface
 {
@@ -32,8 +32,12 @@ class SampleUserAssocPersistence implements UserAssocPersistenceInterface
         return $this->associations;
     }
 
-    public function refresh(): void
+    public function refresh(bool $fresh = false): static
     {
-        $this->associations = [];
+        if ($fresh) {
+            $this->associations = [];
+        }
+
+        return $this;
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Tests\Assets;
 
-use Conveyor\SocketHandlers\Interfaces\ChannelPersistenceInterface;
+use Conveyor\Models\Interfaces\ChannelPersistenceInterface;
 
 class SampleChannelPersistence implements ChannelPersistenceInterface
 {
@@ -25,8 +25,11 @@ class SampleChannelPersistence implements ChannelPersistenceInterface
         return $this->data;
     }
 
-    public function refresh(): void
+    public function refresh(bool $fresh = false): static
     {
-        $this->data = [];
+        if ($fresh) {
+            $this->data = [];
+        }
+        return $this;
     }
 }

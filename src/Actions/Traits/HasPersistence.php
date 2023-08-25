@@ -2,14 +2,15 @@
 
 namespace Conveyor\Actions\Traits;
 
-use Conveyor\SocketHandlers\Interfaces\ChannelPersistenceInterface;
-use Conveyor\SocketHandlers\Interfaces\GenericPersistenceInterface;
-use Conveyor\SocketHandlers\Interfaces\ListenerPersistenceInterface;
-use Conveyor\SocketHandlers\Interfaces\UserAssocPersistenceInterface;
+use Conveyor\Models\Interfaces\ChannelPersistenceInterface;
+use Conveyor\Models\Interfaces\GenericPersistenceInterface;
+use Conveyor\Models\Interfaces\ListenerPersistenceInterface;
+use Conveyor\Models\Interfaces\UserAssocPersistenceInterface;
 
 trait HasPersistence
 {
-    protected ?ChannelPersistenceInterface $channelPersistence = null;
+    // protected ?ChannelPersistenceInterface $channelPersistence = null;
+    public ?ChannelPersistenceInterface $channelPersistence = null;
 
     protected ?ListenerPersistenceInterface $listenerPersistence = null;
 
@@ -26,24 +27,15 @@ trait HasPersistence
     {
         switch (true) {
             case is_a($persistence, ChannelPersistenceInterface::class):
-                $this->channelPersistence = $persistence;
-                if ($this->fresh) {
-                    $this->channelPersistence->refresh();
-                }
+                $this->channelPersistence = $persistence->refresh($this->fresh);
                 break;
 
             case is_a($persistence, ListenerPersistenceInterface::class):
-                $this->listenerPersistence = $persistence;
-                if ($this->fresh) {
-                    $this->listenerPersistence->refresh();
-                }
+                $this->listenerPersistence = $persistence->refresh($this->fresh);
                 break;
 
             case is_a($persistence, UserAssocPersistenceInterface::class):
-                $this->userAssocPersistence = $persistence;
-                if ($this->fresh) {
-                    $this->userAssocPersistence->refresh();
-                }
+                $this->userAssocPersistence = $persistence->refresh($this->fresh);
                 break;
         }
     }

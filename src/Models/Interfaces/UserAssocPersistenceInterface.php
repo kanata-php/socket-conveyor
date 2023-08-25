@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\SocketHandlers\Interfaces;
+namespace Conveyor\Models\Interfaces;
 
 interface UserAssocPersistenceInterface extends GenericPersistenceInterface
 {
@@ -35,11 +35,4 @@ interface UserAssocPersistenceInterface extends GenericPersistenceInterface
      * @return array Format:
      */
     public function getAllAssocs(): array;
-
-    /**
-     * Truncate the data storage.
-     *
-     * @return void
-     */
-    public function refresh(): void;
 }

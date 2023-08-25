@@ -3,7 +3,7 @@
 namespace Tests\Assets;
 
 use Conveyor\Helpers\Arr;
-use Conveyor\SocketHandlers\Interfaces\ListenerPersistenceInterface;
+use Conveyor\Models\Interfaces\ListenerPersistenceInterface;
 
 class SampleListenerPersistence implements ListenerPersistenceInterface
 {
@@ -43,9 +43,13 @@ class SampleListenerPersistence implements ListenerPersistenceInterface
         return true;
     }
 
-    public function refresh(): void
+    public function refresh(bool $fresh = false): static
     {
-        $this->listeners = [];
+        if ($fresh) {
+            $this->listeners = [];
+        }
+
+        return $this;
     }
 }
 

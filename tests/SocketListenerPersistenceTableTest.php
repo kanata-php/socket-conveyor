@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-use Conveyor\SocketHandlers\SocketListenerPersistenceTable;
+use Conveyor\Models\SocketListenerPersistenceTable;
 use PHPUnit\Framework\TestCase;
 use Tests\Assets\SampleAction;
 

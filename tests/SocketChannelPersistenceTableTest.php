@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
+use Conveyor\Models\SocketChannelPersistenceTable;
 use PHPUnit\Framework\TestCase;
 
 class SocketChannelPersistenceTableTest extends TestCase

@@ -12,7 +12,7 @@ class PipelineTest extends SocketHandlerTestCase
 
         $sampleReturnAction = new SampleReturnAction;
 
-        $this->router->middleware(
+        $this->router->getActionManager()->middleware(
             action: $sampleReturnAction->getName(),
             middleware: function($payload) use (&$check) {
                 $check = true;

@@ -4,49 +4,51 @@ namespace Tests;
 
 use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\SocketHandlers\SocketChannelPersistenceTable;
+use Conveyor\Models\SocketChannelPersistenceTable;
+use Conveyor\SocketHandlers\SocketMessageRouter;
 use Error;
-use stdClass;
 use Exception;
 use Tests\Assets\NotValidMiddleware;
 use Tests\Assets\SampleAction;
+use Tests\Assets\SampleCustomException;
+use Tests\Assets\SampleExceptionHandler;
 use Tests\Assets\SampleMiddleware;
 use Tests\Assets\SampleMiddleware2;
-use Tests\Assets\SampleExceptionHandler;
-use Tests\Assets\SampleCustomException;
-use Conveyor\SocketHandlers\SocketMessageRouter;
-use Tests\Assets\SampleReturnAction;
 use Tests\Assets\SampleSocketServer;
-use Tests\Assets\SecondaryBroadcastAction;
-use Tests\Assets\SecondaryFanoutAction;
 
 class SocketMessageRouterTest extends SocketHandlerTestCase
 {
     public function testCanAddHandlerForAction()
     {
-        $this->router->add(new SampleAction);
+        $actionManager = $this->router->getActionManager();
+
+        $actionManager->add(new SampleAction);
         $this->assertInstanceOf(SocketMessageRouter::class, $this->router);
         $this->assertInstanceOf(
             SampleAction::class,
-            $this->router->getAction(SampleAction::ACTION_NAME),
+            $actionManager->getAction(SampleAction::ACTION_NAME),
         );
     }
 
     public function testCanRemoveHandlerForAction()
     {
-        $this->router->add(new SampleAction);
+        $actionManager = $this->router->getActionManager();
+
+        $actionManager->add(new SampleAction);
         $this->assertInstanceOf(SocketMessageRouter::class, $this->router);
         $this->assertInstanceOf(
             SampleAction::class,
-            $this->router->getAction(SampleAction::ACTION_NAME),
+            $actionManager->getAction(SampleAction::ACTION_NAME),
         );
-        $this->router->remove(new SampleAction);
-        $this->assertFalse($this->router->hasAction(SampleAction::ACTION_NAME));
+        $actionManager->remove(new SampleAction);
+        $this->assertFalse($actionManager->hasAction(SampleAction::ACTION_NAME));
     }
 
     public function testCanExecuteAction()
     {
-        $this->router->add(new SampleAction);
+        $actionManager = $this->router->getActionManager();
+
+        $actionManager->add(new SampleAction);
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
         ]));
@@ -61,8 +63,9 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
             $verified = isset($data['data']['field1'])
                 && 'value1' === $data['data']['field1'];
         };
+        $actionManager = $this->router->getActionManager();
 
-        $this->router->add(new BroadcastAction);
+        $actionManager->add(new BroadcastAction);
         $this->connectToChannel(1, 'test-channel');
         $this->connectToChannel(2, 'test-channel');
         $this->listenToAction(2, BroadcastAction::ACTION_NAME);
@@ -80,38 +83,42 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
     {
         $fd = 1;
 
-        $this->router->add(new SampleAction);
+        $actionManager = $this->router->getActionManager();
+
+        $actionManager->add(new SampleAction);
 
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
         ]));
 
-        $fdFromAction = $this->router->getAction(SampleAction::ACTION_NAME)->getFd();
+        $fdFromAction = $actionManager->getAction(SampleAction::ACTION_NAME)->getFd();
 
         $this->assertTrue($fd === $fdFromAction);
     }
 
     public function testCanSetAndGetServerFromAction()
     {
-        $this->router->add(new SampleAction);
+        $actionManager = $this->router->getActionManager();
+
+        $actionManager->add(new SampleAction);
 
         $data = json_encode([
             'action' => SampleAction::ACTION_NAME,
         ]);
         ($this->router)($data, 1, $this->server);
 
-        $serverFromAction = $this->router
-            ->getAction(SampleAction::ACTION_NAME)
-            ->getServer();
+        $action = $actionManager->getAction(SampleAction::ACTION_NAME);
+        $serverFromAction = $action->getServer();
 
         $this->assertTrue($this->server === $serverFromAction);
     }
 
     public function testCanAddMiddlewareToPipelineOfHandlerAndExecute()
     {
-        $this->router->add(new SampleAction);
+        $actionManager = $this->router->getActionManager();
 
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $actionManager->add(new SampleAction);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
 
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
@@ -163,9 +170,11 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
     public function testCanAddMultipleMiddlewaresToPipelineOfHandlerAndExecute()
     {
-        $this->router->add(new SampleAction);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
+        $actionManager = $this->router->getActionManager();
+
+        $actionManager->add(new SampleAction);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
 
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
@@ -180,7 +189,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
     {
         $this->expectException(Exception::class);
 
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $this->router->getActionManager()->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
 
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
@@ -193,9 +202,10 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Invalid Token');
 
-        $this->router->add(new SampleAction);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
+        $actionManager = $this->router->getActionManager();
+        $actionManager->add(new SampleAction);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
 
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
@@ -209,9 +219,10 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Invalid Second verification');
 
-        $this->router->add(new SampleAction);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
+        $actionManager = $this->router->getActionManager();
+        $actionManager->add(new SampleAction);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware2);
 
         $this->sendData(1, json_encode([
             'action' => SampleAction::ACTION_NAME,
@@ -227,8 +238,9 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $this->expectException(SampleCustomException::class);
         $this->expectExceptionMessage('This is a test custom exception!');
 
-        $this->router->add(new SampleAction);
-        $this->router->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
+        $actionManager = $this->router->getActionManager();
+        $actionManager->add(new SampleAction);
+        $actionManager->middleware(SampleAction::ACTION_NAME, new SampleMiddleware);
         $this->router->addMiddlewareExceptionHandler($exceptionHandler);
 
         try {

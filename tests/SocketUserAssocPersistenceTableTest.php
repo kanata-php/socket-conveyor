@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-use Conveyor\SocketHandlers\SocketUserAssocPersistenceTable;
+use Conveyor\Models\SocketUserAssocPersistenceTable;
 use PHPUnit\Framework\TestCase;
 
 class SocketUserAssocPersistenceTableTest extends TestCase

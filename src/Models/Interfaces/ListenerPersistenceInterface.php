@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\SocketHandlers\Interfaces;
+namespace Conveyor\Models\Interfaces;
 
 interface ListenerPersistenceInterface extends GenericPersistenceInterface
 {
@@ -44,11 +44,4 @@ interface ListenerPersistenceInterface extends GenericPersistenceInterface
      * @return bool
      */
     public function stopListenersForFd(int $fd): bool;
-
-    /**
-     * Truncate the data storage.
-     *
-     * @return void
-     */
-    public function refresh(): void;
 }

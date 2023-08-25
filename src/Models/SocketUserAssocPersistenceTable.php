@@ -1,14 +1,13 @@
 <?php
 
-namespace Conveyor\SocketHandlers;
+namespace Conveyor\Models;
 
-use Conveyor\SocketHandlers\Interfaces\UserAssocPersistenceInterface;
+use Conveyor\Models\Abstractions\GenericPersistence;
+use Conveyor\Models\Interfaces\UserAssocPersistenceInterface;
 use OpenSwoole\Table;
 
-class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
+class SocketUserAssocPersistenceTable extends GenericPersistence implements UserAssocPersistenceInterface
 {
-    protected Table $table;
-
     public function __construct()
     {
         $this->createTable();
@@ -42,26 +41,10 @@ class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
         return $collection;
     }
 
-    /**
-     * Truncate the data storage.
-     *
-     * @return void
-     */
-    public function refresh(): void
-    {
-        $this->destroyTable();
-        $this->createTable();
-    }
-
-    private function createTable()
+    protected function createTable(): void
     {
         $this->table = new Table(10024);
         $this->table->column('user_id', Table::TYPE_INT, 10);
         $this->table->create();
-    }
-
-    private function destroyTable()
-    {
-        $this->table->destroy();
     }
 }
