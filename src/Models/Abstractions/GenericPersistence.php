@@ -6,7 +6,7 @@ use OpenSwoole\Table;
 
 abstract class GenericPersistence
 {
-    private ?Table $table = null;
+    protected ?Table $table = null;
 
     abstract protected function createTable(): void;
 
@@ -26,7 +26,10 @@ abstract class GenericPersistence
             $this->destroyTable();
         }
 
-        $this->createTable();
+        if (!$this->table) {
+            $this->createTable();
+        }
+
         return $this;
     }
 
