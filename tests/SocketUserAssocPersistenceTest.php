@@ -2,19 +2,20 @@
 
 namespace Tests;
 
-use Conveyor\Models\SocketUserAssocPersistenceTable;
+use Conveyor\Models\Sqlite\WebSockets\AssociationsPersistence;
 use PHPUnit\Framework\TestCase;
 
-class SocketUserAssocPersistenceTableTest extends TestCase
+class SocketUserAssocPersistenceTest extends TestCase
 {
-    protected ?SocketUserAssocPersistenceTable $data = null;
+    protected ?AssociationsPersistence $data = null;
 
     /**
      * @before
      */
     public function freeMemory()
     {
-        $this->data = new SocketUserAssocPersistenceTable;
+        $this->data = new AssociationsPersistence;
+        $this->data->refresh(true);
     }
 
     private function assocUser(int $fd, int $userId)
@@ -39,12 +40,13 @@ class SocketUserAssocPersistenceTableTest extends TestCase
 
     public function testCanGetAllAssocs()
     {
-        $userId = 2;
+        $userId_1 = 2;
+        $userId_2 = 3;
 
         $this->assertEmpty($this->data->getAllAssocs());
 
-        $this->assocUser(1, $userId);
-        $this->assocUser(2, $userId);
+        $this->assocUser(1, $userId_1);
+        $this->assocUser(2, $userId_2);
 
         $this->assertCount(2, $this->data->getAllAssocs());
     }

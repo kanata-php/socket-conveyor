@@ -9,9 +9,9 @@ use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Helpers\Arr;
 use Conveyor\Models\Interfaces\GenericPersistenceInterface;
-use Conveyor\Models\SocketChannelPersistenceTable;
-use Conveyor\Models\SocketListenerPersistenceTable;
-use Conveyor\Models\SocketUserAssocPersistenceTable;
+use Conveyor\Models\Sqlite\WebSockets\AssociationsPersistence;
+use Conveyor\Models\Sqlite\WebSockets\ChannelsPersistence;
+use Conveyor\Models\Sqlite\WebSockets\ListenersPersistence;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use Exception;
@@ -70,21 +70,30 @@ class SocketMessageRouter implements SocketHandlerInterface
     /**
      * This is used to refresh persistence.
      *
+     * @param null|array|GenericPersistenceInterface $persistence
+     *
+     * @return static
+     *
      * @throws Exception
      */
     public static function refresh(
         null|array|GenericPersistenceInterface $persistence = null,
-    ) {
-        new self(persistence: $persistence, fresh: true);
+    ): static {
+        return new self(persistence: $persistence, fresh: true);
     }
 
+    /**
+     * @param array|GenericPersistenceInterface|null $persistence
+     *
+     * @return void
+     */
     private function preparePersistence(null|array|GenericPersistenceInterface $persistence)
     {
         if (null === $persistence) {
             $persistence = [
-                new SocketChannelPersistenceTable,
-                new SocketListenerPersistenceTable,
-                new SocketUserAssocPersistenceTable,
+                new ChannelsPersistence,
+                new ListenersPersistence,
+                new AssociationsPersistence,
             ];
         }
 
@@ -106,15 +115,6 @@ class SocketMessageRouter implements SocketHandlerInterface
     public function __invoke(string $data, int $fd, mixed $server)
     {
         return $this->handle($data, $fd, $server);
-    }
-
-    public function cleanListeners(int $fd): void
-    {
-        if (null !== $this->persistence) {
-            $this->persistence->stopListenersForFd($fd);
-        } elseif (null !== $this->listenerPersistence) {
-            $this->listenerPersistence->stopListenersForFd($fd);
-        }
     }
 
     /**

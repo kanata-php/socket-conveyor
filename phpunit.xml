@@ -10,9 +10,9 @@
       <file>tests/SocketListenerTest.php</file>
       <file>tests/SocketAssocTest.php</file>
       <file>tests/SocketFanoutTest.php</file>
-      <file>tests/SocketChannelPersistenceTableTest.php</file>
-      <file>tests/SocketUserAssocPersistenceTableTest.php</file>
-      <file>tests/SocketListenerPersistenceTableTest.php</file>
+      <file>tests/SocketChannelPersistenceTest.php</file>
+      <file>tests/SocketUserAssocPersistenceTest.php</file>
+      <file>tests/SocketListenerPersistenceTest.php</file>
       <file>tests/PipelineTest.php</file>
     </testsuite>
   </testsuites>

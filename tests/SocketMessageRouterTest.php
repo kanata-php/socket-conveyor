@@ -4,9 +4,8 @@ namespace Tests;
 
 use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Models\SocketChannelPersistenceTable;
+use Conveyor\Models\Sqlite\WebSockets\ChannelsPersistence;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use Error;
 use Exception;
 use Tests\Assets\NotValidMiddleware;
 use Tests\Assets\SampleAction;
@@ -15,6 +14,7 @@ use Tests\Assets\SampleExceptionHandler;
 use Tests\Assets\SampleMiddleware;
 use Tests\Assets\SampleMiddleware2;
 use Tests\Assets\SampleSocketServer;
+use TypeError;
 
 class SocketMessageRouterTest extends SocketHandlerTestCase
 {
@@ -161,7 +161,7 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
     public function testCantAddInvalidMiddlewareThroughConstructor()
     {
-        $this->expectError(Error::class);
+        $this->expectException(TypeError::class);
 
         new SocketMessageRouter(null, [
             [SampleAction::class, new NotValidMiddleware]
@@ -272,8 +272,9 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
     public function testCanCallRefreshPersistence()
     {
-        $channelPersistence = new SocketChannelPersistenceTable;
+        $channelPersistence = new ChannelsPersistence;
         $conveyor = new SocketMessageRouter($channelPersistence);
+
         ($conveyor)(json_encode([
             'action' => ChannelConnectAction::ACTION_NAME,
             'channel' => 'test-channel',
@@ -281,8 +282,8 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
         $this->assertCount(1, $channelPersistence->getAllConnections());
 
-        SocketMessageRouter::refresh($channelPersistence);
+        $conveyor = SocketMessageRouter::refresh($channelPersistence);
 
-        $this->assertCount(0, $channelPersistence->getAllConnections());
+        $this->assertCount(0, $conveyor->channelPersistence->getAllConnections());
     }
 }

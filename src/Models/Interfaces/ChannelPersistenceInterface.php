@@ -31,8 +31,7 @@ interface ChannelPersistenceInterface extends GenericPersistenceInterface
     /**
      * Get a channel for the given $fd.
      * @param int $fd
-     * @return string
-     * @todo coming in the version 2
+     * @return ?string
      */
-    // public function getChannel(int $fd): string;
+    public function getChannel(int $fd): ?string;
 }

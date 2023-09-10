@@ -2,20 +2,21 @@
 
 namespace Tests;
 
-use Conveyor\Models\SocketListenerPersistenceTable;
+use Conveyor\Models\Sqlite\WebSockets\ListenersPersistence;
 use PHPUnit\Framework\TestCase;
 use Tests\Assets\SampleAction;
 
-class SocketListenerPersistenceTableTest extends TestCase
+class SocketListenerPersistenceTest extends TestCase
 {
-    protected ?SocketListenerPersistenceTable $data = null;
+    protected ?ListenersPersistence $data = null;
 
     /**
      * @before
      */
     public function freeMemory()
     {
-        $this->data = new SocketListenerPersistenceTable;
+        $this->data = new ListenersPersistence;
+        $this->data->refresh(true);
     }
 
     private function listen(int $fd, string $action)
@@ -75,7 +76,7 @@ class SocketListenerPersistenceTableTest extends TestCase
 
         $this->data->stopListener(1, $action);
 
-        $this->assertCount(1, $this->data->getAllListeners());
+        $this->assertCount(0, $this->data->getAllListeners());
         $this->assertNull($this->data->getListener(1));
     }
 }

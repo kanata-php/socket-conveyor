@@ -9,12 +9,11 @@ use Conveyor\Models\Interfaces\UserAssocPersistenceInterface;
 
 trait HasPersistence
 {
-    // protected ?ChannelPersistenceInterface $channelPersistence = null;
     public ?ChannelPersistenceInterface $channelPersistence = null;
 
-    protected ?ListenerPersistenceInterface $listenerPersistence = null;
+    public ?ListenerPersistenceInterface $listenerPersistence = null;
 
-    protected ?UserAssocPersistenceInterface $userAssocPersistence = null;
+    public ?UserAssocPersistenceInterface $userAssocPersistence = null;
 
     /**
      * This procedure happens at the bootstrap of the Action, not during

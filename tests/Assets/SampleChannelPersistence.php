@@ -32,4 +32,9 @@ class SampleChannelPersistence implements ChannelPersistenceInterface
         }
         return $this;
     }
+
+    public function getChannel(int $fd): ?string
+    {
+        return $this->data[$fd] ?? null;
+    }
 }

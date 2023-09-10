@@ -59,7 +59,9 @@ class ActionManager
             throw new Exception('Not valid action: ' . json_encode($action));
         }
 
-        $this->applyFreshToActions($fresh);
+        array_map(function($action) use ($fresh) {
+            $action->setFresh($fresh);
+        }, $this->handlerMap);
 
         return $this;
     }
@@ -174,18 +176,6 @@ class ActionManager
         for ($i = 1; $i < count($action); $i++) {
             $this->middleware($actionInstance->getName(), $action[$i]);
         }
-    }
-
-    /**
-     * @param bool $fresh
-     *
-     * @return void
-     */
-    protected function applyFreshToActions(bool $fresh = false): void
-    {
-        array_map(function($action) use ($fresh) {
-            $action->setFresh($fresh);
-        }, $this->handlerMap);
     }
 
     /**

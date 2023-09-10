@@ -2,19 +2,19 @@
 
 namespace Tests;
 
-use Conveyor\Models\SocketChannelPersistenceTable;
+use Conveyor\Models\Sqlite\WebSockets\ChannelsPersistence;
 use PHPUnit\Framework\TestCase;
 
-class SocketChannelPersistenceTableTest extends TestCase
+class SocketChannelPersistenceTest extends TestCase
 {
-    protected ?SocketChannelPersistenceTable $data = null;
+    protected ?ChannelsPersistence $data = null;
 
     /**
      * @before
      */
     public function freeMemory()
     {
-        $this->data = new SocketChannelPersistenceTable;
+        $this->data = new ChannelsPersistence;
     }
 
     private function connectToChannel(int $fd, string $channel)
