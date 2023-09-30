@@ -1,14 +1,15 @@
 <?php
 
-namespace Conveyor\Models\Sqlite\WebSockets;
+namespace Conveyor\Persistence\WebSockets;
 
-use Conveyor\Models\Interfaces\ListenerPersistenceInterface;
-use Conveyor\Models\Sqlite\DatabaseBootstrap;
-use Conveyor\Models\Sqlite\WsListener;
+use Conveyor\Models\WsListener;
+use Conveyor\Persistence\Abstracts\GenericPersistence;
+use Conveyor\Persistence\DatabaseBootstrap;
+use Conveyor\Persistence\Interfaces\ListenerPersistenceInterface;
 use Error;
 use Exception;
 
-class ListenersPersistence implements ListenerPersistenceInterface
+class ListenersPersistence extends GenericPersistence implements ListenerPersistenceInterface
 {
     public function listen(int $fd, string $action): void
     {
@@ -95,9 +96,13 @@ class ListenersPersistence implements ListenerPersistenceInterface
         return false;
     }
 
-    public function refresh(bool $fresh = false, ?string $databasePath = null): static
+    /**
+     * @throws Exception
+     */
+    public function refresh(bool $fresh = false): static
     {
-        (new DatabaseBootstrap($databasePath))->migrateListenerPersistence($fresh);
+        /** @throws Exception */
+        (new DatabaseBootstrap($this->databaseOptions))->migrateListenerPersistence($fresh);
 
         if (!$fresh) {
             return $this;

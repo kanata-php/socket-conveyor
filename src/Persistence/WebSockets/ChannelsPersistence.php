@@ -1,20 +1,16 @@
 <?php
 
-namespace Conveyor\Models\Sqlite\WebSockets;
+namespace Conveyor\Persistence\WebSockets;
 
-use Conveyor\Models\Interfaces\ChannelPersistenceInterface;
-use Conveyor\Models\Sqlite\DatabaseBootstrap;
-use Conveyor\Models\Sqlite\WsChannel;
+use Conveyor\Models\WsChannel;
+use Conveyor\Persistence\Abstracts\GenericPersistence;
+use Conveyor\Persistence\DatabaseBootstrap;
+use Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Error;
 use Exception;
 
-class ChannelsPersistence implements ChannelPersistenceInterface
+class ChannelsPersistence extends GenericPersistence implements ChannelPersistenceInterface
 {
-    public function __construct()
-    {
-        $this->refresh(true);
-    }
-
     public function connect(int $fd, string $channel): void
     {
         $this->disconnect($fd);
@@ -57,9 +53,13 @@ class ChannelsPersistence implements ChannelPersistenceInterface
         return $connections;
     }
 
-    public function refresh(bool $fresh = false, ?string $databasePath = null): static
+    /**
+     * @throws Exception
+     */
+    public function refresh(bool $fresh = false): static
     {
-        (new DatabaseBootstrap($databasePath))->migrateChannelPersistence($fresh);
+        /** @throws Exception */
+        (new DatabaseBootstrap($this->databaseOptions))->migrateChannelPersistence($fresh);
 
         if (!$fresh) {
             return $this;

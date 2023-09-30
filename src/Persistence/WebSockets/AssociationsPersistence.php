@@ -1,14 +1,15 @@
 <?php
 
-namespace Conveyor\Models\Sqlite\WebSockets;
+namespace Conveyor\Persistence\WebSockets;
 
-use Conveyor\Models\Interfaces\UserAssocPersistenceInterface;
-use Conveyor\Models\Sqlite\DatabaseBootstrap;
-use Conveyor\Models\Sqlite\WsAssociation;
+use Conveyor\Models\WsAssociation;
+use Conveyor\Persistence\Abstracts\GenericPersistence;
+use Conveyor\Persistence\DatabaseBootstrap;
+use Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
 use Error;
 use Exception;
 
-class AssociationsPersistence implements UserAssocPersistenceInterface
+class AssociationsPersistence extends GenericPersistence implements UserAssocPersistenceInterface
 {
     /**
      * Associate a user id to a fd.
@@ -81,9 +82,12 @@ class AssociationsPersistence implements UserAssocPersistenceInterface
         return $connections;
     }
 
-    public function refresh(bool $fresh = false, ?string $databasePath = null): static
+    /**
+     * @throws Exception
+     */
+    public function refresh(bool $fresh = false): static
     {
-        (new DatabaseBootstrap($databasePath))->migrateAssociationPersistence($fresh);
+        (new DatabaseBootstrap($this->databaseOptions))->migrateAssociationPersistence($fresh);
 
         if (!$fresh) {
             return $this;

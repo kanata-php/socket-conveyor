@@ -8,10 +8,10 @@ use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Helpers\Arr;
-use Conveyor\Models\Interfaces\GenericPersistenceInterface;
-use Conveyor\Models\Sqlite\WebSockets\AssociationsPersistence;
-use Conveyor\Models\Sqlite\WebSockets\ChannelsPersistence;
-use Conveyor\Models\Sqlite\WebSockets\ListenersPersistence;
+use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\Persistence\WebSockets\AssociationsPersistence;
+use Conveyor\Persistence\WebSockets\ChannelsPersistence;
+use Conveyor\Persistence\WebSockets\ListenersPersistence;
 use Conveyor\SocketHandlers\Interfaces\ExceptionHandlerInterface;
 use Conveyor\SocketHandlers\Interfaces\SocketHandlerInterface;
 use Exception;
@@ -26,7 +26,7 @@ class SocketMessageRouter implements SocketHandlerInterface
     protected mixed $server = null;
     protected ?int $fd = null;
     protected mixed $parsedData;
-    protected ActionManager $actionManager;
+    protected ?ActionManager $actionManager = null;
 
     /**
      * @param null|array|GenericPersistenceInterface $persistence
@@ -34,33 +34,30 @@ class SocketMessageRouter implements SocketHandlerInterface
      * @throws Exception
      */
     public function __construct(
-        null|array|GenericPersistenceInterface $persistence = null,
-        array $actions = [],
         protected bool $fresh = false,
-    ) {
-        $this->preparePersistence($persistence);
+    ) {}
+
+    public static function init(bool $fresh = false): static
+    {
+        return new self($fresh);
+    }
+
+    public function actions(array $actions = [], bool $fresh = false)
+    {
         $this->actionManager = ActionManager::make($actions, $fresh);
+        return $this;
     }
 
     /**
      * @param string $data
      * @param int $fd
      * @param mixed $server
-     * @param array $options Constructor options: $persistence, $actions, $fresh
      * @return mixed
      * @throws Exception
      */
-    public static function run(
-        string $data,
-        int $fd,
-        mixed $server,
-        array $options = [],
-    ) {
-        return (new self(
-            persistence: $options['persistence'] ?? null,
-            actions: $options['actions'] ?? [],
-            fresh: $options['fresh'] ?? false,
-        ))(
+    public function run(string $data, int $fd, mixed $server): mixed
+    {
+        return $this(
             data: $data,
             fd: $fd,
             server: $server,
@@ -79,15 +76,16 @@ class SocketMessageRouter implements SocketHandlerInterface
     public static function refresh(
         null|array|GenericPersistenceInterface $persistence = null,
     ): static {
-        return new self(persistence: $persistence, fresh: true);
+        return self::init(true)
+            ->persistence($persistence);
     }
 
     /**
      * @param array|GenericPersistenceInterface|null $persistence
      *
-     * @return void
+     * @return self
      */
-    private function preparePersistence(null|array|GenericPersistenceInterface $persistence)
+    public function persistence(null|array|GenericPersistenceInterface $persistence): self
     {
         if (null === $persistence) {
             $persistence = [
@@ -99,20 +97,24 @@ class SocketMessageRouter implements SocketHandlerInterface
 
         if (!is_array($persistence)) {
             $this->setPersistence($persistence);
-            return;
+            return $this;
         }
 
         foreach ($persistence as $item) {
             $this->setPersistence($item);
         }
+
+        return $this;
     }
 
     /**
      * @param string $data Data to be processed.
      * @param int $fd Sender's File descriptor (connection).
      * @param mixed $server Server object, e.g. Swoole\WebSocket\Frame.
+     * @return mixed
+     * @throws Exception
      */
-    public function __invoke(string $data, int $fd, mixed $server)
+    public function __invoke(string $data, int $fd, mixed $server): mixed
     {
         return $this->handle($data, $fd, $server);
     }
@@ -173,7 +175,7 @@ class SocketMessageRouter implements SocketHandlerInterface
             throw new InvalidArgumentException('Missing action key in data!');
         }
 
-        if (!$this->actionManager->hasAction($data['action'])) {
+        if (!$this->getActionManager()->hasAction($data['action'])) {
             throw new InvalidActionException(
                 'Invalid Action! This action (' . $data['action'] . ') is not set.'
             );
@@ -184,10 +186,10 @@ class SocketMessageRouter implements SocketHandlerInterface
      * @param string $data Data to be processed.
      * @param int $fd Sender's File descriptor (connection).
      * @param mixed $server Server object, e.g. \OpenSwoole\WebSocket\Frame.
-     *
+     * @return mixed
      * @throws Exception
      */
-    public function handle(string $data, int $fd, mixed $server)
+    public function handle(string $data, int $fd, mixed $server): mixed
     {
         $this->fd = $fd;
         $this->server = $server;
@@ -196,11 +198,11 @@ class SocketMessageRouter implements SocketHandlerInterface
         $action = $this->parseData($data);
         $action->setFd($fd);
         $action->setServer($server);
+        $this->registerActionPersistence($action);
 
         /** @var Pipeline */
-        $pipeline = $this->actionManager->getPipeline($action->getName());
+        $pipeline = $this->getActionManager()->getPipeline($action->getName());
 
-        $this->registerActionPersistence($action);
         $this->closeConnections();
 
         try {
@@ -236,7 +238,7 @@ class SocketMessageRouter implements SocketHandlerInterface
         // @throws InvalidArgumentException|InvalidActionException
         $this->validateData($this->parsedData);
 
-        return $this->actionManager->getAction($this->parsedData['action']);
+        return $this->getActionManager()->getAction($this->parsedData['action']);
     }
 
     /**
@@ -289,15 +291,15 @@ class SocketMessageRouter implements SocketHandlerInterface
     private function registerActionPersistence(ActionInterface $action): void
     {
         if (null !== $this->channelPersistence) {
-            $this->actionManager->setActionPersistence($action, $this->channelPersistence);
+            $this->getActionManager()->setActionPersistence($action, $this->channelPersistence);
         }
 
         if (null !== $this->userAssocPersistence) {
-            $this->actionManager->setActionPersistence($action, $this->userAssocPersistence);
+            $this->getActionManager()->setActionPersistence($action, $this->userAssocPersistence);
         }
 
         if (null !== $this->listenerPersistence) {
-            $this->actionManager->setActionPersistence($action, $this->listenerPersistence);
+            $this->getActionManager()->setActionPersistence($action, $this->listenerPersistence);
         }
     }
 
@@ -311,6 +313,10 @@ class SocketMessageRouter implements SocketHandlerInterface
 
     public function getActionManager(): ActionManager
     {
+        if (null === $this->actionManager) {
+            $this->actions();
+        }
+
         return $this->actionManager;
     }
 }

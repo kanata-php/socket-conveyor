@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\Models\Sqlite;
+namespace Conveyor\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,6 +10,7 @@ class WsChannel extends Model
 
     /** @var string */
     protected $table = self::TABLE_NAME;
+    protected $connection = 'socket-conveyor';
 
     protected $fillable = [
         'fd',

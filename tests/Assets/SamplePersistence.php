@@ -2,7 +2,7 @@
 
 namespace Tests\Assets;
 
-use Conveyor\Models\Interfaces\ChannelPersistenceInterface;
+use Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 
 class SamplePersistence implements ChannelPersistenceInterface
 {

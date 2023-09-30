@@ -2,8 +2,7 @@
 
 namespace Tests;
 
-use Conveyor\Models\Sqlite\WebSockets\ListenersPersistence;
-use PHPUnit\Framework\TestCase;
+use Conveyor\Persistence\WebSockets\ListenersPersistence;
 use Tests\Assets\SampleAction;
 
 class SocketListenerPersistenceTest extends TestCase
@@ -15,7 +14,7 @@ class SocketListenerPersistenceTest extends TestCase
      */
     public function freeMemory()
     {
-        $this->data = new ListenersPersistence;
+        $this->data = new ListenersPersistence($this->getDatabaseOptions());
         $this->data->refresh(true);
     }
 

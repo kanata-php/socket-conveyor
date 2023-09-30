@@ -3,8 +3,7 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Interfaces\ActionInterface;
-use Conveyor\Models\Interfaces\GenericPersistenceInterface;
-use Conveyor\SocketHandlers\SocketMessageRouter;
+use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Exception;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\PipelineInterface;
@@ -40,6 +39,8 @@ class ActionManager
     }
 
     /**
+     * This method adds default actions to the manager.
+     *
      * @param bool $fresh
      *
      * @return static

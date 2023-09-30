@@ -2,10 +2,10 @@
 
 namespace Conveyor\Actions\Traits;
 
-use Conveyor\Models\Interfaces\ChannelPersistenceInterface;
-use Conveyor\Models\Interfaces\GenericPersistenceInterface;
-use Conveyor\Models\Interfaces\ListenerPersistenceInterface;
-use Conveyor\Models\Interfaces\UserAssocPersistenceInterface;
+use Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
+use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\Persistence\Interfaces\ListenerPersistenceInterface;
+use Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
 
 trait HasPersistence
 {

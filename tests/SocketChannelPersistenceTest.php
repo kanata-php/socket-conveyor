@@ -2,8 +2,7 @@
 
 namespace Tests;
 
-use Conveyor\Models\Sqlite\WebSockets\ChannelsPersistence;
-use PHPUnit\Framework\TestCase;
+use Conveyor\Persistence\WebSockets\ChannelsPersistence;
 
 class SocketChannelPersistenceTest extends TestCase
 {
@@ -14,7 +13,7 @@ class SocketChannelPersistenceTest extends TestCase
      */
     public function freeMemory()
     {
-        $this->data = new ChannelsPersistence;
+        $this->data = new ChannelsPersistence($this->getDatabaseOptions());
     }
 
     private function connectToChannel(int $fd, string $channel)

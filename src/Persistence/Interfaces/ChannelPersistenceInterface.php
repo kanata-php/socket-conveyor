@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\Models\Interfaces;
+namespace Conveyor\Persistence\Interfaces;
 
 interface ChannelPersistenceInterface extends GenericPersistenceInterface
 {

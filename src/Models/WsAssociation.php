@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\Models\Sqlite;
+namespace Conveyor\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,6 +9,7 @@ class WsAssociation extends Model
     const TABLE_NAME = 'wsassociations';
 
     protected $table = self::TABLE_NAME;
+    protected $connection = 'socket-conveyor';
 
     protected $fillable = [
         'fd',

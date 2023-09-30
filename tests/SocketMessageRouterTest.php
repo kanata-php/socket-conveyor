@@ -4,7 +4,9 @@ namespace Tests;
 
 use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Models\Sqlite\WebSockets\ChannelsPersistence;
+use Conveyor\Persistence\WebSockets\AssociationsPersistence;
+use Conveyor\Persistence\WebSockets\ChannelsPersistence;
+use Conveyor\Persistence\WebSockets\ListenersPersistence;
 use Conveyor\SocketHandlers\SocketMessageRouter;
 use Exception;
 use Tests\Assets\NotValidMiddleware;
@@ -128,11 +130,15 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
         $this->assertCount(1, $this->userKeys);
     }
 
-    public function testCantAddActionAlreadyAddedThroughConstructor()
+    public function testCantAddActionAlreadyAdded()
     {
         $this->expectException(Exception::class);
 
-        new SocketMessageRouter(null, [
+        (new SocketMessageRouter)->persistence([
+            new ChannelsPersistence($this->getDatabaseOptions()),
+            new ListenersPersistence($this->getDatabaseOptions()),
+            new AssociationsPersistence($this->getDatabaseOptions()),
+        ])->actions([
             [SampleAction::class, new SampleMiddleware],
             [SampleAction::class, function(){}],
         ]);
@@ -140,15 +146,21 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
     public function testCanAddMiddlewareThroughConstructor()
     {
-        $socketRouter = new SocketMessageRouter(null, [
-            [
-                SampleAction::class,
-                function ($p) {
-                    $this->userKeys[$p->getFd()] = $p->getParsedData('action');
-                    return $p;
-                },
-            ],
-        ]);
+        $socketRouter = (new SocketMessageRouter)
+            ->persistence([
+                new ChannelsPersistence($this->getDatabaseOptions()),
+                new ListenersPersistence($this->getDatabaseOptions()),
+                new AssociationsPersistence($this->getDatabaseOptions()),
+            ])
+            ->actions([
+                [
+                    SampleAction::class,
+                    function ($p) {
+                        $this->userKeys[$p->getFd()] = $p->getParsedData('action');
+                        return $p;
+                    },
+                ],
+            ]);
 
         $data = json_encode([
             'action' => SampleAction::ACTION_NAME,
@@ -163,7 +175,11 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
     {
         $this->expectException(TypeError::class);
 
-        new SocketMessageRouter(null, [
+        new SocketMessageRouter([
+            new ChannelsPersistence($this->getDatabaseOptions()),
+            new ListenersPersistence($this->getDatabaseOptions()),
+            new AssociationsPersistence($this->getDatabaseOptions()),
+        ], [
             [SampleAction::class, new NotValidMiddleware]
         ]);
     }
@@ -266,14 +282,25 @@ class SocketMessageRouterTest extends SocketHandlerTestCase
 
     public function testCanCallStaticMethod()
     {
-        SocketMessageRouter::run('some message', 1, $this->server);
+        SocketMessageRouter::init()
+            ->persistence([
+                new ChannelsPersistence($this->getDatabaseOptions()),
+                new ListenersPersistence($this->getDatabaseOptions()),
+                new AssociationsPersistence($this->getDatabaseOptions()),
+            ])
+            ->run(
+                data: 'some message',
+                fd: 1,
+                server: $this->server,
+            );
         $this->assertCount(1, $this->userKeys);
     }
 
     public function testCanCallRefreshPersistence()
     {
-        $channelPersistence = new ChannelsPersistence;
-        $conveyor = new SocketMessageRouter($channelPersistence);
+        $channelPersistence = new ChannelsPersistence($this->getDatabaseOptions());
+        $conveyor = new SocketMessageRouter();
+        $conveyor->persistence($channelPersistence);
 
         ($conveyor)(json_encode([
             'action' => ChannelConnectAction::ACTION_NAME,

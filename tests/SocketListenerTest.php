@@ -4,6 +4,9 @@ namespace Tests;
 
 use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\FanoutAction;
+use Conveyor\Persistence\WebSockets\AssociationsPersistence;
+use Conveyor\Persistence\WebSockets\ChannelsPersistence;
+use Conveyor\Persistence\WebSockets\ListenersPersistence;
 use Tests\Assets\SecondaryBroadcastAction;
 use Tests\Assets\SecondaryFanoutAction;
 
@@ -81,9 +84,9 @@ class SocketListenerTest extends SocketHandlerTestCase
         $this->assertCount(2, $this->userKeys);
 
         $this->router = $this->prepareSocketMessageRouter([
-            'channel' => $this->channelPersistence,
-            'listen' => $this->listenerPersistence,
-            'userAssoc' => $this->userAssocPersistence,
+            new ChannelsPersistence($this->getDatabaseOptions()),
+            new ListenersPersistence($this->getDatabaseOptions()),
+            new AssociationsPersistence($this->getDatabaseOptions()),
         ]);
 
         $this->userKeys = [];
@@ -94,6 +97,6 @@ class SocketListenerTest extends SocketHandlerTestCase
             'data' => $message,
         ]));
 
-        $this->assertCount(1, $this->userKeys);
+        $this->assertCount(3, $this->userKeys);
     }
 }

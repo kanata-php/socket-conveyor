@@ -2,8 +2,7 @@
 
 namespace Tests;
 
-use Conveyor\Models\Sqlite\WebSockets\AssociationsPersistence;
-use PHPUnit\Framework\TestCase;
+use Conveyor\Persistence\WebSockets\AssociationsPersistence;
 
 class SocketUserAssocPersistenceTest extends TestCase
 {
@@ -14,7 +13,7 @@ class SocketUserAssocPersistenceTest extends TestCase
      */
     public function freeMemory()
     {
-        $this->data = new AssociationsPersistence;
+        $this->data = new AssociationsPersistence($this->getDatabaseOptions());
         $this->data->refresh(true);
     }
 

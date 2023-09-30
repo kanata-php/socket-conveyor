@@ -5,9 +5,11 @@ namespace Tests;
 use Conveyor\Actions\ActionManager;
 use Conveyor\Actions\AddListenerAction;
 use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Models\Interfaces\GenericPersistenceInterface;
+use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\Persistence\WebSockets\AssociationsPersistence;
+use Conveyor\Persistence\WebSockets\ChannelsPersistence;
+use Conveyor\Persistence\WebSockets\ListenersPersistence;
 use Conveyor\SocketHandlers\SocketMessageRouter;
-use PHPUnit\Framework\TestCase;
 use Tests\Assets\SampleChannelPersistence;
 use Tests\Assets\SampleListenerPersistence;
 use Tests\Assets\SampleReturnAction;
@@ -20,9 +22,9 @@ class SocketHandlerTestCase extends TestCase
 {
     public array $userKeys = [];
 
-    public SampleChannelPersistence $channelPersistence;
-    public SampleListenerPersistence $listenerPersistence;
-    public SampleUserAssocPersistence $userAssocPersistence;
+    public ChannelsPersistence $channelPersistence;
+    public ListenersPersistence $listenerPersistence;
+    public AssociationsPersistence $userAssocPersistence;
     public SocketMessageRouter $router;
     public SampleSocketServer $server;
 
@@ -34,14 +36,14 @@ class SocketHandlerTestCase extends TestCase
      */
     public function setUpRouter()
     {
-        $this->channelPersistence = new SampleChannelPersistence;
-        $this->listenerPersistence = new SampleListenerPersistence;
-        $this->userAssocPersistence = new SampleUserAssocPersistence;
+        $this->channelPersistence = new ChannelsPersistence($this->getDatabaseOptions());
+        $this->listenerPersistence = new ListenersPersistence($this->getDatabaseOptions());
+        $this->userAssocPersistence = new AssociationsPersistence($this->getDatabaseOptions());
 
         $this->router = $this->prepareSocketMessageRouter([
-            'channel' => $this->channelPersistence,
-            'listen' => $this->listenerPersistence,
-            'userAssoc' => $this->userAssocPersistence,
+            $this->channelPersistence,
+            $this->listenerPersistence,
+            $this->userAssocPersistence,
         ]);
     }
 
@@ -56,7 +58,8 @@ class SocketHandlerTestCase extends TestCase
 
     protected function prepareSocketMessageRouter(null|array|GenericPersistenceInterface $persistence = null): SocketMessageRouter
     {
-        $socketRouter = new SocketMessageRouter($persistence);
+        $socketRouter = new SocketMessageRouter();
+        $socketRouter->persistence($persistence);
         $actionManager = $socketRouter->getActionManager();
 
         $resultOfAddMethod = $actionManager->add(new ChannelConnectAction);
