@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 Updates should follow the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [2.0.0] - 2023-09-29
+
+- Updated the interface of the SocketMessageRouter.
+- Changed SQLite to be the default persistence solution.
+
 ## [1.3.0] - 2023-01-15
 
 ### Added
