@@ -8,6 +8,7 @@ class DatabaseConnectionDTO implements ArrayAccess
 {
     public function __construct(
         public string $driver,
+        public string $host,
         public string $database,
         public ?string $username = null,
         public ?string $password = null,
@@ -20,6 +21,7 @@ class DatabaseConnectionDTO implements ArrayAccess
     {
         return new self(
             $data['driver'],
+            $data['host'] ?? '',
             $data['database'],
             $data['username'] ?? null,
             $data['password'] ?? null,
