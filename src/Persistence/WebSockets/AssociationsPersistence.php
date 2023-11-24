@@ -87,7 +87,7 @@ class AssociationsPersistence extends GenericPersistence implements UserAssocPer
      */
     public function refresh(bool $fresh = false): static
     {
-        (new DatabaseBootstrap($this->databaseOptions))->migrateAssociationPersistence($fresh);
+        (new DatabaseBootstrap($this->databaseOptions, $this->manager))->migrateAssociationPersistence($fresh);
 
         if (!$fresh) {
             return $this;

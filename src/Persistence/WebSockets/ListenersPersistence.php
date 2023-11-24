@@ -102,7 +102,7 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
     public function refresh(bool $fresh = false): static
     {
         /** @throws Exception */
-        (new DatabaseBootstrap($this->databaseOptions))->migrateListenerPersistence($fresh);
+        (new DatabaseBootstrap($this->databaseOptions, $this->manager))->migrateListenerPersistence($fresh);
 
         if (!$fresh) {
             return $this;

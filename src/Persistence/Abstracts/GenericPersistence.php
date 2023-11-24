@@ -4,6 +4,7 @@ namespace Conveyor\Persistence\Abstracts;
 
 use Conveyor\Persistence\DTO\DatabaseConnectionDTO;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Illuminate\Database\Capsule\Manager;
 
 abstract class GenericPersistence implements GenericPersistenceInterface
 {
@@ -21,6 +22,7 @@ abstract class GenericPersistence implements GenericPersistenceInterface
             'collation' => 'utf8_unicode_ci',
             'prefix' => '',
         ],
+        protected ?Manager $manager = null,
     ) {
         if (is_array($this->databaseOptions)) {
             $this->databaseOptions = DatabaseConnectionDTO::fromArray($this->databaseOptions);

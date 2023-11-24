@@ -59,7 +59,7 @@ class ChannelsPersistence extends GenericPersistence implements ChannelPersisten
     public function refresh(bool $fresh = false): static
     {
         /** @throws Exception */
-        (new DatabaseBootstrap($this->databaseOptions))->migrateChannelPersistence($fresh);
+        (new DatabaseBootstrap($this->databaseOptions, $this->manager))->migrateChannelPersistence($fresh);
 
         if (!$fresh) {
             return $this;

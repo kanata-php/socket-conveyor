@@ -11,19 +11,17 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class DatabaseBootstrap
 {
-    protected ?Manager $manager = null;
-
     /**
      * @param DatabaseConnectionDTO|array{driver:string,database:string,username:string,password:string,charset:string,collation:string,prefix:string} $databaseOptions
      * @throws Exception
      */
     public function __construct(
         protected DatabaseConnectionDTO|array $databaseOptions,
+        protected ?Manager $manager = null,
     ) {
         /** @throws Exception */
         $this->validateDatabaseOptions();
@@ -47,14 +45,15 @@ class DatabaseBootstrap
             return;
         }
 
-        DB::purge('socket-conveyor');
-        config([
-            'database.connections.socket-conveyor' => [
-                'driver'   => 'sqlite',
-                'database' => $this->databaseOptions['database'],
-                'prefix'   => '',
-            ]
-        ]);
+        if (null === config('database.connections.socket-conveyor')) {
+            config([
+                'database.connections.socket-conveyor' => [
+                    'driver'   => 'sqlite',
+                    'database' => $this->databaseOptions['database'],
+                    'prefix'   => '',
+                ]
+            ]);
+        }
     }
 
     private function getCapsule(): Manager
