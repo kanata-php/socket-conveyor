@@ -28,8 +28,5 @@
     },
     "suggest": {
         "ext-openswoole": "This package requires at least one of Open Swoole or Swoole"
-    },
-    "bin": [
-        "start-ws-server"
-    ]
+    }
 }
