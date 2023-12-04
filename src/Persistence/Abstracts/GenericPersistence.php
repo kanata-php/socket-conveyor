@@ -16,6 +16,7 @@ abstract class GenericPersistence implements GenericPersistenceInterface
             'driver' => 'sqlite',
             'host' => '',
             'database' => __DIR__ . '/../../../../../database/database.sqlite',
+            'port' => null,
             'username' => null,
             'password' => null,
             'charset' => 'utf8',

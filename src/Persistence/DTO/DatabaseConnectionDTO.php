@@ -10,6 +10,7 @@ class DatabaseConnectionDTO implements ArrayAccess
         public string $driver,
         public string $host,
         public string $database,
+        public ?int $port = null,
         public ?string $username = null,
         public ?string $password = null,
         public string $charset = 'utf8',
