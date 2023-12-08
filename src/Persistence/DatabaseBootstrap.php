@@ -16,7 +16,15 @@ use Illuminate\Support\Facades\Schema;
 class DatabaseBootstrap
 {
     /**
-     * @param DatabaseConnectionDTO|array{driver:string,database:string,username:string,password:string,charset:string,collation:string,prefix:string} $databaseOptions
+     * @param DatabaseConnectionDTO|array{
+     *     driver:string,
+     *     database:string,
+     *     username:string,
+     *     password:string,
+     *     charset:string,
+     *     collation:string,
+     *     prefix:string
+     * } $databaseOptions
      * @throws Exception
      */
     public function __construct(
@@ -38,10 +46,14 @@ class DatabaseBootstrap
         $this->startCapsule();
     }
 
-    private function startCapsule()
+    private function startCapsule(): void
     {
         if (!$this->isLaravel()) {
             $this->getCapsule();
+            return;
+        }
+
+        if (!function_exists('config')) {
             return;
         }
 
@@ -62,7 +74,7 @@ class DatabaseBootstrap
             return $this->manager;
         }
 
-        $manager = new Manager;
+        $manager = new Manager();
         $manager->addConnection($this->databaseOptions->toArray(), 'socket-conveyor');
         $manager->setAsGlobal();
         $manager->bootEloquent();
@@ -145,6 +157,9 @@ class DatabaseBootstrap
         return function_exists('app') && app() instanceof Application;
     }
 
+    /**
+     * @throws Exception
+     */
     private function validateDatabaseOptions(): void
     {
         if (!isset($this->databaseOptions['driver'])) {

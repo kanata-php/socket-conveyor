@@ -19,7 +19,7 @@ class ChannelsPersistence extends GenericPersistence implements ChannelPersisten
                 'fd' => $fd,
                 'channel' => $channel,
             ]);
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
     }
@@ -28,16 +28,19 @@ class ChannelsPersistence extends GenericPersistence implements ChannelPersisten
     {
         try {
             WsChannel::where('fd', '=', $fd)->first()?->delete();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
     }
 
+    /**
+     * @return array<int, string> Format: [fd => channel][]
+     */
     public function getAllConnections(): array
     {
         try {
             $channels = WsChannel::all()->toArray();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             return [];
         }
 

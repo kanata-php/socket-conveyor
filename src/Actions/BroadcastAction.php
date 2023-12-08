@@ -8,13 +8,13 @@ use Conveyor\Actions\Abstractions\AbstractAction;
 
 class BroadcastAction extends AbstractAction
 {
-    const NAME = 'broadcast-action';
+    public const NAME = 'broadcast-action';
 
     protected string $name = self::NAME;
     protected int $fd;
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @return mixed
      * @throws Exception
      */
@@ -25,12 +25,12 @@ class BroadcastAction extends AbstractAction
     }
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @return void
      *
      * @throws InvalidArgumentException
      */
-    public function validateData(array $data) : void
+    public function validateData(array $data): void
     {
         if (!isset($data['data'])) {
             throw new InvalidArgumentException('BroadcastAction required \'data\' field to be created!');

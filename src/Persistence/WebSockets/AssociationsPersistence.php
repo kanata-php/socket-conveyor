@@ -26,7 +26,7 @@ class AssociationsPersistence extends GenericPersistence implements UserAssocPer
                 'fd' => $fd,
                 'user_id' => $userId,
             ]);
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
     }
@@ -41,7 +41,7 @@ class AssociationsPersistence extends GenericPersistence implements UserAssocPer
     {
         try {
             WsAssociation::where('user_id', '=', $userId)?->delete();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
     }
@@ -49,24 +49,24 @@ class AssociationsPersistence extends GenericPersistence implements UserAssocPer
     /**
      * Get user-id for a fd.
      *
-     * @param ?int $fd
-     * @return int
+     * @param int $fd
+     * @return ?int
      */
     public function getAssoc(int $fd): ?int
     {
-        return WsAssociation::where('fd', '=', $fd)->get()->first()?->user_id;
+        return WsAssociation::where('fd', $fd)->get()->first()?->user_id;
     }
 
     /**
      * Retrieve all associations.
      *
-     * @return array Format:
+     * @return array<int, array<array-key, int>> Format: [fd => userId][]
      */
     public function getAllAssocs(): array
     {
         try {
             $associations = WsAssociation::all()->toArray();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             return [];
         }
 

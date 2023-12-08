@@ -9,7 +9,17 @@ use Illuminate\Database\Capsule\Manager;
 abstract class GenericPersistence implements GenericPersistenceInterface
 {
     /**
-     * @param @param DatabaseConnectionDTO|array{driver:string,database:string,username:string,password:string,charset:string,collation:string,prefix:string} $databaseOptions
+     * @param DatabaseConnectionDTO|array{
+     *     driver:string,
+     *     host:string,
+     *     database:string,
+     *     port:int|null,
+     *     username:string|null,
+     *     password:string|null,
+     *     charset:string,
+     *     collation:string,
+     *     prefix:string
+     * } $databaseOptions
      */
     public function __construct(
         protected DatabaseConnectionDTO|array $databaseOptions = [

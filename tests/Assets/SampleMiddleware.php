@@ -13,7 +13,7 @@ class SampleMiddleware extends AbstractActionMiddleware
      *
      * @throws Exception
      */
-    public function __invoke($payload)
+    public function __invoke(mixed $payload): mixed
     {
         $this->checkToken($payload);
 
@@ -21,13 +21,13 @@ class SampleMiddleware extends AbstractActionMiddleware
     }
 
     /**
-     * @param array $data
+     * @param array<string, string> $data
      *
      * @return void
      *
      * @throws Exception
      */
-    private function checkToken(array $data) : void
+    private function checkToken(array $data): void
     {
         if ($data['token'] !== 'valid-token') {
             throw new Exception('Invalid Token');

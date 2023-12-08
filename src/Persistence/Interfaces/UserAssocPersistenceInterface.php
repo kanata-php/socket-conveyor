@@ -32,7 +32,7 @@ interface UserAssocPersistenceInterface extends GenericPersistenceInterface
     /**
      * Retrieve all associations.
      *
-     * @return array Format:
+     * @return array<int, array<array-key, int>> Format: [fd => userId][]
      */
     public function getAllAssocs(): array;
 }

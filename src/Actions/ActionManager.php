@@ -7,15 +7,26 @@ use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Exception;
 use InvalidArgumentException;
+use League\Pipeline\Pipeline;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\PipelineInterface;
 use OpenSwoole\WebSocket\Server;
 
 class ActionManager
 {
+    /**
+     * @var array<array-key, ActionInterface>
+     */
     protected array $handlerMap = [];
+
+    /**
+     * @var array<array-key, callable[]>
+     */
     protected array $pipelineMap = [];
 
+    /**
+     * @var array<array-key, string>
+     */
     protected array $actions = [
         AddListenerAction::class,
         AssocUserToFdAction::class,
@@ -28,6 +39,9 @@ class ActionManager
 
     protected ?ActionInterface $currentAction = null;
 
+    /**
+     * @param array<array-key, ActionInterface> $extraActions
+     */
     public function __construct(
         array $extraActions = [],
     ) {
@@ -35,18 +49,21 @@ class ActionManager
     }
 
     /**
+     * @param array<array-key, ActionInterface> $actions
+     * @param bool $fresh
+     * @return ActionManager
      * @throws Exception
      */
-    public static function make(array $actions = [], bool $fresh = false): static
+    public static function make(array $actions = [], bool $fresh = false): ActionManager
     {
-        $manager = new static($actions);
+        $manager = new ActionManager($actions);
         return $manager->startActions($fresh);
     }
 
     /**
      * @internal This method also leave the $parsedData property set to the instance.
      *
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @param Server $server
      * @param int $fd
      * @param array<GenericPersistenceInterface> $persistence
@@ -85,7 +102,7 @@ class ActionManager
     }
 
     /**
-     * @param ?array $data
+     * @param ?array<array-key, mixed> $data
      *
      * @return void
      *
@@ -120,17 +137,10 @@ class ActionManager
     public function startActions(bool $fresh = false): static
     {
         foreach ($this->actions as $action) {
-            if (is_string($action)) {
-                $this->add(new $action);
-                continue;
-            } else if (is_array($action)) {
-                $this->startActionWithMiddlewares($action);
-                continue;
-            }
-            throw new Exception('Not valid action: ' . json_encode($action));
+            $this->add(new $action());
         }
 
-        array_map(function($action) use ($fresh) {
+        array_map(function ($action) use ($fresh) {
             $action->setFresh($fresh);
         }, $this->handlerMap);
 
@@ -145,7 +155,7 @@ class ActionManager
      *
      * @return static
      */
-    public function middleware(string $action, callable $middleware) : static
+    public function middleware(string $action, callable $middleware): static
     {
         if (!isset($this->pipelineMap[$action])) {
             $this->pipelineMap[$action] = [];
@@ -175,7 +185,7 @@ class ActionManager
      *
      * @return static
      */
-    public function add(ActionInterface $actionHandler) : static
+    public function add(ActionInterface $actionHandler): static
     {
         $actionName = $actionHandler->getName();
         $this->handlerMap[$actionName] = $actionHandler;
@@ -189,7 +199,7 @@ class ActionManager
      * @param ActionInterface|string $action
      * @return static
      */
-    public function remove(ActionInterface|string $action) : static
+    public function remove(ActionInterface|string $action): static
     {
         $actionName = is_string($action) ? $action : $action->getName();
         unset($this->handlerMap[$actionName]);
@@ -216,13 +226,14 @@ class ActionManager
     /**
      * Prepare pipeline based on the current prepared handlers.
      *
-     * @return PipelineInterface
+     * @return Pipeline
      */
-    public function getPipeline() : PipelineInterface
+    public function getPipeline(): Pipeline
     {
-        $pipelineBuilder = new PipelineBuilder;
+        $pipelineBuilder = new PipelineBuilder();
 
         if (!isset($this->pipelineMap[$this->currentAction->getName()])) {
+            /** @var Pipeline */
             return $pipelineBuilder->build();
         }
 
@@ -230,26 +241,8 @@ class ActionManager
             $pipelineBuilder->add($middleware);
         }
 
+        /** @var Pipeline */
         return $pipelineBuilder->build();
-    }
-
-    /**
-     * @param array $action
-     * @return void
-     *
-     * @throws Exception
-     */
-    protected function startActionWithMiddlewares(array $action): void
-    {
-        if ($this->hasAction($action[0]::NAME)) {
-            throw new Exception('Action already added!');
-        }
-
-        $actionInstance = new $action[0];
-        $this->add($actionInstance);
-        for ($i = 1; $i < count($action); $i++) {
-            $this->middleware($actionInstance->getName(), $action[$i]);
-        }
     }
 
     /**

@@ -4,7 +4,7 @@
     "type": "library",
     "license": "MIT",
     "require": {
-        "php": "^8.0",
+        "php": "^8.2",
         "league/pipeline": "^1.0",
         "illuminate/database": "^10.22",
         "symfony/workflow": "^7.0",
@@ -15,7 +15,10 @@
         "phpunit/phpunit": "^9.2",
         "mockery/mockery": "^1.4",
         "codedungeon/phpunit-result-printer": "^0.30.0",
-        "openswoole/ide-helper": "^22.0"
+        "openswoole/ide-helper": "^22.0",
+        "phpro/grumphp": "^2.3",
+        "phpstan/phpstan": "^1.10",
+        "squizlabs/php_codesniffer": "^3.7"
     },
     "autoload": {
         "psr-4": {
@@ -30,5 +33,10 @@
     },
     "suggest": {
         "ext-openswoole": "This package requires at least one of Open Swoole or Swoole"
+    },
+    "config": {
+        "allow-plugins": {
+            "phpro/grumphp": true
+        }
     }
 }

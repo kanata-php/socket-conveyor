@@ -1,0 +1,51 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsAssociation\\:\\:create\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/AssociationsPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsAssociation\\:\\:truncate\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/AssociationsPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsAssociation\\:\\:where\\(\\)\\.$#"
+			count: 2
+			path: src/Persistence/WebSockets/AssociationsPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsChannel\\:\\:create\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/ChannelsPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsChannel\\:\\:truncate\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/ChannelsPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsChannel\\:\\:where\\(\\)\\.$#"
+			count: 2
+			path: src/Persistence/WebSockets/ChannelsPersistence.php
+
+		-
+			message: "#^Call to an undefined method Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, Conveyor\\\\Models\\\\WsListener\\>\\:\\:delete\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/ListenersPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsListener\\:\\:create\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/ListenersPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsListener\\:\\:truncate\\(\\)\\.$#"
+			count: 1
+			path: src/Persistence/WebSockets/ListenersPersistence.php
+
+		-
+			message: "#^Call to an undefined static method Conveyor\\\\Models\\\\WsListener\\:\\:where\\(\\)\\.$#"
+			count: 3
+			path: src/Persistence/WebSockets/ListenersPersistence.php

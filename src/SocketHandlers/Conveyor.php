@@ -43,16 +43,16 @@ class Conveyor
             'workflow.conveyor-workflow.enter.message_processed' => [$this, 'handleProcessMessage'],
             'workflow.conveyor-workflow.enter.data_cleared' => [$this, 'handleClearData'],
         ]);
-        $this->messageRouter = new MessageRouter;
+        $this->messageRouter = new MessageRouter();
         $this->workflow->getMarking($this->messageRouter);
     }
 
     /**
      * @param bool $fresh
-     * @return static
+     * @return Conveyor
      * @throws Exception
      */
-    public static function init(bool $fresh = false): static
+    public static function init(bool $fresh = false): Conveyor
     {
         return new self($fresh);
     }
@@ -77,11 +77,11 @@ class Conveyor
     }
 
     /**
-     * @return ActionManager|null
+     * @return ActionManager
      */
-    public function getActionManager(): ?ActionManager
+    public function getActionManager(): ActionManager
     {
-        return $this->messageRouter?->actionManager;
+        return $this->messageRouter->actionManager;
     }
 
     // ----------------------------------
@@ -102,12 +102,23 @@ class Conveyor
         return $previous;
     }
 
+    /**
+     * @param string $transition
+     * @param array<array-key, mixed> $context
+     * @return static
+     * @throws Exception
+     */
     public function applyTransition(
         string $transition,
         array $context = [],
     ): static {
         if (!$this->workflow->can($this->messageRouter, $transition)) {
-            throw new Exception('Can\'t ' . $transition . ' at ' . $this->messageRouter->getState() . '! (must ' . $this->getPreviousTransition($transition) . ' first)');
+            throw new Exception(
+                'Can\'t ' . $transition . ' at '
+                . $this->messageRouter->getState()
+                . '! (must ' . $this->getPreviousTransition($transition)
+                . ' first)',
+            );
         }
 
         $this->workflow->apply(
@@ -133,16 +144,22 @@ class Conveyor
         );
     }
 
+    /**
+     * @throws Exception
+     */
     public function handleSetServer(EnterEvent $event): void
     {
-        /** @var array $context */
+        /** @var array<array-key, mixed> $context */
         $context = $event->getContext();
 
         /** @var MessageRouter $messageRouter */
         $messageRouter = $event->getSubject();
 
         if (!isset($context['server'])) {
-            throw new Exception('Missing server in context at "' . $event->getTransition()->getName() . '" transition!');
+            throw new Exception(
+                'Missing server in context at "'
+                . $event->getTransition()->getName() . '" transition!',
+            );
         }
 
         $messageRouter->server = $context['server'];
@@ -164,7 +181,7 @@ class Conveyor
 
     public function handleSetFd(EnterEvent $event): void
     {
-        /** @var array $context */
+        /** @var array<array-key, mixed> $context */
         $context = $event->getContext();
 
         /** @var MessageRouter $messageRouter */
@@ -199,21 +216,24 @@ class Conveyor
 
     public function handleApplyPersistence(EnterEvent $event): static
     {
-        /** @var array $context */
+        /** @var array<array-key, mixed> $context */
         $context = $event->getContext();
 
         /** @var MessageRouter $messageRouter */
         $messageRouter = $event->getSubject();
 
         if (!isset($context['persistence'])) {
-            throw new Exception('Missing persistence in context at "' . $event->getTransition()->getName() . '" transition!');
+            throw new Exception(
+                'Missing persistence in context at "'
+                . $event->getTransition()->getName() . '" transition!',
+            );
         }
 
         if (empty($context['persistence'])) {
             $context['persistence'] = [
-                new ChannelsPersistence,
-                new ListenersPersistence,
-                new AssociationsPersistence,
+                new ChannelsPersistence(),
+                new ListenersPersistence(),
+                new AssociationsPersistence(),
             ];
         }
 
@@ -232,7 +252,8 @@ class Conveyor
 
     /**
      * @param array<ActionInterface> $actions
-     * @return $this
+     * @return static
+     * @throws Exception
      */
     public function addActions(array $actions = []): static
     {
@@ -246,20 +267,22 @@ class Conveyor
 
     /**
      * @param EnterEvent $event
-     * @return $this
+     * @return static
      * @throws Exception
      */
     public function handleAddActions(EnterEvent $event): static
     {
-        /** @var array $context */
+        /** @var array<array-key, mixed> $context */
         $context = $event->getContext();
 
         /** @var MessageRouter $messageRouter */
         $messageRouter = $event->getSubject();
 
         if (!isset($context['actions'])) {
-            dd('test', debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS,));
-            throw new Exception('Missing actions in context at "' . $event->getTransition()->getName() . '" transition!');
+            throw new Exception(
+                'Missing actions in context at "'
+                . $event->getTransition()->getName() . '" transition!',
+            );
         }
 
         foreach ($context['actions'] as $action) {
@@ -274,7 +297,7 @@ class Conveyor
     /**
      * @param string $actionName
      * @param callable $middleware
-     * @return $this
+     * @return static
      */
     public function addMiddlewareToAction(string $actionName, callable $middleware): static
     {
@@ -289,22 +312,28 @@ class Conveyor
 
     /**
      * @param EnterEvent $event
-     * @return $this
+     * @return static
      */
     public function handleAddMiddlewareToAction(EnterEvent $event): static
     {
-        /** @var array $context */
+        /** @var array<array-key, mixed> $context */
         $context = $event->getContext();
 
         /** @var MessageRouter $messageRouter */
         $messageRouter = $event->getSubject();
 
         if (!isset($context['actionName'])) {
-            throw new Exception('Missing action name in context at "' . $event->getTransition()->getName() . '" transition!');
+            throw new Exception(
+                'Missing action name in context at "'
+                . $event->getTransition()->getName() . '" transition!',
+            );
         }
 
         if (!isset($context['middleware'])) {
-            throw new Exception('Missing middleware in context at "' . $event->getTransition()->getName() . '" transition!');
+            throw new Exception(
+                'Missing middleware in context at "'
+                . $event->getTransition()->getName() . '" transition!',
+            );
         }
 
         $messageRouter->actionManager->middleware($context['actionName'], $context['middleware']);
@@ -343,7 +372,7 @@ class Conveyor
      */
     public function handlePrepareAction(EnterEvent $event): static
     {
-        /** @var array $context */
+        /** @var array<array-key, mixed> $context */
         $context = $event->getContext();
 
         /** @var MessageRouter $messageRouter */
@@ -440,7 +469,7 @@ class Conveyor
     }
 
     /**
-     * @return mixed
+     * @return static
      *
      * @throws Exception
      */

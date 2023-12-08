@@ -10,6 +10,10 @@ use Symfony\Component\Workflow\Workflow;
 
 class RouterWorkflow
 {
+    /**
+     * @param array<string, callable> $listeners
+     * @return Workflow
+     */
     public static function newWorkflow(array $listeners = []): Workflow
     {
         $dispatcher = new EventDispatcher();

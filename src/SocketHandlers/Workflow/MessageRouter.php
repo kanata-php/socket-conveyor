@@ -34,7 +34,7 @@ class MessageRouter
 
     /**
      * This is the incoming message parsed.
-     * @var array $data
+     * @var array<array-key, mixed> $data
      */
     public array $data = [];
 
@@ -100,7 +100,7 @@ class MessageRouter
      *
      * @return void
      */
-    public function closeConnections()
+    public function closeConnections(): void
     {
         if (
             !isset($this->server->connections)
@@ -109,11 +109,7 @@ class MessageRouter
             return;
         }
 
-        if (null !== $this->channelPersistence) {
-            $registeredConnections = $this->channelPersistence->getAllConnections();
-        } else {
-            return;
-        }
+        $registeredConnections = $this->channelPersistence->getAllConnections();
 
         $existingConnections = [];
         foreach ($this->server->connections as $connection) {
@@ -128,9 +124,7 @@ class MessageRouter
         );
 
         foreach ($closedConnections as $connection) {
-            if (null !== $this->channelPersistence) {
-                $this->channelPersistence->disconnect($connection);
-            }
+            $this->channelPersistence->disconnect($connection);
         }
     }
 

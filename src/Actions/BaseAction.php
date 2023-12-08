@@ -7,7 +7,7 @@ use InvalidArgumentException;
 
 class BaseAction extends AbstractAction
 {
-    const NAME = 'base-action';
+    public const NAME = 'base-action';
 
     protected string $name = self::NAME;
 

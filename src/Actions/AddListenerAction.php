@@ -8,7 +8,7 @@ use InvalidArgumentException;
 
 class AddListenerAction extends AbstractAction
 {
-    const NAME = 'add-listener';
+    public const NAME = 'add-listener';
 
     protected string $name = self::NAME;
 
@@ -19,22 +19,20 @@ class AddListenerAction extends AbstractAction
         }
     }
 
-    public function execute(array $data): mixed
+    /**
+     * @return null
+     * @throws Exception
+     */
+    public function execute(array $data): null
     {
+        // @throws Exception
         $this->validateData($data);
-
-
-        if (null === $this->fd) {
-            throw new Exception('FD not specified!');
-        }
 
         if (null === $this->listenerPersistence) {
             throw new Exception('Persistence not set!');
         }
 
-        if (null !== $this->listenerPersistence) {
-            $this->listenerPersistence->listen(fd: $this->fd, action: $data['listen']);
-        }
+        $this->listenerPersistence->listen(fd: $this->fd, action: $data['listen']);
 
         return null;
     }

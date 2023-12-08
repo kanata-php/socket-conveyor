@@ -7,7 +7,7 @@ use Exception;
 
 class ChannelDisconnectAction extends AbstractAction
 {
-    const NAME = 'channel-disconnect';
+    public const NAME = 'channel-disconnect';
 
     protected string $name = self::NAME;
 
@@ -16,13 +16,13 @@ class ChannelDisconnectAction extends AbstractAction
         return;
     }
 
+    /**
+     * @throws Exception
+     */
     public function execute(array $data): mixed
     {
+        // @throws Exception
         $this->validateData($data);
-
-        if (null === $this->fd) {
-            throw new Exception('FD not specified!');
-        }
 
         if (null !== $this->channelPersistence) {
             $this->channelPersistence->disconnect($this->fd);

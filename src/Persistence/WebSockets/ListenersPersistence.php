@@ -18,11 +18,15 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
                 'fd' => $fd,
                 'action' => $action,
             ]);
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
     }
 
+    /**
+     * @param int $fd
+     * @return array<array-key, array{id:int, fd:int, action:string}>|null
+     */
     public function getListener(int $fd): ?array
     {
         $listener = WsListener::where('fd', '=', $fd)->get()->toArray();
@@ -30,13 +34,13 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
     }
 
     /**
-     * @return array Format: [fd => [listener1, listener2, ...]]
+     * @return array<int, array<array-key, string>> Format: [fd => [listener1, listener2, ...]]
      */
     public function getAllListeners(): array
     {
         try {
             $listeners = WsListener::all()->toArray();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             return [];
         }
 
@@ -65,7 +69,7 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
                 ->where('action', '=', $action)
                 ->first()
                 ?->delete();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
 
@@ -78,7 +82,7 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
             return WsListener::where('fd', '=', $fd)
                 ->first()
                 ?->delete();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
 
@@ -89,7 +93,7 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
     {
         try {
             return WsListener::all()->delete();
-        } catch (Exception|Error $e) {
+        } catch (Exception | Error $e) {
             // --
         }
 

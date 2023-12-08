@@ -9,8 +9,9 @@ interface MiddlewareInterface
 {
     /**
      * @param mixed $payload
+     * @return mixed
      *
      * @throws Exception
      */
-    public function __invoke($payload);
+    public function __invoke(mixed $payload): mixed;
 }

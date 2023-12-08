@@ -4,8 +4,23 @@ namespace Conveyor\Persistence\DTO;
 
 use ArrayAccess;
 
+/**
+ * @implements ArrayAccess<array-key, mixed>
+ */
 class DatabaseConnectionDTO implements ArrayAccess
 {
+    /**
+     * @param string $driver
+     * @param string $host
+     * @param string $database
+     * @param int|null $port
+     * @param string|null $username
+     * @param string|null $password
+     * @param string $charset
+     * @param string $collation
+     * @param string $prefix
+     * @param array<array-key, mixed> $options
+     */
     public function __construct(
         public string $driver,
         public string $host,
@@ -17,8 +32,13 @@ class DatabaseConnectionDTO implements ArrayAccess
         public string $collation = 'utf8_unicode_ci',
         public string $prefix = '',
         public array $options = [],
-    ) {}
+    ) {
+    }
 
+    /**
+     * @param array<array-key, mixed> $data
+     * @return self
+     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -33,6 +53,9 @@ class DatabaseConnectionDTO implements ArrayAccess
         );
     }
 
+    /**
+     * @return array<array-key, mixed>
+     */
     public function toArray(): array
     {
         return [

@@ -8,42 +8,43 @@ use InvalidArgumentException;
 
 class AssocUserToFdAction extends AbstractAction
 {
-    const NAME = 'assoc-user-to-fd-action';
+    public const NAME = 'assoc-user-to-fd-action';
 
     protected string $name = self::NAME;
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      *
-     * @return array
+     * @return null
      *
      * @throws InvalidArgumentException
      * @throws Exception
      */
-    public function execute(array $data): mixed
+    public function execute(array $data): null
     {
         $this->connectUserToFd($data);
         return null;
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     * @return void
+     * @throws Exception
+     */
     public function connectUserToFd(array $data): void
     {
-        if (null === $this->fd) {
-            throw new Exception('FD not specified!');
-        }
-
         if (null !== $this->userAssocPersistence) {
             $this->userAssocPersistence->assoc($this->fd, $data['userId']);
         }
     }
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @return void
      *
      * @throws InvalidArgumentException
      */
-    public function validateData(array $data) : void
+    public function validateData(array $data): void
     {
         if (!isset($data['userId'])) {
             throw new InvalidArgumentException('The userId is required to associate connection to team!');

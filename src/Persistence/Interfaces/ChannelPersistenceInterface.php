@@ -24,7 +24,7 @@ interface ChannelPersistenceInterface extends GenericPersistenceInterface
     /**
      * Get all fd-channel associations.
      *
-     * @return array Format: [fd => channel-name, ...]
+     * @return array<int, string> Format: [fd => channel][]
      */
     public function getAllConnections(): array;
 

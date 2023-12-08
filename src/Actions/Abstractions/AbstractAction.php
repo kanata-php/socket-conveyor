@@ -8,11 +8,19 @@ use Conveyor\Actions\Traits\HasPersistence;
 use Exception;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use InvalidArgumentException;
+use OpenSwoole\WebSocket\Server;
 
 abstract class AbstractAction implements ActionInterface
 {
-    use HasPersistence, HasListener, HasChannel;
+    use HasPersistence;
+    use HasListener;
+    use HasChannel;
 
+    protected string $name;
+
+    /**
+     * @var array <array-key, mixed>
+     */
     protected array $data;
 
     /** @var int Origin Fd */
@@ -20,12 +28,16 @@ abstract class AbstractAction implements ActionInterface
 
     protected mixed $server = null;
     protected ?string $channel = null;
+
+    /**
+     * @var array <array-key, int>
+     */
     protected array $listeners = [];
 
     protected bool $fresh = false;
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @return mixed
      * @throws Exception|InvalidArgumentException
      */
@@ -40,6 +52,10 @@ abstract class AbstractAction implements ActionInterface
         return $this->execute($data);
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     * @return void
+     */
     private function baseValidator(array $data): void
     {
         if (!isset($data['action'])) {
@@ -58,9 +74,9 @@ abstract class AbstractAction implements ActionInterface
     }
 
     /**
-     * @return mixed
+     * @return Server
      */
-    public function getServer()
+    public function getServer(): Server
     {
         return $this->server;
     }
@@ -89,7 +105,7 @@ abstract class AbstractAction implements ActionInterface
         return null;
     }
 
-    public function getName() : string
+    public function getName(): string
     {
         return $this->name;
     }
@@ -121,7 +137,7 @@ abstract class AbstractAction implements ActionInterface
             return;
         }
 
-        /** @var ?array $listeners */
+        /** @var ?array<array-key, int> $listeners */
         $listeners = $this->getListeners();
 
         if ($toChannel && null !== $this->channelPersistence) {
@@ -143,7 +159,7 @@ abstract class AbstractAction implements ActionInterface
      * Broadcast outside of channels.
      *
      * @param string $data
-     * @param array|null $listeners
+     * @param array<array-key, mixed>|null $listeners
      * @return void
      */
     protected function fanout(string $data, ?array $listeners = null)
@@ -174,7 +190,7 @@ abstract class AbstractAction implements ActionInterface
      * Broadcast.
      *
      * @param string $data
-     * @param array|null $listeners
+     * @param array<array-key, int>|null $listeners
      * @return void
      */
     protected function broadcast(string $data, ?array $listeners = null): void
@@ -193,7 +209,7 @@ abstract class AbstractAction implements ActionInterface
      * Broadcast when messaging to channel.
      *
      * @param string $data
-     * @param array|null $listeners
+     * @param array<array-key, int>|null $listeners
      * @return void
      */
     protected function broadcastToChannel(string $data, ?array $listeners = null): void
@@ -230,7 +246,7 @@ abstract class AbstractAction implements ActionInterface
      * Broadcast when broadcasting without channel.
      *
      * @param string $data
-     * @param array|null $listeners
+     * @param array<array-key, int>|null $listeners
      * @return void
      */
     protected function broadcastWithoutChannel(string $data, ?array $listeners = null): void
@@ -260,25 +276,23 @@ abstract class AbstractAction implements ActionInterface
         }
     }
 
-    public function push(int $fd, string $data)
+    public function push(int $fd, string $data): void
     {
         $this->server->push($fd, $data);
     }
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @return void
      *
      * @throws Exception
      */
-    abstract public function validateData(array $data) : void;
+    abstract public function validateData(array $data): void;
 
     /**
      * Execute action.
      *
-     * @param array $data
-     * @param int $fd
-     * @param mixed $server
+     * @param array<array-key, mixed> $data
      * @return mixed
      */
     abstract public function execute(array $data): mixed;

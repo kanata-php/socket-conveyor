@@ -12,7 +12,7 @@ class SampleMiddleware2 extends AbstractActionMiddleware
      *
      * @throws Exception
      */
-    public function __invoke($payload)
+    public function __invoke(mixed $payload): mixed
     {
         $data = $payload->getParsedData();
 
@@ -22,13 +22,13 @@ class SampleMiddleware2 extends AbstractActionMiddleware
     }
 
     /**
-     * @param array $data
+     * @param array<string, string> $data
      *
      * @return void
      *
      * @throws Exception
      */
-    private function checkToken(array $data) : void
+    private function checkToken(array $data): void
     {
         if ($data['second-verification'] !== 'valid') {
             throw new Exception('Invalid Second verification');

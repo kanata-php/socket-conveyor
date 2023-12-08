@@ -15,7 +15,7 @@ trait HasListener
     /**
      * Get listeners for the current listener persistence.
      *
-     * @return array|null Null if empty or not instantiated, array if listening.
+     * @return array<array-key, int>|null Null if empty or not instantiated, array if listening.
      */
     protected function getListeners(): ?array
     {

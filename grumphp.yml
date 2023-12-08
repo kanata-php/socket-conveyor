@@ -1,0 +1,13 @@
+grumphp:
+    fixer:
+        enabled: true
+        fix_by_default: true
+    tasks:
+        phpcs:
+            standard:
+                - PSR12
+        phpunit:
+            testsuite: "Unit"
+        shell:
+            scripts:
+                - [ "-c", "./vendor/bin/phpstan analyse" ]

@@ -8,22 +8,18 @@ use InvalidArgumentException;
 
 class ChannelConnectAction extends AbstractAction
 {
-    const NAME = 'channel-connect';
+    public const NAME = 'channel-connect';
 
     protected string $name = self::NAME;
 
     /**
-     * @param array $data
+     * @param array<array-key, mixed> $data
      * @return mixed
      * @throws Exception
      */
     public function execute(array $data): mixed
     {
         $this->validateData($data);
-
-        if (null === $this->fd) {
-            throw new Exception('FD not specified!');
-        }
 
         $channel = $data['channel'];
 
