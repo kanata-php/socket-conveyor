@@ -15,7 +15,7 @@ abstract class GenericPersistence implements GenericPersistenceInterface
         protected DatabaseConnectionDTO|array $databaseOptions = [
             'driver' => 'sqlite',
             'host' => '',
-            'database' => __DIR__ . '/../../../../../database/database.sqlite',
+            'database' => __DIR__ . '/../../../database.sqlite',
             'port' => null,
             'username' => null,
             'password' => null,

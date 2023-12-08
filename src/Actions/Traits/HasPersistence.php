@@ -26,15 +26,15 @@ trait HasPersistence
     {
         switch (true) {
             case is_a($persistence, ChannelPersistenceInterface::class):
-                $this->channelPersistence = $persistence->refresh($this->fresh);
+                $this->channelPersistence = $persistence;
                 break;
 
             case is_a($persistence, ListenerPersistenceInterface::class):
-                $this->listenerPersistence = $persistence->refresh($this->fresh);
+                $this->listenerPersistence = $persistence;
                 break;
 
             case is_a($persistence, UserAssocPersistenceInterface::class):
-                $this->userAssocPersistence = $persistence->refresh($this->fresh);
+                $this->userAssocPersistence = $persistence;
                 break;
         }
     }

@@ -8,9 +8,9 @@ use InvalidArgumentException;
 
 class AddListenerAction extends AbstractAction
 {
-    const ACTION_NAME = 'add-listener';
+    const NAME = 'add-listener';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
 
     public function validateData(array $data): void
     {

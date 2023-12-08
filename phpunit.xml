@@ -3,17 +3,8 @@
     bootstrap="vendor/autoload.php"
     printerClass="Codedungeon\PHPUnitPrettyResultPrinter\Printer">
   <testsuites>
-    <testsuite name="All">
-      <file>tests/SocketMessageRouterTest.php</file>
-      <file>tests/SocketChannelTest.php</file>
-      <file>tests/SocketBroadcastTest.php</file>
-      <file>tests/SocketListenerTest.php</file>
-      <file>tests/SocketAssocTest.php</file>
-      <file>tests/SocketFanoutTest.php</file>
-      <file>tests/SocketChannelPersistenceTest.php</file>
-      <file>tests/SocketUserAssocPersistenceTest.php</file>
-      <file>tests/SocketListenerPersistenceTest.php</file>
-      <file>tests/PipelineTest.php</file>
+    <testsuite name="Unit">
+      <file>tests/Unit/MessageRouterTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

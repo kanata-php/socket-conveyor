@@ -8,9 +8,9 @@ use InvalidArgumentException;
 
 class AssocUserToFdAction extends AbstractAction
 {
-    const ACTION_NAME = 'assoc-user-to-fd-action';
+    const NAME = 'assoc-user-to-fd-action';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
 
     /**
      * @param array $data

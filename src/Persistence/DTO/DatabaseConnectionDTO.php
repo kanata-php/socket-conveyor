@@ -16,6 +16,7 @@ class DatabaseConnectionDTO implements ArrayAccess
         public string $charset = 'utf8',
         public string $collation = 'utf8_unicode_ci',
         public string $prefix = '',
+        public array $options = [],
     ) {}
 
     public static function fromArray(array $data): self

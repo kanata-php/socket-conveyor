@@ -8,9 +8,9 @@ use Conveyor\Actions\Abstractions\AbstractAction;
 
 class FanoutAction extends AbstractAction
 {
-    const ACTION_NAME = 'fanout-action';
+    const NAME = 'fanout-action';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
     protected int $fd;
 
     /**

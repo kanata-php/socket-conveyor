@@ -8,9 +8,9 @@ use InvalidArgumentException;
 
 class ChannelConnectAction extends AbstractAction
 {
-    const ACTION_NAME = 'channel-connect';
+    const NAME = 'channel-connect';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
 
     /**
      * @param array $data

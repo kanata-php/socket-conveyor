@@ -7,9 +7,9 @@ use InvalidArgumentException;
 
 class BaseAction extends AbstractAction
 {
-    const ACTION_NAME = 'base-action';
+    const NAME = 'base-action';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
 
     public function validateData(array $data): void
     {

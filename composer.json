@@ -6,7 +6,9 @@
     "require": {
         "php": "^8.0",
         "league/pipeline": "^1.0",
-        "illuminate/database": "^10.22"
+        "illuminate/database": "^10.22",
+        "symfony/workflow": "^7.0",
+        "symfony/event-dispatcher": "^7.0"
     },
     "require-dev": {
         "symfony/var-dumper": "^6.1",

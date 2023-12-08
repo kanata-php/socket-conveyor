@@ -4,14 +4,13 @@ namespace Tests\Assets;
 
 use Exception;
 use InvalidArgumentException;
-use stdClass;
 use Conveyor\Actions\Abstractions\AbstractAction;
 
 class SampleAction extends  AbstractAction
 {
-    const ACTION_NAME = 'sample-action';
+    const NAME = 'sample-action';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
     protected int $fd;
 
     /**

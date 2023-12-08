@@ -3,10 +3,13 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Interfaces\ActionInterface;
+use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Exception;
+use InvalidArgumentException;
 use League\Pipeline\PipelineBuilder;
 use League\Pipeline\PipelineInterface;
+use OpenSwoole\WebSocket\Server;
 
 class ActionManager
 {
@@ -23,6 +26,8 @@ class ActionManager
         FanoutAction::class,
     ];
 
+    protected ?ActionInterface $currentAction = null;
+
     public function __construct(
         array $extraActions = [],
     ) {
@@ -36,6 +41,71 @@ class ActionManager
     {
         $manager = new static($actions);
         return $manager->startActions($fresh);
+    }
+
+    /**
+     * @internal This method also leave the $parsedData property set to the instance.
+     *
+     * @param array $data
+     * @param Server $server
+     * @param int $fd
+     * @param array<GenericPersistenceInterface> $persistence
+     * @return ActionInterface
+     *
+     * @throws InvalidArgumentException|InvalidActionException|Exception
+     */
+    public function ingestData(
+        array $data,
+        Server $server,
+        int $fd,
+        array $persistence = [],
+    ): ActionInterface {
+        // @throws InvalidArgumentException|InvalidActionException
+        $this->validateData($data);
+
+        $this->currentAction = $this->getAction($data['action']);
+        $this->currentAction->setFd($fd);
+        $this->currentAction->setServer($server);
+
+        foreach ($persistence as $persistenceInstance) {
+            $this->setActionPersistence($persistenceInstance);
+        }
+
+        return $this->currentAction;
+    }
+
+    public function getCurrentAction(): ?ActionInterface
+    {
+        return $this->currentAction;
+    }
+
+    public function setCurrentAction(?ActionInterface $currentAction): void
+    {
+        $this->currentAction = $currentAction;
+    }
+
+    /**
+     * @param ?array $data
+     *
+     * @return void
+     *
+     * @throws InvalidArgumentException|InvalidActionException
+     */
+    protected function validateData(?array $data): void
+    {
+        if (null === $data) {
+            return; // base action
+        }
+
+        if (!isset($data['action'])) {
+            throw new InvalidArgumentException('Missing action key in data!');
+        }
+
+        if (!$this->hasAction($data['action'])) {
+            throw new InvalidActionException(
+                'Invalid Action! This action (' . $data['action'] . ') is not set.'
+            );
+        }
     }
 
     /**
@@ -131,29 +201,32 @@ class ActionManager
      * Get an Action by name
      *
      * @param string $name
-     * @return ActionInterface|null
+     * @return ActionInterface
+     * @throws Exception
      */
-    public function getAction(string $name)
+    public function getAction(string $name): ActionInterface
     {
+        if (!isset($this->handlerMap[$name])) {
+            throw new Exception('Action not found: ' . $name);
+        }
+
         return $this->handlerMap[$name];
     }
 
     /**
      * Prepare pipeline based on the current prepared handlers.
      *
-     * @param string $action
-     *
      * @return PipelineInterface
      */
-    public function getPipeline(string $action) : PipelineInterface
+    public function getPipeline() : PipelineInterface
     {
         $pipelineBuilder = new PipelineBuilder;
 
-        if (!isset($this->pipelineMap[$action])) {
+        if (!isset($this->pipelineMap[$this->currentAction->getName()])) {
             return $pipelineBuilder->build();
         }
 
-        foreach ($this->pipelineMap[$action] as $middleware) {
+        foreach ($this->pipelineMap[$this->currentAction->getName()] as $middleware) {
             $pipelineBuilder->add($middleware);
         }
 
@@ -168,7 +241,7 @@ class ActionManager
      */
     protected function startActionWithMiddlewares(array $action): void
     {
-        if ($this->hasAction($action[0]::ACTION_NAME)) {
+        if ($this->hasAction($action[0]::NAME)) {
             throw new Exception('Action already added!');
         }
 
@@ -182,14 +255,13 @@ class ActionManager
     /**
      * Set persistence to the action instance.
      *
-     * @param ActionInterface $action
      * @param GenericPersistenceInterface $persistence
      * @return void
      */
-    public function setActionPersistence(ActionInterface $action, GenericPersistenceInterface $persistence): void
+    public function setActionPersistence(GenericPersistenceInterface $persistence): void
     {
-        if (method_exists($action, 'setPersistence')) {
-            $action->setPersistence($persistence);
+        if (method_exists($this->currentAction, 'setPersistence')) {
+            $this->currentAction->setPersistence($persistence);
         }
     }
 }

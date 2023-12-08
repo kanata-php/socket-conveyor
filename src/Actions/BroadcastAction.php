@@ -8,9 +8,9 @@ use Conveyor\Actions\Abstractions\AbstractAction;
 
 class BroadcastAction extends AbstractAction
 {
-    const ACTION_NAME = 'broadcast-action';
+    const NAME = 'broadcast-action';
 
-    protected string $name = self::ACTION_NAME;
+    protected string $name = self::NAME;
     protected int $fd;
 
     /**

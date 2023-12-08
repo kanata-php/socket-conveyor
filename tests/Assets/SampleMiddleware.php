@@ -2,6 +2,7 @@
 
 namespace Tests\Assets;
 
+use Conveyor\SocketHandlers\Workflow\MessageRouter;
 use Exception;
 use Conveyor\ActionMiddlewares\Abstractions\AbstractActionMiddleware;
 
@@ -14,9 +15,7 @@ class SampleMiddleware extends AbstractActionMiddleware
      */
     public function __invoke($payload)
     {
-        $data = $payload->getParsedData();
-
-        $this->checkToken($data);
+        $this->checkToken($payload);
 
         return $payload;
     }
