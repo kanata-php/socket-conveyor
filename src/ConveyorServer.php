@@ -6,9 +6,11 @@ use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\PreServerStartEvent;
 use Conveyor\Events\ServerStartedEvent;
 use Exception;
+use OpenSwoole\Constant;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use OpenSwoole\Server as OpenSwooleBaseServer;
 
 class ConveyorServer
 {
@@ -44,6 +46,8 @@ class ConveyorServer
      *
      * @param string $host
      * @param int $port
+     * @param int $mode
+     * @param int $ssl
      * @param int $workers
      * @param array<array-key, mixed> $serverOptions
      * @param array<array-key, mixed> $conveyorOptions
@@ -53,6 +57,8 @@ class ConveyorServer
     public function __construct(
         protected string $host = '0.0.0.0',
         protected int $port = 8989,
+        protected int $mode = OpenSwooleBaseServer::POOL_MODE,
+        protected int $ssl = Constant::SOCK_TCP,
         protected int $workers = 10,
         protected array $serverOptions = [],
         protected array $conveyorOptions = [],
@@ -80,6 +86,8 @@ class ConveyorServer
     /**
      * @param string $host
      * @param int $port
+     * @param int $mode
+     * @param int $ssl
      * @param int $workers
      * @param array<array-key, mixed> $serverOptions
      * @param array<array-key, mixed> $conveyorOptions
@@ -90,6 +98,8 @@ class ConveyorServer
     public static function start(
         string $host = '0.0.0.0',
         int $port = 8989,
+        int $mode = OpenSwooleBaseServer::POOL_MODE,
+        int $ssl = Constant::SOCK_TCP,
         int $workers = 10,
         array $serverOptions = [],
         array $conveyorOptions = [],
@@ -98,6 +108,8 @@ class ConveyorServer
         return new self(
             host: $host,
             port: $port,
+            mode: $mode,
+            ssl: $ssl,
             workers: $workers,
             serverOptions: $serverOptions,
             conveyorOptions: $conveyorOptions,
