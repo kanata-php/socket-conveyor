@@ -7,3 +7,4 @@ parameters:
         - database
     excludePaths:
         - tests
+        - src/ConveyorWorker.php

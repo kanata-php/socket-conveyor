@@ -38,8 +38,6 @@ abstract class GenericPersistence implements GenericPersistenceInterface
         if (is_array($this->databaseOptions)) {
             $this->databaseOptions = DatabaseConnectionDTO::fromArray($this->databaseOptions);
         }
-
-        $this->refresh(true);
     }
 
     abstract public function refresh(bool $fresh = false): static;

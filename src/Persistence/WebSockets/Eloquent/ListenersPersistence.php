@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\Persistence\WebSockets;
+namespace Conveyor\Persistence\WebSockets\Eloquent;
 
 use Conveyor\Models\WsListener;
 use Conveyor\Persistence\Abstracts\GenericPersistence;
@@ -29,7 +29,7 @@ class ListenersPersistence extends GenericPersistence implements ListenerPersist
      */
     public function getListener(int $fd): ?array
     {
-        $listener = WsListener::where('fd', '=', $fd)->get()->toArray();
+        $listener = WsListener::where('fd', '=', $fd)->get()?->toArray();
         return empty($listener) ? null : $listener;
     }
 

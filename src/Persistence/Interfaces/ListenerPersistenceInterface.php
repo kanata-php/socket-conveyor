@@ -17,14 +17,14 @@ interface ListenerPersistenceInterface extends GenericPersistenceInterface
      * Get the listener for a specific fd.
      *
      * @param int $fd
-     * @return array<array-key, array{id:int, fd:int, action:string}>|null
+     * @return array<array-key, string>|null
      */
     public function getListener(int $fd): ?array;
 
     /**
      * Retrieve a list of all fds with its listened actions.
      *
-     * @return array<int, array<array-key, string>> Format: [fd => [listener1, listener2, ...]]
+     * @return array<array-key, array<array-key, string>> Format: [fd => [listener1, listener2, ...]]
      */
     public function getAllListeners(): array;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\SocketHandlers\Workflow;
+namespace Conveyor\Workflow;
 
 use Conveyor\Actions\ActionManager;
 use Conveyor\Actions\BaseAction;
@@ -78,6 +78,21 @@ class MessageRouter
             case is_a($persistence, UserAssocPersistenceInterface::class):
                 $this->userAssocPersistence = $persistence;
                 break;
+        }
+    }
+
+    public function refreshPersistence(): void
+    {
+        if (method_exists($this->channelPersistence, 'destroyTable')) {
+            $this->channelPersistence->destroyTable();
+        }
+
+        if (method_exists($this->listenerPersistence, 'destroyTable')) {
+            $this->listenerPersistence->destroyTable();
+        }
+
+        if (method_exists($this->userAssocPersistence, 'destroyTable')) {
+            $this->userAssocPersistence->destroyTable();
         }
     }
 

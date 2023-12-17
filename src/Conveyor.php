@@ -1,17 +1,20 @@
 <?php
 
-namespace Conveyor\SocketHandlers;
+namespace Conveyor;
 
 use Conveyor\Actions\ActionManager;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Actions\Traits\HasPersistence;
+use Conveyor\Config\ConveyorOptions;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
-use Conveyor\Persistence\WebSockets\AssociationsPersistence;
-use Conveyor\Persistence\WebSockets\ChannelsPersistence;
-use Conveyor\Persistence\WebSockets\ListenersPersistence;
-use Conveyor\SocketHandlers\Workflow\MessageRouter;
-use Conveyor\SocketHandlers\Workflow\RouterWorkflow;
+use Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
+use Conveyor\Persistence\WebSockets\Table\SocketListenerPersistenceTable;
+use Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
+use Conveyor\Traits\HasProfiling;
+use Conveyor\Traits\HasState;
+use Conveyor\Workflow\MessageRouter;
+use Conveyor\Workflow\RouterWorkflow;
 use Exception;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\Workflow\Event\EnterEvent;
@@ -20,16 +23,24 @@ use Symfony\Component\Workflow\Workflow;
 class Conveyor
 {
     use HasPersistence;
+    use HasProfiling;
+    use HasState;
 
     protected Workflow $workflow;
     protected MessageRouter $messageRouter;
+    protected ConveyorOptions $options;
 
     /**
+     * @param array<array-key, mixed> $options
      * @param bool $fresh
      * @throws Exception
      */
-    public function __construct(protected bool $fresh = false)
-    {
+    public function __construct(
+        array $options = [],
+        protected bool $fresh = false,
+    ) {
+        $this->options = ConveyorOptions::fromArray($options);
+
         $this->workflow = RouterWorkflow::newWorkflow([
             // workflow.[workflow name].enter.[place name]
             'workflow.conveyor-workflow.enter.server_set' => [$this, 'handleSetServer'],
@@ -39,22 +50,40 @@ class Conveyor
             'workflow.conveyor-workflow.enter.middleware_added' => [$this, 'handleAddMiddlewareToAction'],
             'workflow.conveyor-workflow.enter.action_prepared' => [$this, 'handlePrepareAction'],
             'workflow.conveyor-workflow.enter.pipeline_prepared' => [$this, 'handlePreparePipeline'],
-            'workflow.conveyor-workflow.enter.connections_cleared' => [$this, 'handleClearConnections'],
             'workflow.conveyor-workflow.enter.message_processed' => [$this, 'handleProcessMessage'],
-            'workflow.conveyor-workflow.enter.data_cleared' => [$this, 'handleClearData'],
+            'workflow.conveyor-workflow.enter.finalized' => [$this, 'handleFinalize'],
         ]);
         $this->messageRouter = new MessageRouter();
         $this->workflow->getMarking($this->messageRouter);
+
+        if ($this->options->trackProfile) {
+            $this->setStartMemoryUsage();
+        }
     }
 
     /**
+     * @param array<array-key, mixed> $options
      * @param bool $fresh
      * @return Conveyor
      * @throws Exception
      */
-    public static function init(bool $fresh = false): Conveyor
+    public static function init(
+        array $options = [],
+        bool $fresh = false,
+    ): Conveyor {
+        return new self($options, $fresh);
+    }
+
+    /**
+     * @return array<GenericPersistenceInterface>
+     */
+    public static function defaultPersistence(): array
     {
-        return new self($fresh);
+        return [
+            new SocketChannelPersistenceTable(),
+            new SocketListenerPersistenceTable(),
+            new SocketUserAssocPersistenceTable(),
+        ];
     }
 
     /**
@@ -66,9 +95,13 @@ class Conveyor
      */
     public static function refresh(array $persistenceList = []): void
     {
+        $persistenceList = empty($persistenceList) ? self::defaultPersistence() : $persistenceList;
+
         foreach ($persistenceList as $persistence) {
             $persistence->refresh(true);
         }
+
+        self::startState();
     }
 
     public function getMessageRouter(): MessageRouter
@@ -126,6 +159,16 @@ class Conveyor
             transitionName: $transition,
             context: $context,
         );
+
+        return $this;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function closeConnections(): static
+    {
+        $this->messageRouter->closeConnections();
 
         return $this;
     }
@@ -230,11 +273,7 @@ class Conveyor
         }
 
         if (empty($context['persistence'])) {
-            $context['persistence'] = [
-                new ChannelsPersistence(),
-                new ListenersPersistence(),
-                new AssociationsPersistence(),
-            ];
+            $context['persistence'] = self::defaultPersistence();
         }
 
         foreach ($context['persistence'] as $item) {
@@ -360,8 +399,8 @@ class Conveyor
         );
 
         $this->applyTransition('prepare_pipeline'); // step 5
-        $this->applyTransition('clear_connections'); // step 6
-        $this->applyTransition('process_message'); // step 7
+        $this->closeConnections();
+        $this->applyTransition('process_message'); // step 6
 
         return $this;
     }
@@ -417,24 +456,7 @@ class Conveyor
     }
 
     // ----------------------------------
-    // Step 6 : clear connections
-    // ----------------------------------
-
-    /**
-     * @throws Exception
-     */
-    public function handleClearConnections(EnterEvent $event): static
-    {
-        /** @var MessageRouter $messageRouter */
-        $messageRouter = $event->getSubject();
-
-        $messageRouter->closeConnections();
-
-        return $this;
-    }
-
-    // ----------------------------------
-    // Step 7 : process message
+    // Step 6 : process message
     // ----------------------------------
 
     /**
@@ -455,13 +477,13 @@ class Conveyor
     }
 
     // ----------------------------------
-    // Step 8 : clear data
+    // Step 7 : clear data
     // ----------------------------------
 
-    public function clear(?callable $callback = null): static
+    public function finalize(?callable $callback = null): static
     {
         return $this->applyTransition(
-            transition: 'clear_data',
+            transition: 'finalize',
             context: [
                 'callback' => $callback,
             ],
@@ -473,18 +495,25 @@ class Conveyor
      *
      * @throws Exception
      */
-    public function handleClearData(EnterEvent $event): static
+    public function handleFinalize(EnterEvent $event): static
     {
         /** @var MessageRouter $messageRouter */
         $messageRouter = $event->getSubject();
 
         $callback = $event->getContext()['callback'] ?? null;
 
-        $messageRouter->data = [];
-        $messageRouter->actionManager->setCurrentAction(null);
+        $isProfiling = $this->options->trackProfile;
+
+        $messageRouter->closeConnections();
+
         if (is_callable($callback)) {
             $callback();
         }
+
+        if ($isProfiling) {
+            $this->printProfile();
+        }
+        unset($isProfiling);
 
         return $this;
     }

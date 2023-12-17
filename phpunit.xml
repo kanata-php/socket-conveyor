@@ -6,5 +6,8 @@
     <testsuite name="Unit">
       <file>tests/Unit/MessageRouterTest.php</file>
     </testsuite>
+    <testsuite name="Feature">
+      <file>tests/Feature/OpenSwooleSocketTest.php</file>
+    </testsuite>
   </testsuites>
 </phpunit>

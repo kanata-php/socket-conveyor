@@ -5,6 +5,6 @@ This package enables you to work with socket messages using routing strategy. Fo
 
 As an example of how to accomplish that with PHP, you can use the [OpenSwoole](https://openswoole.com/). You can find out more how to use WebSockets with OpenSwoole [here](https://www.youtube.com/watch?v=Vgw5Ibqc15k).
 
-Built for PHP8.0+.
+Built for PHP8.2+.
 
 See more at the [Documentation](https://socketconveyor.com).

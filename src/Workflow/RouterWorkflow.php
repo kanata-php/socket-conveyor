@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\SocketHandlers\Workflow;
+namespace Conveyor\Workflow;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Workflow\DefinitionBuilder;
@@ -30,9 +30,8 @@ class RouterWorkflow
                 'middleware_added',
                 'action_prepared',
                 'pipeline_prepared',
-                'connections_cleared',
                 'message_processed',
-                'data_cleared',
+                'finalized',
             ])
             ->addTransition(new Transition(
                 name: 'set_server',
@@ -133,19 +132,14 @@ class RouterWorkflow
                 tos: 'pipeline_prepared',
             ))
             ->addTransition(new Transition(
-                name: 'clear_connections',
-                froms: 'pipeline_prepared',
-                tos: 'connections_cleared',
-            ))
-            ->addTransition(new Transition(
                 name: 'process_message',
-                froms: 'connections_cleared',
+                froms: 'pipeline_prepared',
                 tos: 'message_processed',
             ))
             ->addTransition(new Transition(
-                name: 'clear_data',
+                name: 'finalize',
                 froms: 'message_processed',
-                tos: 'data_cleared',
+                tos: 'finalized',
             ))
             ->build();
 

@@ -8,9 +8,9 @@ use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\ChannelDisconnectAction;
 use Conveyor\Actions\FanoutAction;
-use Conveyor\Persistence\WebSockets\AssociationsPersistence;
-use Conveyor\Persistence\WebSockets\ChannelsPersistence;
-use Conveyor\SocketHandlers\Conveyor;
+use Conveyor\Conveyor;
+use Conveyor\Persistence\WebSockets\Eloquent\AssociationsPersistence;
+use Conveyor\Persistence\WebSockets\Eloquent\ChannelsPersistence;
 use Exception;
 use Mockery;
 use OpenSwoole\WebSocket\Server;
@@ -45,7 +45,7 @@ class MessageRouterTest extends TestCase
 
         $server = Mockery::mock(Server::class);
         $server->shouldReceive('push')
-            ->andReturnUsing(function($fd, $data) use ($expectedResponse) {
+            ->andReturnUsing(function ($fd, $data) use ($expectedResponse) {
                 $this->assertEquals($expectedResponse, $data);
                 return true;
             });
@@ -57,7 +57,7 @@ class MessageRouterTest extends TestCase
             ->fd($fd)
             ->persistence()
             ->run($message)
-            ->clear(function() use (&$clearVerification) {
+            ->finalize(function () use (&$clearVerification) {
                 $clearVerification = true;
             });
 
@@ -109,7 +109,7 @@ class MessageRouterTest extends TestCase
 
         $associationPersistence = Mockery::mock(AssociationsPersistence::class);
         $associationPersistence->shouldReceive('assoc')
-            ->andReturnUsing(function($fd, $userId) {
+            ->andReturnUsing(function ($fd, $userId) {
                 $this->assertEquals(1, $fd);
                 $this->assertEquals(2, $userId);
                 return true;
@@ -139,7 +139,7 @@ class MessageRouterTest extends TestCase
 
         $channelsPersistence = Mockery::mock(ChannelsPersistence::class);
         $channelsPersistence->shouldReceive('connect')
-            ->andReturnUsing(function($fd, $channel) use ($expectedChannel) {
+            ->andReturnUsing(function ($fd, $channel) use ($expectedChannel) {
                 $this->assertEquals(1, $fd);
                 $this->assertEquals($expectedChannel, $channel);
                 return true;
@@ -167,7 +167,7 @@ class MessageRouterTest extends TestCase
 
         $channelsPersistence = Mockery::mock(ChannelsPersistence::class);
         $channelsPersistence->shouldReceive('disconnect')
-            ->andReturnUsing(function($fd) {
+            ->andReturnUsing(function ($fd) {
                 $this->assertEquals(1, $fd);
                 return true;
             })
@@ -226,9 +226,9 @@ class MessageRouterTest extends TestCase
             ->server($server)
             ->fd($fd)
             ->persistence()
-            ->addActions([new SampleAction])
-            ->addMiddlewareToAction(SampleAction::NAME, new SampleMiddleware)
-            ->addMiddlewareToAction(SampleAction::NAME, new SampleMiddleware2)
+            ->addActions([new SampleAction()])
+            ->addMiddlewareToAction(SampleAction::NAME, new SampleMiddleware())
+            ->addMiddlewareToAction(SampleAction::NAME, new SampleMiddleware2())
             ->run(json_encode([
                 'action' => SampleAction::NAME,
                 'token'  => 'invalid-token',
@@ -244,7 +244,7 @@ class MessageRouterTest extends TestCase
 
         $server = Mockery::mock(Server::class);
         $server->shouldReceive('push')
-            ->andReturnUsing(function($fd, $data) use (&$expectedTrue, $expectedFd, $expectedMessage) {
+            ->andReturnUsing(function ($fd, $data) use (&$expectedTrue, $expectedFd, $expectedMessage) {
                 $this->assertEquals($expectedFd, $fd);
                 $this->assertEquals(json_encode([
                     'action' => BaseAction::NAME,

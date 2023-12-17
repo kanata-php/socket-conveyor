@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\Persistence\WebSockets;
+namespace Conveyor\Persistence\WebSockets\Eloquent;
 
 use Conveyor\Models\WsAssociation;
 use Conveyor\Persistence\Abstracts\GenericPersistence;

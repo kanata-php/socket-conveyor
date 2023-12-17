@@ -2,9 +2,8 @@
 
 namespace Tests\Assets;
 
-use Conveyor\SocketHandlers\Workflow\MessageRouter;
-use Exception;
 use Conveyor\ActionMiddlewares\Abstractions\AbstractActionMiddleware;
+use Exception;
 
 class SampleMiddleware extends AbstractActionMiddleware
 {
