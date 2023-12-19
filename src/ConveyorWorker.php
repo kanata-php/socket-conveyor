@@ -5,6 +5,7 @@ namespace Conveyor;
 use Conveyor\Events\AfterMessageHandledEvent;
 use Conveyor\Events\BeforeMessageHandledEvent;
 use Conveyor\Events\MessageReceivedEvent;
+use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use OpenSwoole\Process;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -19,11 +20,19 @@ class ConveyorWorker
      */
     protected array $processes = [];
 
+    /**
+     * @param Server $server
+     * @param int $workers
+     * @param array $conveyorOptions
+     * @param EventDispatcher|null $eventDispatcher
+     * @param array<array-key, GenericPersistenceInterface> $persistence
+     */
     public function __construct(
         protected Server $server,
         protected int $workers,
         protected array $conveyorOptions,
         protected ?EventDispatcher $eventDispatcher = null,
+        protected array $persistence = [],
     ) {
         $this->prepareWorkers();
         $this->addListeners();
@@ -92,7 +101,7 @@ class ConveyorWorker
             Conveyor::init()
                 ->server($this->server)
                 ->fd($fd)
-                ->persistence()
+                ->persistence($this->persistence)
                 ->closeConnections()
                 ->run($data)
                 ->finalize(fn() => $process->write('done!'));

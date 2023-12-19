@@ -5,6 +5,7 @@ namespace Conveyor;
 use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\PreServerStartEvent;
 use Conveyor\Events\ServerStartedEvent;
+use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Exception;
 use OpenSwoole\Constant;
 use OpenSwoole\WebSocket\Frame;
@@ -52,6 +53,7 @@ class ConveyorServer
      * @param array<array-key, mixed> $serverOptions
      * @param array<array-key, mixed> $conveyorOptions
      * @param array<array-key, callable> $eventListeners
+     * @param array<array-key, GenericPersistenceInterface> $persistence
      * @throws Exception
      */
     public function __construct(
@@ -63,12 +65,17 @@ class ConveyorServer
         protected array $serverOptions = [],
         protected array $conveyorOptions = [],
         protected array $eventListeners = [],
+        protected array $persistence = [],
     ) {
         $this->conveyorOptions = array_merge([
             self::TIMER_TICK => false,
         ], $this->conveyorOptions);
 
-        Conveyor::refresh();
+        $this->persistence = array_merge(
+            $persistence,
+            Conveyor::defaultPersistence(),
+        );
+        Conveyor::refresh($this->persistence);
 
         $this->startListener();
 
@@ -92,6 +99,7 @@ class ConveyorServer
      * @param array<array-key, mixed> $serverOptions
      * @param array<array-key, mixed> $conveyorOptions
      * @param array<array-key, callable> $eventListeners
+     * @param array<array-key, GenericPersistenceInterface> $persistence
      * @return ConveyorServer
      * @throws Exception
      */
@@ -104,6 +112,7 @@ class ConveyorServer
         array $serverOptions = [],
         array $conveyorOptions = [],
         array $eventListeners = [],
+        array $persistence = [],
     ): ConveyorServer {
         return new self(
             host: $host,
@@ -114,6 +123,7 @@ class ConveyorServer
             serverOptions: $serverOptions,
             conveyorOptions: $conveyorOptions,
             eventListeners: $eventListeners,
+            persistence: $persistence,
         );
     }
 
@@ -165,6 +175,7 @@ class ConveyorServer
             workers: $this->workers,
             conveyorOptions: $this->conveyorOptions,
             eventDispatcher: $this->eventDispatcher,
+            persistence: $this->persistence,
         );
     }
 

@@ -80,9 +80,9 @@ class Conveyor
     public static function defaultPersistence(): array
     {
         return [
-            new SocketChannelPersistenceTable(),
-            new SocketListenerPersistenceTable(),
-            new SocketUserAssocPersistenceTable(),
+            'channels' => new SocketChannelPersistenceTable(),
+            'listeners' => new SocketListenerPersistenceTable(),
+            'user-associations' => new SocketUserAssocPersistenceTable(),
         ];
     }
 
