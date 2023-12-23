@@ -145,7 +145,7 @@ class ConveyorServer
 
     private function initializeServer(): void
     {
-        $this->server = new Server($this->host, $this->port);
+        $this->server = new Server($this->host, $this->port, $this->mode, $this->ssl);
 
         $this->server->set(array_merge([
             'worker_num' => 5,
