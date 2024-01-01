@@ -2,18 +2,22 @@
 
 namespace Tests\Feature;
 
+use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Conveyor;
 use Conveyor\ConveyorServer;
+use Conveyor\ConveyorWorker;
 use Exception;
 use JetBrains\PhpStorm\NoReturn;
 use Kanata\ConveyorServerClient\Client;
 use OpenSwoole\Atomic;
 use OpenSwoole\Process;
+use Tests\Assets\SampleAction;
 use Tests\TestCase;
+use OpenSwoole\Table;
 
 class OpenSwooleSocketTest extends TestCase
 {
-    protected int $port = 8989;
+    public int $port = 8989;
 
     protected function getServerProcesses(): false|string
     {
@@ -41,12 +45,22 @@ class OpenSwooleSocketTest extends TestCase
         }
     }
 
-    protected function startServer(): int
+    /**
+     * @param array<array-key, ActionInterface> $actions
+     * @return int
+     * @throws Exception
+     */
+    protected function startServer(array $actions = []): int
     {
         Conveyor::refresh();
 
-        $httpServer = new Process(function (Process $worker) {
-            ConveyorServer::start(port: $this->port);
+        $httpServer = new Process(function (Process $worker) use ($actions) {
+            ConveyorServer::start(
+                port: $this->port,
+                conveyorOptions: [
+                    ConveyorWorker::ACTIONS => $actions,
+                ],
+            );
         });
 
         $pid = $httpServer->start();
@@ -128,6 +142,52 @@ class OpenSwooleSocketTest extends TestCase
         foreach ($workers as $pid => $worker) {
             Process::kill($pid);
         }
+        Process::kill($serverPid);
+
+        $this->assertEquals($expectedTotal, $counter->get());
+    }
+
+    /**
+     * @throws Exception
+     */
+    #[NoReturn]
+    public function testCanAddCustomActionThroughServer()
+    {
+        $serverPid = $this->startServer([new SampleAction()]);
+
+        $expectedTotal = 1;
+        $counter = new Atomic(0);
+
+        $this->assertEquals(0, $counter->get());
+
+        $process = new Process(function (Process $worker) use ($counter) {
+            $client = new Client([
+                'port' => $this->port,
+                'onReadyCallback' => function (Client $currentClient) {
+                    sleep(1);
+                    $currentClient->sendRaw(json_encode([
+                        'action' => SampleAction::NAME,
+                        'data' => 'done',
+                    ]));
+                },
+                'onMessageCallback' => function (
+                    Client $currentClient,
+                    string $message,
+                ) use ($counter) {
+                    $parsedData = json_decode($message, true);
+                    $counter->add(1);
+                    if ($parsedData['data'] === 'done') {
+                        $counter->add(1);
+                    }
+                    $counter->wakeup();
+                },
+            ]);
+            $client->connect();
+        });
+        $pid = $process->start();
+
+        $counter->wait(2);
+        Process::kill($pid);
         Process::kill($serverPid);
 
         $this->assertEquals($expectedTotal, $counter->get());

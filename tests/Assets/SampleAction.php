@@ -6,9 +6,9 @@ use Exception;
 use InvalidArgumentException;
 use Conveyor\Actions\Abstractions\AbstractAction;
 
-class SampleAction extends  AbstractAction
+class SampleAction extends AbstractAction
 {
-    const NAME = 'sample-action';
+    public const NAME = 'sample-action';
 
     protected string $name = self::NAME;
     protected int $fd;
@@ -20,7 +20,7 @@ class SampleAction extends  AbstractAction
      */
     public function execute(array $data): mixed
     {
-        $this->send(json_encode($data), $this->fd);
+        $this->send(json_encode($data['data']), $this->fd);
         return true;
     }
 
@@ -30,7 +30,7 @@ class SampleAction extends  AbstractAction
      *
      * @throws InvalidArgumentException
      */
-    public function validateData(array $data) : void
+    public function validateData(array $data): void
     {
         if (!isset($data['action'])) {
             throw new InvalidArgumentException('SampleAction required \'action\' field to be created!');

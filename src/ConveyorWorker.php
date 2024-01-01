@@ -2,6 +2,7 @@
 
 namespace Conveyor;
 
+use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Events\AfterMessageHandledEvent;
 use Conveyor\Events\BeforeMessageHandledEvent;
 use Conveyor\Events\MessageReceivedEvent;
@@ -9,11 +10,20 @@ use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use OpenSwoole\Process;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Tests\Assets\SampleAction;
 
 class ConveyorWorker
 {
     public const QUEUE_KEY = 'queue_key';
     public const QUEUE_MODE = 'queue_mode';
+
+    /**
+     * This is a possible field at the $conveyorOptions property.
+     * This option expected output is <array-key, ActionInterface>.
+     *
+     * @var string
+     */
+    public const ACTIONS = 'actions';
 
     /**
      * @var array<array-key, Process>
@@ -23,7 +33,7 @@ class ConveyorWorker
     /**
      * @param Server $server
      * @param int $workers
-     * @param array $conveyorOptions
+     * @param array<array-key, mixed> $conveyorOptions
      * @param EventDispatcher|null $eventDispatcher
      * @param array<array-key, GenericPersistenceInterface> $persistence
      */
@@ -102,6 +112,7 @@ class ConveyorWorker
                 ->server($this->server)
                 ->fd($fd)
                 ->persistence($this->persistence)
+                ->addActions($this->conveyorOptions[self::ACTIONS] ?? [])
                 ->closeConnections()
                 ->run($data)
                 ->finalize(fn() => $process->write('done!'));
