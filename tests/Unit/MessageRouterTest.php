@@ -115,6 +115,11 @@ class MessageRouterTest extends TestCase
                 return true;
             })
             ->times(1);
+        $associationPersistence->shouldReceive('getAssoc')
+            ->andReturnUsing(function () {
+                return 1;
+            })
+            ->times(1);
 
         Conveyor::init()
             ->server($server)

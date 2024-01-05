@@ -14,9 +14,7 @@ class SampleMiddleware2 extends AbstractActionMiddleware
      */
     public function __invoke(mixed $payload): mixed
     {
-        $data = $payload->getParsedData();
-
-        $this->checkToken($data);
+        $this->checkToken($payload['data']);
 
         return $payload;
     }

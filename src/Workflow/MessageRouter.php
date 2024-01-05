@@ -157,4 +157,9 @@ class MessageRouter
 
         return $action($this->data);
     }
+
+    public function getCurrentUser(): ?int
+    {
+        return $this->userAssocPersistence?->getAssoc($this->fd);
+    }
 }

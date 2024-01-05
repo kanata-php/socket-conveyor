@@ -470,7 +470,10 @@ class Conveyor
         $messageRouter = $event->getSubject();
 
         // @throws Exception
-        $messageRouter->pipeline->process($messageRouter->data);
+        $messageRouter->pipeline->process([
+            'data' => $messageRouter->data,
+            'user' => $messageRouter->getCurrentUser(),
+        ]);
 
         // @throws Exception
         return $messageRouter->processMessage();
