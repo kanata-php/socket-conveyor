@@ -149,8 +149,6 @@ class ConveyorServer
 
         $this->server->set(array_merge([
             'worker_num' => 5,
-            'heartbeat_idle_time' => 10,
-            'heartbeat_check_interval' => 10,
             'websocket_subprotocol' => 'socketconveyor.com',
         ], $this->serverOptions));
     }
