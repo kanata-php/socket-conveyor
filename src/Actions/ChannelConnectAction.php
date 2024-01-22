@@ -27,6 +27,8 @@ class ChannelConnectAction extends AbstractAction
             $this->channelPersistence->connect($this->fd, $channel);
         }
 
+        $this->broadcastPresence();
+
         return null;
     }
 
@@ -35,5 +37,33 @@ class ChannelConnectAction extends AbstractAction
         if (!isset($data['channel'])) {
             throw new InvalidArgumentException('Channel connection must specify "channel"!');
         }
+    }
+
+    public function broadcastPresence(): void
+    {
+        $fds = array_keys(array_filter(
+            $this->channelPersistence?->getAllConnections() ?? [],
+            fn($c) => $c === $this->getCurrentChannel(),
+        ));
+
+        $userIds = array_filter(
+            $this->userAssocPersistence?->getAllAssocs() ?? [],
+            fn($fd) => in_array($fd, $fds),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        $data = json_encode([
+            'action' => self::NAME,
+            'data' => json_encode([
+                'fd' => $this->fd,
+                'event' => 'channel-presence',
+                'channel' => $this->getCurrentChannel(),
+                'fds' => $fds,
+                'userIds' => $userIds,
+            ]),
+        ]);
+
+        $this->broadcastToChannel($data);
+        $this->server->push($this->fd, $data);
     }
 }

@@ -143,6 +143,7 @@ class MessageRouterTest extends TestCase
         $server->shouldReceive('push')->times(0);
 
         $channelsPersistence = Mockery::mock(ChannelsPersistence::class);
+        $channelsPersistence->shouldReceive('getAllConnections')->andReturn([]);
         $channelsPersistence->shouldReceive('connect')
             ->andReturnUsing(function ($fd, $channel) use ($expectedChannel) {
                 $this->assertEquals(1, $fd);
@@ -283,6 +284,8 @@ class MessageRouterTest extends TestCase
         Conveyor::refresh([$channelPersistence]);
 
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturn(true);
+        $server->shouldReceive('push');
 
         Conveyor::init()
             ->server($server)

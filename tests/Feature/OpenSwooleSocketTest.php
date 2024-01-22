@@ -120,7 +120,11 @@ class OpenSwooleSocketTest extends TestCase
                         $counter,
                         $expectedTotal,
                     ) {
-                        $counter->add(1);
+                        $parsedData = json_decode($message, true);
+                        if (substr($parsedData['data'], 0, 5) === 'test-') {
+                            $counter->add(1);
+                        }
+
                         if ($counter->get() >= $expectedTotal) {
                             $counter->wakeup();
                         }
