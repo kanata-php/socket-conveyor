@@ -30,7 +30,7 @@ class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
 
     public function getAssoc(int $fd): ?int
     {
-        $result = $this->table->get((string) $fd);
+        $result = $this->table->get((string) $fd, 'user_id');
 
         if (!$result) {
             return null;

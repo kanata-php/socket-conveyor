@@ -58,6 +58,10 @@ class ConveyorWorker
 
     public function push(string $data): void
     {
+        if (empty($data)) {
+            return;
+        }
+
         $this->getProcess()->push($data);
     }
 
