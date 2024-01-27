@@ -471,6 +471,8 @@ class Conveyor
 
         // @throws Exception
         $messageRouter->pipeline->process([
+            'server' => $messageRouter->server,
+            'fd' => $messageRouter->fd,
             'data' => $messageRouter->data,
             'user' => $messageRouter->getCurrentUser(),
         ]);
