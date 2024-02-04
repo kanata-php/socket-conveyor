@@ -27,7 +27,9 @@ class ChannelConnectAction extends AbstractAction
             $this->channelPersistence->connect($this->fd, $channel);
         }
 
-        $this->broadcastPresence();
+        if ($this->conveyorOptions->usePresence) {
+            $this->broadcastPresence();
+        }
 
         return null;
     }

@@ -5,6 +5,7 @@ namespace Conveyor\Actions\Abstractions;
 use Conveyor\Actions\Traits\HasChannel;
 use Conveyor\Actions\Traits\HasListener;
 use Conveyor\Actions\Traits\HasPersistence;
+use Conveyor\Config\ConveyorOptions;
 use Exception;
 use Conveyor\Actions\Interfaces\ActionInterface;
 use InvalidArgumentException;
@@ -22,6 +23,8 @@ abstract class AbstractAction implements ActionInterface
      * @var array <array-key, mixed>
      */
     protected array $data;
+
+    protected ConveyorOptions $conveyorOptions;
 
     /** @var int Origin Fd */
     protected int $fd;
@@ -84,6 +87,11 @@ abstract class AbstractAction implements ActionInterface
     public function setFd(int $fd): void
     {
         $this->fd = $fd;
+    }
+
+    public function setConveyorOptions(ConveyorOptions $conveyorOptions): void
+    {
+        $this->conveyorOptions = $conveyorOptions;
     }
 
     /**

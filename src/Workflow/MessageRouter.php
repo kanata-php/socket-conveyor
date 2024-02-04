@@ -4,6 +4,8 @@ namespace Conveyor\Workflow;
 
 use Conveyor\Actions\ActionManager;
 use Conveyor\Actions\BaseAction;
+use Conveyor\Config\ConveyorOptions;
+use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\Persistence\Interfaces\ListenerPersistenceInterface;
@@ -47,10 +49,11 @@ class MessageRouter
     /**
      * @throws Exception
      */
-    public function __construct()
-    {
+    public function __construct(
+        protected ConveyorOptions $options
+    ) {
         // @throws Exception
-        $this->actionManager = ActionManager::make();
+        $this->actionManager = ActionManager::make($options);
     }
 
     public function setState(string $state): static
@@ -96,6 +99,11 @@ class MessageRouter
         }
     }
 
+    /**
+     * @param string $data
+     * @return void
+     * @throws InvalidActionException
+     */
     public function ingestData(string $data): void
     {
         $parsedData = json_decode($data, true);
@@ -108,6 +116,17 @@ class MessageRouter
         }
 
         $this->data = $parsedData;
+
+        $this->actionManager->ingestData(
+            data: $this->data,
+            server: $this->server,
+            fd: $this->fd,
+            persistence: array_filter([
+                $this->channelPersistence,
+                $this->listenerPersistence,
+                $this->userAssocPersistence,
+            ]),
+        );
     }
 
     /**
@@ -143,11 +162,39 @@ class MessageRouter
         }
     }
 
+    public function getCurrentUser(): ?int
+    {
+        return $this->userAssocPersistence?->getAssoc($this->fd);
+    }
+
+    public function preparePipeline(): void
+    {
+        $this->pipeline = $this->actionManager->getPipeline();
+    }
+
     /**
      * @return mixed
      * @throws Exception
      */
-    public function processMessage(): mixed
+    public function processPipeline(): mixed
+    {
+        // @throws Exception
+        $this->pipeline->process([
+            'server' => $this->server,
+            'fd' => $this->fd,
+            'data' => $this->data,
+            'user' => $this->getCurrentUser(),
+        ]);
+
+        // @throws Exception
+        return $this->processMessage();
+    }
+
+    /**
+     * @return mixed
+     * @throws Exception
+     */
+    protected function processMessage(): mixed
     {
         $action = $this->actionManager->getCurrentAction();
 
@@ -156,10 +203,5 @@ class MessageRouter
         }
 
         return $action($this->data);
-    }
-
-    public function getCurrentUser(): ?int
-    {
-        return $this->userAssocPersistence?->getAssoc($this->fd);
     }
 }

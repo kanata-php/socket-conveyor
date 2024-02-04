@@ -3,13 +3,13 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Interfaces\ActionInterface;
+use Conveyor\Config\ConveyorOptions;
 use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Exception;
 use InvalidArgumentException;
 use League\Pipeline\Pipeline;
 use League\Pipeline\PipelineBuilder;
-use League\Pipeline\PipelineInterface;
 use OpenSwoole\WebSocket\Server;
 
 class ActionManager
@@ -40,23 +40,29 @@ class ActionManager
     protected ?ActionInterface $currentAction = null;
 
     /**
+     * @param ConveyorOptions $conveyorOptions
      * @param array<array-key, ActionInterface> $extraActions
      */
     public function __construct(
+        protected ConveyorOptions $conveyorOptions,
         array $extraActions = [],
     ) {
         $this->actions = array_merge($this->actions, $extraActions);
     }
 
     /**
+     * @param ConveyorOptions $conveyorOptions
      * @param array<array-key, ActionInterface> $actions
      * @param bool $fresh
      * @return ActionManager
      * @throws Exception
      */
-    public static function make(array $actions = [], bool $fresh = false): ActionManager
-    {
-        $manager = new ActionManager($actions);
+    public static function make(
+        ConveyorOptions $conveyorOptions,
+        array $actions = [],
+        bool $fresh = false
+    ): ActionManager {
+        $manager = new ActionManager($conveyorOptions, $actions);
         return $manager->startActions($fresh);
     }
 
@@ -83,6 +89,7 @@ class ActionManager
         $this->currentAction = $this->getAction($data['action']);
         $this->currentAction->setFd($fd);
         $this->currentAction->setServer($server);
+        $this->currentAction->setConveyorOptions($this->conveyorOptions);
 
         foreach ($persistence as $persistenceInstance) {
             $this->setActionPersistence($persistenceInstance);

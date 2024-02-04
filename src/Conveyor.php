@@ -53,7 +53,7 @@ class Conveyor
             'workflow.conveyor-workflow.enter.message_processed' => [$this, 'handleProcessMessage'],
             'workflow.conveyor-workflow.enter.finalized' => [$this, 'handleFinalize'],
         ]);
-        $this->messageRouter = new MessageRouter();
+        $this->messageRouter = new MessageRouter($this->options);
         $this->workflow->getMarking($this->messageRouter);
 
         if ($this->options->trackProfile) {
@@ -421,19 +421,8 @@ class Conveyor
             throw new Exception('Missing data in context at "' . $event->getTransition()->getName() . '" transition!');
         }
 
-        $messageRouter->ingestData($context['data']);
-
         // @throws InvalidArgumentException|InvalidActionException
-        $messageRouter->actionManager->ingestData(
-            data: $messageRouter->data,
-            server: $messageRouter->server,
-            fd: $messageRouter->fd,
-            persistence: array_filter([
-                $messageRouter->channelPersistence,
-                $messageRouter->listenerPersistence,
-                $messageRouter->userAssocPersistence,
-            ]),
-        );
+        $messageRouter->ingestData($context['data']);
 
         return $this;
     }
@@ -450,7 +439,7 @@ class Conveyor
         /** @var MessageRouter $messageRouter */
         $messageRouter = $event->getSubject();
 
-        $messageRouter->pipeline = $messageRouter->actionManager->getPipeline();
+        $messageRouter->preparePipeline();
 
         return $this;
     }
@@ -470,15 +459,7 @@ class Conveyor
         $messageRouter = $event->getSubject();
 
         // @throws Exception
-        $messageRouter->pipeline->process([
-            'server' => $messageRouter->server,
-            'fd' => $messageRouter->fd,
-            'data' => $messageRouter->data,
-            'user' => $messageRouter->getCurrentUser(),
-        ]);
-
-        // @throws Exception
-        return $messageRouter->processMessage();
+        return $messageRouter->processPipeline();
     }
 
     // ----------------------------------

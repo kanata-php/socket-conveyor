@@ -5,6 +5,7 @@ namespace Conveyor\Config;
 class ConveyorOptions
 {
     public bool $trackProfile = false;
+    public bool $usePresence = false;
 
     /**
      * @param array<array-key, mixed> $options

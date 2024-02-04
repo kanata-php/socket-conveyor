@@ -2,6 +2,8 @@
 
 namespace Conveyor\Actions\Interfaces;
 
+use Conveyor\Config\ConveyorOptions;
+
 interface ActionInterface
 {
     /**
@@ -19,6 +21,8 @@ interface ActionInterface
     public function setServer(mixed $server): void;
 
     public function setFresh(bool $fresh): void;
+
+    public function setConveyorOptions(ConveyorOptions $conveyorOptions): void;
 
     /**
      * @param array<array-key, mixed> $data
