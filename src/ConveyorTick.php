@@ -29,22 +29,22 @@ class ConveyorTick
     private function addListeners(): void
     {
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_SERVER_STARTED,
+            eventName: Constants::EVENT_SERVER_STARTED,
             listener: fn(ServerStartedEvent $event) => $this->tick($event->server),
         );
 
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_AFTER_MESSAGE_HANDLED,
+            eventName: Constants::EVENT_AFTER_MESSAGE_HANDLED,
             listener: fn(AfterMessageHandledEvent $event) => $this->reset(),
         );
 
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_PRE_SERVER_RELOAD,
+            eventName: Constants::EVENT_PRE_SERVER_RELOAD,
             listener: fn(PreServerReloadEvent $event) => $this->preServerReload(),
         );
 
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_POST_SERVER_RELOAD,
+            eventName: Constants::EVENT_POST_SERVER_RELOAD,
             listener: fn(PostServerReloadEvent $event) => $this->postServerReload(),
         );
     }
@@ -81,14 +81,14 @@ class ConveyorTick
 
         $this->eventDispatcher->dispatch(
             event: new PreServerReloadEvent($server),
-            eventName: ConveyorServer::EVENT_PRE_SERVER_RELOAD,
+            eventName: Constants::EVENT_PRE_SERVER_RELOAD,
         );
 
         $server->reload();
 
         $this->eventDispatcher->dispatch(
             event: new PostServerReloadEvent($server),
-            eventName: ConveyorServer::EVENT_POST_SERVER_RELOAD,
+            eventName: Constants::EVENT_POST_SERVER_RELOAD,
         );
     }
 

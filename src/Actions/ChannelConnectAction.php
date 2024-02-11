@@ -3,7 +3,9 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
+use Conveyor\Constants;
 use Exception;
+use Hook\Filter;
 use InvalidArgumentException;
 
 class ChannelConnectAction extends AbstractAction
@@ -27,7 +29,8 @@ class ChannelConnectAction extends AbstractAction
             $this->channelPersistence->connect($this->fd, $channel);
         }
 
-        if ($this->conveyorOptions->usePresence) {
+        // @phpstan-ignore-next-line
+        if ($this->conveyorOptions->{Constants::USE_PRESENCE}) {
             $this->broadcastPresence();
         }
 
@@ -54,18 +57,23 @@ class ChannelConnectAction extends AbstractAction
             ARRAY_FILTER_USE_KEY,
         );
 
-        $data = json_encode([
-            'action' => self::NAME,
-            'data' => json_encode([
-                'fd' => $this->fd,
-                'event' => 'channel-presence',
-                'channel' => $this->getCurrentChannel(),
-                'fds' => $fds,
-                'userIds' => $userIds,
-            ]),
-        ]);
+        $data = Filter::applyFilters(
+            tag: Constants::FILTER_PRESENCE_MESSAGE_CONNECT,
+            value: [
+                'action' => self::NAME,
+                'data' => [
+                    'fd' => $this->fd,
+                    'event' => 'channel-presence',
+                    'channel' => $this->getCurrentChannel(),
+                    'fds' => $fds,
+                    'userIds' => $userIds,
+                ],
+            ],
+        );
 
-        $this->broadcastToChannel($data);
-        $this->server->push($this->fd, $data);
+        $message = json_encode($data);
+
+        $this->broadcastToChannel($message);
+        $this->server->push($this->fd, $message);
     }
 }

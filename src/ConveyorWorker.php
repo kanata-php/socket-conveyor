@@ -14,16 +14,8 @@ use Tests\Assets\SampleAction;
 
 class ConveyorWorker
 {
-    public const QUEUE_KEY = 'queue_key';
-    public const QUEUE_MODE = 'queue_mode';
-
-    /**
-     * This is a possible field at the $conveyorOptions property.
-     * This option expected output is <array-key, ActionInterface>.
-     *
-     * @var string
-     */
-    public const ACTIONS = 'actions';
+    private const QUEUE_KEY = 'queue_key';
+    private const QUEUE_MODE = 'queue_mode';
 
     /**
      * @var array<array-key, Process>
@@ -51,7 +43,7 @@ class ConveyorWorker
     private function addListeners(): void
     {
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_MESSAGE_RECEIVED,
+            eventName: Constants::EVENT_MESSAGE_RECEIVED,
             listener: fn(MessageReceivedEvent $event) => $this->push($event->data),
         );
     }
@@ -87,14 +79,14 @@ class ConveyorWorker
 
                     $this->eventDispatcher->dispatch(
                         event: new BeforeMessageHandledEvent($this->server, $data, $fd),
-                        eventName: ConveyorServer::EVENT_BEFORE_MESSAGE_HANDLED,
+                        eventName: Constants::EVENT_BEFORE_MESSAGE_HANDLED,
                     );
 
                     $this->executeConveyor($fd, $data);
 
                     $this->eventDispatcher->dispatch(
                         event: new AfterMessageHandledEvent($this->server, $data, $fd),
-                        eventName: ConveyorServer::EVENT_AFTER_MESSAGE_HANDLED,
+                        eventName: Constants::EVENT_AFTER_MESSAGE_HANDLED,
                     );
                 }
             });
@@ -112,11 +104,11 @@ class ConveyorWorker
     private function executeConveyor(int $fd, string $data): void
     {
         $subProcess = new Process(function ($process) use ($fd, $data) {
-            Conveyor::init()
+            Conveyor::init(options: $this->conveyorOptions)
                 ->server($this->server)
                 ->fd($fd)
                 ->persistence($this->persistence)
-                ->addActions($this->conveyorOptions[self::ACTIONS] ?? [])
+                ->addActions($this->conveyorOptions[Constants::ACTIONS] ?? [])
                 ->closeConnections()
                 ->run($data)
                 ->finalize(fn() => $process->write('done!'));

@@ -56,7 +56,8 @@ class Conveyor
         $this->messageRouter = new MessageRouter($this->options);
         $this->workflow->getMarking($this->messageRouter);
 
-        if ($this->options->trackProfile) {
+        // @phpstan-ignore-next-line
+        if ($this->options->{Constants::TRACK_PROFILE}) {
             $this->setStartMemoryUsage();
         }
     }
@@ -488,7 +489,8 @@ class Conveyor
 
         $callback = $event->getContext()['callback'] ?? null;
 
-        $isProfiling = $this->options->trackProfile;
+        // @phpstan-ignore-next-line
+        $isProfiling = $this->options->{Constants::TRACK_PROFILE};
 
         $messageRouter->closeConnections();
 

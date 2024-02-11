@@ -4,8 +4,10 @@ namespace Conveyor\Config;
 
 class ConveyorOptions
 {
-    public bool $trackProfile = false;
-    public bool $usePresence = false;
+    /**
+     * @var array<array-key, mixed> $data
+     */
+    protected array $data = [];
 
     /**
      * @param array<array-key, mixed> $options
@@ -16,11 +18,27 @@ class ConveyorOptions
         $instance = new self();
 
         foreach ($options as $key => $value) {
-            if (property_exists($instance, $key)) {
-                $instance->{$key} = $value;
-            }
+            $instance->{$key} = $value;
         }
 
         return $instance;
+    }
+
+    public function __set(string $name, mixed $value): void
+    {
+        $this->data[$name] = $value;
+    }
+
+    public function __get(string $name): mixed
+    {
+        return $this->data[$name] ?? null;
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    public function all(): array
+    {
+        return $this->data;
     }
 }

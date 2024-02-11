@@ -3,7 +3,9 @@
 namespace Conveyor\Actions;
 
 use Conveyor\Actions\Abstractions\AbstractAction;
+use Conveyor\Constants;
 use Exception;
+use Hook\Filter;
 
 class ChannelDisconnectAction extends AbstractAction
 {
@@ -28,6 +30,44 @@ class ChannelDisconnectAction extends AbstractAction
             $this->channelPersistence->disconnect($this->fd);
         }
 
+        // @phpstan-ignore-next-line
+        if ($this->conveyorOptions->{Constants::USE_PRESENCE}) {
+            $this->broadcastPresence();
+        }
+
         return null;
+    }
+
+    public function broadcastPresence(): void
+    {
+        $fds = array_keys(array_filter(
+            $this->channelPersistence?->getAllConnections() ?? [],
+            fn($c) => $c === $this->getCurrentChannel(),
+        ));
+
+        $userIds = array_filter(
+            $this->userAssocPersistence?->getAllAssocs() ?? [],
+            fn($fd) => in_array($fd, $fds),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        $data = Filter::applyFilters(
+            tag: Constants::FILTER_PRESENCE_MESSAGE_DISCONNECT,
+            value: [
+                'action' => self::NAME,
+                'data' => [
+                    'fd' => $this->fd,
+                    'event' => 'channel-presence',
+                    'channel' => $this->getCurrentChannel(),
+                    'fds' => $fds,
+                    'userIds' => $userIds,
+                ],
+            ],
+        );
+
+        $message = json_encode($data);
+
+        $this->broadcastToChannel($message);
+        $this->server->push($this->fd, $message);
     }
 }

@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\Interfaces\ActionInterface;
+use Conveyor\Constants;
 use Conveyor\Conveyor;
 use Conveyor\ConveyorServer;
 use Conveyor\ConveyorWorker;
 use Exception;
+use Hook\Filter;
 use JetBrains\PhpStorm\NoReturn;
 use Kanata\ConveyorServerClient\Client;
 use OpenSwoole\Atomic;
@@ -50,15 +53,21 @@ class OpenSwooleSocketTest extends TestCase
      * @return int
      * @throws Exception
      */
-    protected function startServer(array $actions = []): int
-    {
+    protected function startServer(
+        array $actions = [],
+        bool $usePresence = false,
+    ): int {
         Conveyor::refresh();
 
-        $httpServer = new Process(function (Process $worker) use ($actions) {
+        $httpServer = new Process(function (Process $worker) use (
+            $actions,
+            $usePresence
+        ) {
             ConveyorServer::start(
                 port: $this->port,
                 conveyorOptions: [
-                    ConveyorWorker::ACTIONS => $actions,
+                    Constants::ACTIONS => $actions,
+                    Constants::USE_PRESENCE => $usePresence,
                 ],
             );
         });
@@ -196,4 +205,130 @@ class OpenSwooleSocketTest extends TestCase
 
         $this->assertEquals($expectedTotal, $counter->get());
     }
+
+    /**
+     * @throws Exception
+     */
+    #[NoReturn]
+    public function testCanFilterPresenceMessageConnect()
+    {
+        $expectedName = 'John';
+
+        Filter::addFilter(
+            tag: Constants::FILTER_PRESENCE_MESSAGE_CONNECT,
+            functionToAdd: function (array $data) use ($expectedName) {
+                $data['data']['userIds'] = [1];
+                $data['data']['users'] = [
+                    1 => $expectedName,
+                ];
+                return $data;
+            },
+        );
+
+        $serverPid = $this->startServer(
+            usePresence: true,
+        );
+
+        $expectedTotal = 2;
+        $counter = new Atomic(0);
+
+
+        $this->assertEquals(0, $counter->get());
+
+        $process = new Process(function (Process $worker) use ($counter, $expectedName) {
+            $client = new Client([
+                'port' => $this->port,
+                'onReadyCallback' => function (Client $currentClient) {
+                    $currentClient->sendRaw(json_encode([
+                        'action' => ChannelConnectAction::NAME,
+                        'channel' => 'sample-channel',
+                    ]));
+                },
+                'onMessageCallback' => function (
+                    Client $currentClient,
+                    string $message,
+                ) use (
+                    $counter,
+                    $expectedName
+                ) {
+                    $parsedData = json_decode($message, true);
+                    $counter->add(1);
+                    if ($parsedData['data']['users'][1] === $expectedName) {
+                        $counter->add(1);
+                    }
+                    $counter->wakeup();
+                },
+            ]);
+            $client->connect();
+        });
+        $pid = $process->start();
+
+        $counter->wait(2);
+        Process::kill($pid);
+        Process::kill($serverPid);
+
+        $this->assertEquals($expectedTotal, $counter->get());
+    }
+
+    /**
+     * @throws Exception
+     * @todo
+     */
+    // #[NoReturn]
+    // public function testCanFilterPresenceMessageDisconnect()
+    // {
+    //     $expectedName = 'John';
+    //
+    //     Filter::addFilter(
+    //         tag: Constants::FILTER_PRESENCE_MESSAGE_DISCONNECT,
+    //         functionToAdd: function (array $data) use ($expectedName) {
+    //             $data['data']['userIds'] = [1];
+    //             $data['data']['users'] = [
+    //                 1 => $expectedName,
+    //             ];
+    //             return $data;
+    //         },
+    //     );
+    //
+    //     $serverPid = $this->startServer(
+    //         usePresence: true,
+    //     );
+    //
+    //     $expectedTotal = 2;
+    //     $counter = new Atomic(0);
+    //
+    //
+    //     $this->assertEquals(0, $counter->get());
+    //
+    //     $process = new Process(function (Process $worker) use ($counter, $expectedName) {
+    //         $client = new Client([
+    //             'port' => $this->port,
+    //             'onReadyCallback' => function (Client $currentClient) {
+    //                 $currentClient->sendRaw(json_encode([
+    //                     'action' => ChannelConnectAction::NAME,
+    //                     'channel' => 'sample-channel',
+    //                 ]));
+    //             },
+    //             'onMessageCallback' => function (
+    //                 Client $currentClient,
+    //                 string $message,
+    //             ) use ($counter, $expectedName) {
+    //                 $parsedData = json_decode($message, true);
+    //                 $counter->add(1);
+    //                 if ($parsedData['data']['users'][1] === $expectedName) {
+    //                     $counter->add(1);
+    //                 }
+    //                 $counter->wakeup();
+    //             },
+    //         ]);
+    //         $client->connect();
+    //     });
+    //     $pid = $process->start();
+    //
+    //     $counter->wait(2);
+    //     Process::kill($pid);
+    //     Process::kill($serverPid);
+    //
+    //     $this->assertEquals($expectedTotal, $counter->get());
+    // }
 }

@@ -23,12 +23,12 @@ class ConveyorLock
     private function addListeners(): void
     {
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_BEFORE_MESSAGE_HANDLED,
+            eventName: Constants::EVENT_BEFORE_MESSAGE_HANDLED,
             listener: fn(BeforeMessageHandledEvent $event) => $this->waitServer()->lock(),
         );
 
         $this->eventDispatcher->addListener(
-            eventName: ConveyorServer::EVENT_AFTER_MESSAGE_HANDLED,
+            eventName: Constants::EVENT_AFTER_MESSAGE_HANDLED,
             listener: fn(AfterMessageHandledEvent $event) => $this->release(),
         );
     }

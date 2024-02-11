@@ -7,7 +7,10 @@ use Conveyor\Events\PreServerStartEvent;
 use Conveyor\Events\ServerStartedEvent;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Exception;
+use Conveyor\Constants as ConveyorConstants;
 use OpenSwoole\Constant;
+use OpenSwoole\Http\Request;
+use OpenSwoole\Http\Response;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -15,12 +18,6 @@ use OpenSwoole\Server as OpenSwooleBaseServer;
 
 class ConveyorServer
 {
-    /**
-     * Conveyor options
-     */
-
-    public const TIMER_TICK = 'timer';
-
     /**
      * Conveyor Parts
      */
@@ -30,16 +27,6 @@ class ConveyorServer
     protected ConveyorLock $conveyorLock;
     protected ?ConveyorTick $conveyorTick = null;
     protected EventDispatcher $eventDispatcher;
-
-    // Events
-
-    public const EVENT_PRE_SERVER_START = 'conveyor.pre_server_start';
-    public const EVENT_SERVER_STARTED = 'conveyor.server_started';
-    public const EVENT_PRE_SERVER_RELOAD = 'conveyor.pre_server_reload';
-    public const EVENT_POST_SERVER_RELOAD = 'conveyor.post_server_reload';
-    public const EVENT_MESSAGE_RECEIVED = 'conveyor.message_received';
-    public const EVENT_BEFORE_MESSAGE_HANDLED = 'conveyor.before_message_handled';
-    public const EVENT_AFTER_MESSAGE_HANDLED = 'conveyor.after_message_handled';
 
     /**
      * Reference for Server Options:
@@ -68,7 +55,7 @@ class ConveyorServer
         protected array $persistence = [],
     ) {
         $this->conveyorOptions = array_merge([
-            self::TIMER_TICK => false,
+            ConveyorConstants::TIMER_TICK => false,
         ], $this->conveyorOptions);
 
         $this->persistence = array_merge(
@@ -155,7 +142,7 @@ class ConveyorServer
 
     private function startServerTick(): void
     {
-        if (!$this->conveyorOptions[self::TIMER_TICK]) {
+        if (!$this->conveyorOptions[ConveyorConstants::TIMER_TICK]) {
             return;
         }
 
@@ -182,6 +169,46 @@ class ConveyorServer
     {
         $this->server->on('start', fn(Server $server) => $this->onServerStart($server));
 
+        // Reference: https://openswoole.com/docs/modules/swoole-websocket-server-on-handshake
+        $this->server->on('handshake', function (Request $request, Response $response) {
+            $secWebSocketKey = $request->header['sec-websocket-key'];
+            $patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
+
+            // Websocket handshake connection algorithm verification
+            if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
+                $response->end();
+                return false;
+            }
+
+            echo $request->header['sec-websocket-key'];
+
+            $key = base64_encode(sha1(
+                $request->header['sec-websocket-key']
+                . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
+                true
+            ));
+
+            $headers = [
+                'Upgrade' => 'websocket',
+                'Connection' => 'Upgrade',
+                'Sec-WebSocket-Accept' => $key,
+                'Sec-WebSocket-Version' => '13',
+            ];
+
+            // Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
+            if (isset($request->header['sec-websocket-protocol'])) {
+                $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
+            }
+
+            foreach ($headers as $key => $val) {
+                $response->header($key, $val);
+            }
+
+            $response->status(101);
+            $response->end();
+            return true;
+        });
+
         $this->server->on('message', fn(Server $server, Frame $frame) => $this->onMessage(
             server: $server,
             frame: $frame,
@@ -189,7 +216,7 @@ class ConveyorServer
 
         $this->eventDispatcher->dispatch(
             event: new PreServerStartEvent($this->server),
-            eventName: self::EVENT_PRE_SERVER_START,
+            eventName: ConveyorConstants::EVENT_PRE_SERVER_START,
         );
 
         $this->server->start();
@@ -199,7 +226,7 @@ class ConveyorServer
     {
         $this->eventDispatcher->dispatch(
             event: new ServerStartedEvent($server),
-            eventName: self::EVENT_SERVER_STARTED,
+            eventName: ConveyorConstants::EVENT_SERVER_STARTED,
         );
     }
 
@@ -210,7 +237,7 @@ class ConveyorServer
                 'data' => $frame->data,
                 'fd' => $frame->fd,
             ])),
-            eventName: ConveyorServer::EVENT_MESSAGE_RECEIVED,
+            eventName: ConveyorConstants::EVENT_MESSAGE_RECEIVED,
         );
     }
 }
