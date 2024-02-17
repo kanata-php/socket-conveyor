@@ -217,10 +217,12 @@ class OpenSwooleSocketTest extends TestCase
         Filter::addFilter(
             tag: Constants::FILTER_PRESENCE_MESSAGE_CONNECT,
             functionToAdd: function (array $data) use ($expectedName) {
-                $data['data']['userIds'] = [1];
-                $data['data']['users'] = [
+                $parsedData = json_decode($data['data'], true);
+                $parsedData['userIds'] = [1];
+                $parsedData['users'] = [
                     1 => $expectedName,
                 ];
+                $data['data'] = $parsedData;
                 return $data;
             },
         );

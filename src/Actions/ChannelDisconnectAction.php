@@ -55,13 +55,13 @@ class ChannelDisconnectAction extends AbstractAction
             tag: Constants::FILTER_PRESENCE_MESSAGE_DISCONNECT,
             value: [
                 'action' => self::NAME,
-                'data' => [
+                'data' => json_encode([
                     'fd' => $this->fd,
                     'event' => 'channel-presence',
                     'channel' => $this->getCurrentChannel(),
                     'fds' => $fds,
                     'userIds' => $userIds,
-                ],
+                ]),
             ],
         );
 
