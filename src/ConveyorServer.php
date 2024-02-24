@@ -204,7 +204,7 @@ class ConveyorServer
             $fd = $request->fd;
             // @phpstan-ignore-next-line
             $this->server->defer(function () use ($fd) {
-                $action = 'connection-info';
+                $action = Constants::ACTION_CONNECTION_INFO;
                 $data = json_encode(['fd' => $fd, 'event' => $action]);
                 $hash = md5($data . time());
                 $this->server->push($fd, json_encode([

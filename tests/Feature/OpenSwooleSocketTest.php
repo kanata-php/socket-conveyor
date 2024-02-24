@@ -188,6 +188,11 @@ class OpenSwooleSocketTest extends TestCase
                     string $message,
                 ) use ($counter) {
                     $parsedData = json_decode($message, true);
+
+                    if ($parsedData['action'] === Constants::ACTION_CONNECTION_INFO) {
+                        return;
+                    }
+
                     $counter->add(1);
                     if ($parsedData['data'] === 'done') {
                         $counter->add(1);
@@ -254,6 +259,11 @@ class OpenSwooleSocketTest extends TestCase
                     $expectedName
                 ) {
                     $parsedData = json_decode($message, true);
+
+                    if ($parsedData['action'] === Constants::ACTION_CONNECTION_INFO) {
+                        return;
+                    }
+
                     $counter->add(1);
                     if ($parsedData['data']['users'][1] === $expectedName) {
                         $counter->add(1);

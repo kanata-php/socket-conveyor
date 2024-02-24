@@ -93,4 +93,8 @@ class Constants
     // Action Events
 
     public const ACTION_EVENT_CHANNEL_PRESENCE = 'channel-presence';
+
+    // Reactive Actions
+
+    public const ACTION_CONNECTION_INFO = 'connection-info';
 }
