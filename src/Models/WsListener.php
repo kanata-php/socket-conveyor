@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WsListener extends Model
 {
-    const TABLE_NAME = 'wslisteners';
-
+    public const TABLE_NAME = 'wslisteners';
 
     protected $table = self::TABLE_NAME;
     protected $connection = 'socket-conveyor';

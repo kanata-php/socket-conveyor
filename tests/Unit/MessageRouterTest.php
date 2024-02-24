@@ -2,16 +2,19 @@
 
 namespace Tests\Unit;
 
+use Conveyor\Actions\AcknowledgeAction;
 use Conveyor\Actions\AssocUserToFdAction;
 use Conveyor\Actions\BaseAction;
 use Conveyor\Actions\BroadcastAction;
 use Conveyor\Actions\ChannelConnectAction;
 use Conveyor\Actions\ChannelDisconnectAction;
 use Conveyor\Actions\FanoutAction;
+use Conveyor\Constants;
 use Conveyor\Conveyor;
 use Conveyor\Persistence\WebSockets\Eloquent\AssociationsPersistence;
 use Conveyor\Persistence\WebSockets\Eloquent\ChannelsPersistence;
 use Exception;
+use Hook\Filter;
 use Mockery;
 use OpenSwoole\WebSocket\Server;
 use Tests\Assets\SampleAction;
@@ -298,5 +301,186 @@ class MessageRouterTest extends TestCase
         Conveyor::refresh([$channelPersistence]);
 
         $this->assertEmpty($channelPersistence->getAllConnections());
+    }
+
+    public function testTheAcknowledgmentSetMessageId()
+    {
+        Filter::addFilter(
+            Constants::FILTER_ACTION_PUSH_MESSAGE,
+            function (string $data, int $fd, Server $server) {
+                $parsedData = json_decode($data, true);
+                $this->assertTrue(isset($parsedData['id']));
+                unset($parsedData['id']);
+                return json_encode($parsedData);
+            },
+            60, // bigger than default
+        );
+
+        $fd = 1;
+        $message = 'text';
+        $expectedResponse = json_encode([
+            'action' => BaseAction::NAME,
+            'data' => $message,
+            'fd' => $fd,
+        ]);
+
+        $server = Mockery::mock(Server::class);
+        $server->shouldReceive('push')
+            ->andReturnUsing(function ($fd, $data) use ($expectedResponse) {
+                $this->assertEquals($expectedResponse, $data);
+                return true;
+            });
+
+        $clearVerification = false;
+
+        Conveyor::init([
+                Constants::USE_ACKNOWLEDGMENT => true,
+            ])
+            ->server($server)
+            ->fd($fd)
+            ->persistence()
+            ->run($message)
+            ->finalize(function () use (&$clearVerification) {
+                $clearVerification = true;
+            });
+
+        $this->assertTrue($clearVerification);
+        Filter::removeAllFilters(Constants::FILTER_ACTION_PUSH_MESSAGE);
+    }
+
+    public function testChannelAcknowledgmentAlone()
+    {
+        // channel connection assertion
+        $fd = 1;
+        $channel = 'my-channel';
+        $messageId = 'my-awesome-id';
+        $message = json_encode([
+            'action' => ChannelConnectAction::NAME,
+            'channel' => $channel,
+            'id' => $messageId, // necessary for the acknowledgement!
+        ]);
+        $expectedResponse = json_encode([
+            'action' => AcknowledgeAction::NAME,
+            'data' => $messageId,
+        ]);
+
+        $server = Mockery::mock(Server::class);
+        $server->shouldReceive('push')
+            ->andReturnUsing(function ($fd, $data) use ($expectedResponse) {
+                $this->assertEquals($expectedResponse, $data);
+                return true;
+            });
+        $server->shouldReceive('isEstablished')->andReturnTrue();
+
+        $clearVerification = false;
+
+        Conveyor::init([
+                Constants::USE_ACKNOWLEDGMENT => true,
+            ])
+            ->server($server)
+            ->fd($fd)
+            ->persistence()
+            ->run($message)
+            ->finalize(function () use (&$clearVerification) {
+                $clearVerification = true;
+            });
+
+        $this->assertTrue($clearVerification);
+    }
+
+    public function testChannelPresenceAlone()
+    {
+        // channel connection assertion
+        $fd = 1;
+        $channel = 'my-channel';
+        $messageId = 'my-awesome-id';
+        $message = json_encode([
+            'action' => ChannelConnectAction::NAME,
+            'channel' => $channel,
+            'id' => $messageId, // necessary for the acknowledgement!
+        ]);
+
+        $server = Mockery::mock(Server::class);
+        $server->shouldReceive('push')
+            ->andReturnUsing(function ($fd, $data) {
+                // presence assertion (after acknowledgment)
+                $parsedData = json_decode($data, true);
+                $parsedMessage = json_decode($parsedData['data'], true);
+                $this->assertEquals(ChannelConnectAction::NAME, $parsedData['action']);
+                $this->assertTrue(isset($parsedData['id']));
+                $this->assertEquals(Constants::ACTION_EVENT_CHANNEL_PRESENCE, $parsedMessage['event']);
+                $this->assertCount(1, $parsedMessage['fds']);
+                return true;
+            });
+        $server->shouldReceive('isEstablished')->andReturnTrue();
+
+        $clearVerification = false;
+
+        Conveyor::init([
+                Constants::USE_PRESENCE => true,
+            ])
+            ->server($server)
+            ->fd($fd)
+            ->persistence()
+            ->run($message)
+            ->finalize(function () use (&$clearVerification) {
+                $clearVerification = true;
+            });
+
+        $this->assertTrue($clearVerification);
+    }
+
+    public function testChannelAcknowledgmentAndPresence()
+    {
+        // channel connection assertion
+        $fd = 1;
+        $channel = 'my-channel';
+        $messageId = 'my-awesome-id';
+        $message = json_encode([
+            'action' => ChannelConnectAction::NAME,
+            'channel' => $channel,
+            'id' => $messageId, // necessary for the acknowledgement!
+        ]);
+        $expectedResponse = json_encode([
+            'action' => AcknowledgeAction::NAME,
+            'data' => $messageId,
+        ]);
+
+        $counter = 0;
+        $server = Mockery::mock(Server::class);
+        $server->shouldReceive('push')
+            ->andReturnUsing(function ($fd, $data) use ($expectedResponse, &$counter) {
+                if ($counter === 0) {
+                    $this->assertEquals($expectedResponse, $data);
+                } else {
+                    // presence assertion (after acknowledgment)
+                    $parsedData = json_decode($data, true);
+                    $parsedMessage = json_decode($parsedData['data'], true);
+                    $this->assertEquals(ChannelConnectAction::NAME, $parsedData['action']);
+                    $this->assertTrue(isset($parsedData['id']));
+                    $this->assertEquals(Constants::ACTION_EVENT_CHANNEL_PRESENCE, $parsedMessage['event']);
+                    $this->assertCount(1, $parsedMessage['fds']);
+                }
+
+                $counter++;
+                return true;
+            });
+        $server->shouldReceive('isEstablished')->andReturnTrue();
+
+        $clearVerification = false;
+
+        Conveyor::init([
+                Constants::USE_ACKNOWLEDGMENT => true,
+                Constants::USE_PRESENCE => true,
+            ])
+            ->server($server)
+            ->fd($fd)
+            ->persistence()
+            ->run($message)
+            ->finalize(function () use (&$clearVerification) {
+                $clearVerification = true;
+            });
+
+        $this->assertTrue($clearVerification);
     }
 }

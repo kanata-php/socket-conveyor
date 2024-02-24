@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WsAssociation extends Model
 {
-    const TABLE_NAME = 'wsassociations';
+    public const TABLE_NAME = 'wsassociations';
 
     protected $table = self::TABLE_NAME;
     protected $connection = 'socket-conveyor';

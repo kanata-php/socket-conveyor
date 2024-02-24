@@ -10,5 +10,4 @@ use Conveyor\ActionMiddlewares\Interfaces\MiddlewareInterface;
  */
 abstract class AbstractActionMiddleware implements MiddlewareInterface
 {
-    
 }

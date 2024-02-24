@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WsChannel extends Model
 {
-    const TABLE_NAME = 'wschannels';
+    public const TABLE_NAME = 'wschannels';
 
     /** @var string */
     protected $table = self::TABLE_NAME;

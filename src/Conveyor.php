@@ -10,12 +10,14 @@ use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
 use Conveyor\Persistence\WebSockets\Table\SocketListenerPersistenceTable;
+use Conveyor\Persistence\WebSockets\Table\SocketMessageAcknowledgmentPersistenceTable;
 use Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
 use Conveyor\Traits\HasProfiling;
 use Conveyor\Traits\HasState;
 use Conveyor\Workflow\MessageRouter;
 use Conveyor\Workflow\RouterWorkflow;
 use Exception;
+use Hook\Filter;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\Workflow\Event\EnterEvent;
 use Symfony\Component\Workflow\Workflow;
@@ -39,7 +41,7 @@ class Conveyor
         array $options = [],
         protected bool $fresh = false,
     ) {
-        $this->options = ConveyorOptions::fromArray($options);
+        $this->options = ConveyorOptions::fromArray(array_merge(Constants::DEFAULT_OPTIONS, $options));
 
         $this->workflow = RouterWorkflow::newWorkflow([
             // workflow.[workflow name].enter.[place name]
@@ -60,6 +62,8 @@ class Conveyor
         if ($this->options->{Constants::TRACK_PROFILE}) {
             $this->setStartMemoryUsage();
         }
+
+        $this->startFilters();
     }
 
     /**
@@ -84,6 +88,7 @@ class Conveyor
             'channels' => new SocketChannelPersistenceTable(),
             'listeners' => new SocketListenerPersistenceTable(),
             'user-associations' => new SocketUserAssocPersistenceTable(),
+            'messages-acknowledgments' => new SocketMessageAcknowledgmentPersistenceTable(),
         ];
     }
 
@@ -116,6 +121,29 @@ class Conveyor
     public function getActionManager(): ActionManager
     {
         return $this->messageRouter->actionManager;
+    }
+
+    public function startFilters(): void
+    {
+        // @phpstan-ignore-next-line
+        if ($this->options->{Constants::USE_ACKNOWLEDGMENT}) {
+            $this->addHashToPushedMessage();
+        }
+    }
+
+    private function addHashToPushedMessage(): void
+    {
+        Filter::addFilter(
+            Constants::FILTER_ACTION_PUSH_MESSAGE,
+            function (string $data, int $fd, Server $server) {
+                $hash = md5($data . time());
+                $parsedData = json_decode($data, true);
+                $parsedData = array_merge($parsedData, [
+                    'id' => $hash,
+                ]);
+                return json_encode($parsedData);
+            },
+        );
     }
 
     // ----------------------------------

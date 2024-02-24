@@ -9,6 +9,7 @@ use Conveyor\Exceptions\InvalidActionException;
 use Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\Persistence\Interfaces\ListenerPersistenceInterface;
+use Conveyor\Persistence\Interfaces\MessageAcknowledgmentPersistenceInterface;
 use Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
 use Exception;
 use League\Pipeline\Pipeline;
@@ -25,6 +26,8 @@ class MessageRouter
     public ?ListenerPersistenceInterface $listenerPersistence = null;
 
     public ?UserAssocPersistenceInterface $userAssocPersistence = null;
+
+    public ?MessageAcknowledgmentPersistenceInterface $messageAcknowledgmentPersistence = null;
 
     // context
 
@@ -81,6 +84,10 @@ class MessageRouter
             case is_a($persistence, UserAssocPersistenceInterface::class):
                 $this->userAssocPersistence = $persistence;
                 break;
+
+            case is_a($persistence, MessageAcknowledgmentPersistenceInterface::class):
+                $this->messageAcknowledgmentPersistence = $persistence;
+                break;
         }
     }
 
@@ -96,6 +103,10 @@ class MessageRouter
 
         if (method_exists($this->userAssocPersistence, 'destroyTable')) {
             $this->userAssocPersistence->destroyTable();
+        }
+
+        if (method_exists($this->messageAcknowledgmentPersistence, 'destroyTable')) {
+            $this->messageAcknowledgmentPersistence->destroyTable();
         }
     }
 
@@ -125,6 +136,7 @@ class MessageRouter
                 $this->channelPersistence,
                 $this->listenerPersistence,
                 $this->userAssocPersistence,
+                $this->messageAcknowledgmentPersistence,
             ]),
         );
     }

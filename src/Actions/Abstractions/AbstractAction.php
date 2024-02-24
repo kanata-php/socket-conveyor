@@ -2,20 +2,25 @@
 
 namespace Conveyor\Actions\Abstractions;
 
+use Conveyor\Actions\Traits\HasAcknowledgment;
 use Conveyor\Actions\Traits\HasChannel;
 use Conveyor\Actions\Traits\HasListener;
 use Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\Config\ConveyorOptions;
+use Conveyor\Constants;
 use Exception;
 use Conveyor\Actions\Interfaces\ActionInterface;
+use Hook\Filter;
 use InvalidArgumentException;
 use OpenSwoole\WebSocket\Server;
+use OpenSwoole\Coroutine as Co;
 
 abstract class AbstractAction implements ActionInterface
 {
     use HasPersistence;
     use HasListener;
     use HasChannel;
+    use HasAcknowledgment;
 
     protected string $name;
 
@@ -51,6 +56,8 @@ abstract class AbstractAction implements ActionInterface
 
         /** @throws InvalidArgumentException */
         $this->validateData($data);
+
+        $this->acknowledgeMessage($data);
 
         return $this->execute($data);
     }
@@ -218,36 +225,43 @@ abstract class AbstractAction implements ActionInterface
      *
      * @param string $data
      * @param array<array-key, int>|null $listeners
+     * @param bool $includeSelf
      * @return void
      */
-    protected function broadcastToChannel(string $data, ?array $listeners = null): void
-    {
+    protected function broadcastToChannel(
+        string $data,
+        ?array $listeners = null,
+        bool $includeSelf = false,
+    ): void {
         $connections = array_filter(
             $this->channelPersistence->getAllConnections(),
             fn($c) => $c === $this->getCurrentChannel()
         );
 
-        foreach ($connections as $fd => $channel) {
-            $isOnlyListeningOtherActions = null === $listeners
-                && $this->isListeningAnyAction($fd);
-            $isNotListeningThisAction = null !== $listeners
-                && !in_array($fd, $listeners);
+        Co::run(function () use ($connections, $listeners, $includeSelf, $data) {
+            foreach ($connections as $fd => $channel) {
+                $isOnlyListeningOtherActions = null === $listeners
+                    && $this->isListeningAnyAction($fd);
+                $isNotListeningThisAction = null !== $listeners
+                    && !in_array($fd, $listeners);
 
-            if (
-                !$this->server->isEstablished($fd)
-                || $fd === $this->getFd()
-                || (
-                    // if listening any action, let's analyze
-                    $this->isListeningAnyAction($fd)
-                    && ($isNotListeningThisAction
-                        || $isOnlyListeningOtherActions)
-                )
-            ) {
-                continue;
+                if (
+                    !$this->server->isEstablished($fd)
+                    || (!$includeSelf && $fd === $this->getFd())
+                    || (
+                        // if listening any action, let's analyze
+                        $this->isListeningAnyAction($fd)
+                        && ($isNotListeningThisAction || $isOnlyListeningOtherActions)
+                    )
+                ) {
+                    continue;
+                }
+
+                go(function () use ($data, $fd) {
+                    $this->push($fd, $data);
+                });
             }
-
-            $this->push($fd, $data);
-        }
+        });
     }
 
     /**
@@ -257,36 +271,61 @@ abstract class AbstractAction implements ActionInterface
      * @param array<array-key, int>|null $listeners
      * @return void
      */
-    protected function broadcastWithoutChannel(string $data, ?array $listeners = null): void
-    {
-        foreach ($this->server->connections as $fd) {
-            $isOnlyListeningOtherActions = null === $listeners
-                && $this->isListeningAnyAction($fd);
-            $isNotListeningThisAction = null !== $listeners
-                && !in_array($fd, $listeners);
-            $isConnectedToAnyChannel = $this->isConnectedToAnyChannel($fd);
+    protected function broadcastWithoutChannel(
+        string $data,
+        ?array $listeners = null,
+        bool $includeSelf = false,
+    ): void {
+        Co::run(function () use ($listeners, $includeSelf, $data) {
+            foreach ($this->server->connections as $fd) {
+                $isOnlyListeningOtherActions = null === $listeners
+                    && $this->isListeningAnyAction($fd);
+                $isNotListeningThisAction = null !== $listeners
+                    && !in_array($fd, $listeners);
+                $isConnectedToAnyChannel = $this->isConnectedToAnyChannel($fd);
 
-            if (
-                !$this->server->isEstablished($fd)
-                || $fd === $this->getFd()
-                || $isConnectedToAnyChannel
-                || (
-                    // if listening any action, let's analyze
-                    $this->isListeningAnyAction($fd)
-                    && ($isNotListeningThisAction
-                        || $isOnlyListeningOtherActions)
-                )
-            ) {
-                continue;
+                if (
+                    !$this->server->isEstablished($fd)
+                    || (!$includeSelf && $fd === $this->getFd())
+                    || $isConnectedToAnyChannel
+                    || (
+                        // if listening any action, let's analyze
+                        $this->isListeningAnyAction($fd)
+                        && ($isNotListeningThisAction
+                            || $isOnlyListeningOtherActions)
+                    )
+                ) {
+                    continue;
+                }
+
+                go(function () use ($data, $fd) {
+                    $this->push($fd, $data);
+                });
             }
-
-            $this->push($fd, $data);
-        }
+        });
     }
 
     public function push(int $fd, string $data): void
     {
+        /**
+         * Description: Filter the message before sending it to the client.
+         * Filter: Constants::FILTER_ACTION_PUSH_MESSAGE
+         * Expected value: <string>
+         * Parameters:
+         *   string $data
+         *   int $fd
+         *   Server $server
+         */
+        $data = Filter::applyFilters(
+            Constants::FILTER_ACTION_PUSH_MESSAGE,
+            $data,
+            $fd,
+            $this->server,
+        );
+
         $this->server->push($fd, $data);
+
+        $this->checkAcknowledgment($fd, $data);
     }
 
     /**

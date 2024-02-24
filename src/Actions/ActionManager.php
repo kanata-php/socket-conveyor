@@ -35,6 +35,7 @@ class ActionManager
         ChannelConnectAction::class,
         ChannelDisconnectAction::class,
         FanoutAction::class,
+        AcknowledgeAction::class,
     ];
 
     protected ?ActionInterface $currentAction = null;

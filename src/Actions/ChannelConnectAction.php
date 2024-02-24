@@ -63,7 +63,7 @@ class ChannelConnectAction extends AbstractAction
                 'action' => self::NAME,
                 'data' => json_encode([
                     'fd' => $this->fd,
-                    'event' => 'channel-presence',
+                    'event' => Constants::ACTION_EVENT_CHANNEL_PRESENCE,
                     'channel' => $this->getCurrentChannel(),
                     'fds' => $fds,
                     'userIds' => $userIds,
@@ -73,7 +73,6 @@ class ChannelConnectAction extends AbstractAction
 
         $message = json_encode($data);
 
-        $this->broadcastToChannel($message);
-        $this->server->push($this->fd, $message);
+        $this->broadcastToChannel(data: $message, includeSelf: true);
     }
 }

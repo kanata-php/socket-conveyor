@@ -15,6 +15,7 @@ use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use OpenSwoole\Server as OpenSwooleBaseServer;
+use OpenSwoole\Coroutine as Co;
 
 class ConveyorServer
 {
@@ -54,9 +55,7 @@ class ConveyorServer
         protected array $eventListeners = [],
         protected array $persistence = [],
     ) {
-        $this->conveyorOptions = array_merge([
-            ConveyorConstants::TIMER_TICK => false,
-        ], $this->conveyorOptions);
+        $this->conveyorOptions = array_merge(Constants::DEFAULT_OPTIONS, $this->conveyorOptions);
 
         $this->persistence = array_merge(
             $persistence,
@@ -202,6 +201,19 @@ class ConveyorServer
                 $response->header($key, $val);
             }
 
+            $fd = $request->fd;
+            // @phpstan-ignore-next-line
+            $this->server->defer(function () use ($fd) {
+                $action = 'connection-info';
+                $data = json_encode(['fd' => $fd, 'event' => $action]);
+                $hash = md5($data . time());
+                $this->server->push($fd, json_encode([
+                    'action' => $action,
+                    'data' => $data,
+                    'id' => $hash,
+                ]));
+            });
+
             $response->status(101);
             $response->end();
             return true;
@@ -211,6 +223,8 @@ class ConveyorServer
             server: $server,
             frame: $frame,
         ));
+
+        // TODO: consider adding the close event
 
         $this->eventDispatcher->dispatch(
             event: new PreServerStartEvent($this->server),
