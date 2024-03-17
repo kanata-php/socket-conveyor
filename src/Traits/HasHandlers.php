@@ -17,7 +17,7 @@ trait HasHandlers
         $this->eventDispatcher->dispatch(
             event: new ServerStartedEvent(
                 server: $server,
-                clientPool: $this->redisPool,
+                // clientPool: $this->redisPool,
             ),
             eventName: Constants::EVENT_SERVER_STARTED,
         );
@@ -25,13 +25,13 @@ trait HasHandlers
 
     protected function onMessage(Server $server, Frame $frame): void
     {
-        if ($this->conveyorOptions[Constants::USE_REDIS]) {
-            $this->queue->set(uniqid($frame->fd), ['data' => json_encode([
-                'data' => $frame->data,
-                'fd' => $frame->fd,
-            ])]);
-            return;
-        }
+        // if ($this->conveyorOptions[Constants::USE_REDIS]) {
+        //     $this->queue->set(uniqid($frame->fd), ['data' => json_encode([
+        //         'data' => $frame->data,
+        //         'fd' => $frame->fd,
+        //     ])]);
+        //     return;
+        // }
 
         $this->eventDispatcher->dispatch(
             event: new MessageReceivedEvent(
@@ -40,7 +40,7 @@ trait HasHandlers
                     'data' => $frame->data,
                     'fd' => $frame->fd,
                 ]),
-                redisPool: $this->redisPool,
+                // redisPool: $this->redisPool,
             ),
             eventName: Constants::EVENT_MESSAGE_RECEIVED,
         );
@@ -61,15 +61,15 @@ trait HasHandlers
         }
 
         // Check the number of connections
-        if (
-            $this->conveyorOptions[Constants::CONNECTIONS_LIMIT] !== -1
-            && $this->connectionsCount->get()
-                >= $this->conveyorOptions[Constants::CONNECTIONS_LIMIT]
-        ) {
-            $response->status(503);
-            $response->end();
-            return false;
-        }
+        // if (
+        //     $this->conveyorOptions[Constants::CONNECTIONS_LIMIT] !== -1
+        //     && $this->connectionsCount->get()
+        //         >= $this->conveyorOptions[Constants::CONNECTIONS_LIMIT]
+        // ) {
+        //     $response->status(503);
+        //     $response->end();
+        //     return false;
+        // }
 
         $key = base64_encode(sha1(
             $request->header['sec-websocket-key']
@@ -106,7 +106,7 @@ trait HasHandlers
             ]));
         });
 
-        $this->connectionsCount->add(1);
+        // $this->connectionsCount->add(1);
 
         $response->status(101);
         $response->end();

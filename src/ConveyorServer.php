@@ -2,9 +2,7 @@
 
 namespace Conveyor;
 
-use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\PreServerStartEvent;
-use Conveyor\Events\ServerStartedEvent;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\Traits\HasHandlers;
 use Exception;
@@ -16,7 +14,6 @@ use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use OpenSwoole\Server as OpenSwooleBaseServer;
-use OpenSwoole\Coroutine as Co;
 
 class ConveyorServer
 {
@@ -179,40 +176,7 @@ class ConveyorServer
         );
     }
 
-    private function startServer(): void
-    {
-        $this->server->on('start', fn(Server $server) => $this->onServerStart($server));
-
-        // Reference: https://openswoole.com/docs/modules/swoole-websocket-server-on-handshake
-        $this->server->on('handshake', function (Request $request, Response $response) {
-            $secWebSocketKey = $request->header['sec-websocket-key'];
-            $patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
-
-            // Websocket handshake connection algorithm verification
-            if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
-                $response->end();
-                return false;
-            }
-
-            $key = base64_encode(sha1(
-                $request->header['sec-websocket-key']
-                . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
-                true
-            ));
-
-            $headers = [
-                'Upgrade' => 'websocket',
-                'Connection' => 'Upgrade',
-                'Sec-WebSocket-Accept' => $key,
-                'Sec-WebSocket-Version' => '13',
-            ];
-
-            // Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
-            if (isset($request->header['sec-websocket-protocol'])) {
-                $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
-            }
-
-    private function startServer(): void
+    protected function startServer(): void
     {
         $this->server->on('start', fn(Server $server) => $this->onServerStart($server));
 
