@@ -1,19 +1,18 @@
 <?php
 
-namespace Conveyor\Models;
+namespace Conveyor\Persistence\WebSockets\Eloquent\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class WsChannel extends Model
+class WsAssociation extends Model
 {
-    public const TABLE_NAME = 'wschannels';
+    public const TABLE_NAME = 'wsassociations';
 
-    /** @var string */
     protected $table = self::TABLE_NAME;
     protected $connection = 'socket-conveyor';
 
     protected $fillable = [
         'fd',
-        'channel',
+        'user_id',
     ];
 }

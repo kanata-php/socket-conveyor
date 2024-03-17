@@ -1,9 +1,9 @@
 <?php
 
-namespace Conveyor\Persistence\Abstracts;
+namespace Conveyor\Persistence\WebSockets\Eloquent\Abstracts;
 
-use Conveyor\Persistence\DTO\DatabaseConnectionDTO;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\Persistence\WebSockets\Eloquent\DTO\DatabaseConnectionDTO;
 use Illuminate\Database\Capsule\Manager;
 
 abstract class GenericPersistence implements GenericPersistenceInterface

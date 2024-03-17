@@ -170,7 +170,7 @@ class MessageRouter
         );
 
         foreach ($closedConnections as $connection) {
-            $this->channelPersistence->disconnect($connection);
+            $this->channelPersistence->disconnect((int) $connection);
         }
     }
 

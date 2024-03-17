@@ -6,6 +6,7 @@ use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\PreServerStartEvent;
 use Conveyor\Events\ServerStartedEvent;
 use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\Traits\HasHandlers;
 use Exception;
 use Conveyor\Constants as ConveyorConstants;
 use OpenSwoole\Constant;
@@ -19,6 +20,8 @@ use OpenSwoole\Coroutine as Co;
 
 class ConveyorServer
 {
+    use HasHandlers;
+
     /**
      * Conveyor Parts
      */
@@ -122,6 +125,18 @@ class ConveyorServer
         }
     }
 
+    /**
+     * @param array<array-key, GenericPersistenceInterface> $persistence
+     */
+    private function startPersistence(array $persistence): void
+    {
+        $this->persistence = array_merge(
+            Conveyor::defaultPersistence(),
+            $persistence,
+        );
+        Conveyor::refresh($this->persistence);
+    }
+
     private function startLock(): void
     {
         $this->conveyorLock = new ConveyorLock(
@@ -197,26 +212,13 @@ class ConveyorServer
                 $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
             }
 
-            foreach ($headers as $key => $val) {
-                $response->header($key, $val);
-            }
+    private function startServer(): void
+    {
+        $this->server->on('start', fn(Server $server) => $this->onServerStart($server));
 
-            $fd = $request->fd;
-            // @phpstan-ignore-next-line
-            $this->server->defer(function () use ($fd) {
-                $action = Constants::ACTION_CONNECTION_INFO;
-                $data = json_encode(['fd' => $fd, 'event' => $action]);
-                $hash = md5($data . time());
-                $this->server->push($fd, json_encode([
-                    'action' => $action,
-                    'data' => $data,
-                    'id' => $hash,
-                ]));
-            });
-
-            $response->status(101);
-            $response->end();
-            return true;
+        // Reference: https://openswoole.com/docs/modules/swoole-websocket-server-on-handshake
+        $this->server->on('handshake', function (Request $request, Response $response) {
+            $this->onHandshake($request, $response);
         });
 
         $this->server->on('message', fn(Server $server, Frame $frame) => $this->onMessage(
@@ -232,24 +234,5 @@ class ConveyorServer
         );
 
         $this->server->start();
-    }
-
-    private function onServerStart(Server $server): void
-    {
-        $this->eventDispatcher->dispatch(
-            event: new ServerStartedEvent($server),
-            eventName: ConveyorConstants::EVENT_SERVER_STARTED,
-        );
-    }
-
-    private function onMessage(Server $server, Frame $frame): void
-    {
-        $this->eventDispatcher->dispatch(
-            event: new MessageReceivedEvent($this->server, json_encode([
-                'data' => $frame->data,
-                'fd' => $frame->fd,
-            ])),
-            eventName: ConveyorConstants::EVENT_MESSAGE_RECEIVED,
-        );
     }
 }

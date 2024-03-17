@@ -2,10 +2,10 @@
 
 namespace Conveyor\Persistence\WebSockets\Eloquent;
 
-use Conveyor\Models\WsAssociation;
-use Conveyor\Persistence\Abstracts\GenericPersistence;
 use Conveyor\Persistence\DatabaseBootstrap;
 use Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
+use Conveyor\Persistence\WebSockets\Eloquent\Abstracts\GenericPersistence;
+use Conveyor\Persistence\WebSockets\Eloquent\Models\WsAssociation;
 use Error;
 use Exception;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Conveyor\Persistence\DTO;
+namespace Conveyor\Persistence\WebSockets\Eloquent\DTO;
 
 use ArrayAccess;
 

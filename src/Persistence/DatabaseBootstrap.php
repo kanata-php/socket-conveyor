@@ -2,10 +2,10 @@
 
 namespace Conveyor\Persistence;
 
-use Conveyor\Models\WsAssociation;
-use Conveyor\Models\WsChannel;
-use Conveyor\Models\WsListener;
-use Conveyor\Persistence\DTO\DatabaseConnectionDTO;
+use Conveyor\Persistence\WebSockets\Eloquent\DTO\DatabaseConnectionDTO;
+use Conveyor\Persistence\WebSockets\Eloquent\Models\WsAssociation;
+use Conveyor\Persistence\WebSockets\Eloquent\Models\WsChannel;
+use Conveyor\Persistence\WebSockets\Eloquent\Models\WsListener;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Capsule\Manager;
