@@ -3,9 +3,10 @@
 namespace Conveyor\Persistence\WebSockets\Table;
 
 use Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
+use Conveyor\Persistence\WebSockets\Table\Abstracts\TablePersistence;
 use OpenSwoole\Table;
 
-class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
+class SocketUserAssocPersistenceTable extends TablePersistence implements UserAssocPersistenceInterface
 {
     protected Table $table;
 
@@ -50,7 +51,7 @@ class SocketUserAssocPersistenceTable implements UserAssocPersistenceInterface
 
     private function createTable(): void
     {
-        $this->table = new Table(10024);
+        $this->table = new Table(self::MAX_TABLE_SIZE);
         $this->table->column('user_id', Table::TYPE_INT, 10);
         $this->table->create();
     }

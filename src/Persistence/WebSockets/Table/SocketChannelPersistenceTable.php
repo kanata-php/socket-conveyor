@@ -3,9 +3,10 @@
 namespace Conveyor\Persistence\WebSockets\Table;
 
 use Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
+use Conveyor\Persistence\WebSockets\Table\Abstracts\TablePersistence;
 use OpenSwoole\Table;
 
-class SocketChannelPersistenceTable implements ChannelPersistenceInterface
+class SocketChannelPersistenceTable extends TablePersistence implements ChannelPersistenceInterface
 {
     protected Table $table;
 
@@ -49,7 +50,7 @@ class SocketChannelPersistenceTable implements ChannelPersistenceInterface
 
     private function createTable(): void
     {
-        $this->table = new Table(10024);
+        $this->table = new Table(self::MAX_TABLE_SIZE);
         $this->table->column('channel', Table::TYPE_STRING, 40);
         $this->table->create();
     }

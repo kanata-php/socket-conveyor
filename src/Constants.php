@@ -15,6 +15,7 @@ class Constants
         self::USE_PRESENCE => false,
         self::TIMER_TICK => false,
         self::USE_ACKNOWLEDGMENT => false,
+        self::USE_MESSAGE_SUB_PROCESS => false,
         self::ACKNOWLEDGMENT_ATTEMPTS => 3,
         self::ACKNOWLEDGMENT_TIMOUT => 0.5,
     ];
@@ -52,6 +53,13 @@ class Constants
      * Default: false
      */
     public const USE_ACKNOWLEDGMENT = 'option.use_acknowledgment';
+
+    /**
+     * Description: Enable the use of sub-processes to handle messages.
+     * Expected value: <bool>
+     * Default: false
+     */
+    public const USE_MESSAGE_SUB_PROCESS = 'option.use_sub_process';
 
     /**
      * Description: The number of attempts to send an acknowledgment message.

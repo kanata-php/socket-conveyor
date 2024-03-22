@@ -3,9 +3,11 @@
 namespace Conveyor\Persistence\WebSockets\Table;
 
 use Conveyor\Persistence\Interfaces\MessageAcknowledgmentPersistenceInterface;
+use Conveyor\Persistence\WebSockets\Table\Abstracts\TablePersistence;
 use OpenSwoole\Table;
 
-class SocketMessageAcknowledgmentPersistenceTable implements MessageAcknowledgmentPersistenceInterface
+// phpcs:ignore
+class SocketMessageAcknowledgmentPersistenceTable extends TablePersistence implements MessageAcknowledgmentPersistenceInterface
 {
     protected Table $table;
 
@@ -43,7 +45,7 @@ class SocketMessageAcknowledgmentPersistenceTable implements MessageAcknowledgme
 
     private function createTable(): void
     {
-        $this->table = new Table(10024);
+        $this->table = new Table(self::MAX_TABLE_SIZE);
         // this is the coung of times remaining for attempt
         $this->table->column('count', Table::TYPE_INT, 10);
         $this->table->create();

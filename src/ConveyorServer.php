@@ -57,11 +57,7 @@ class ConveyorServer
     ) {
         $this->conveyorOptions = array_merge(Constants::DEFAULT_OPTIONS, $this->conveyorOptions);
 
-        $this->persistence = array_merge(
-            $persistence,
-            Conveyor::defaultPersistence(),
-        );
-        Conveyor::refresh($this->persistence);
+        $this->startPersistence($persistence);
 
         $this->startListener();
 

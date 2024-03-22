@@ -11,8 +11,8 @@ use Conveyor\Actions\ChannelDisconnectAction;
 use Conveyor\Actions\FanoutAction;
 use Conveyor\Constants;
 use Conveyor\Conveyor;
-use Conveyor\Persistence\WebSockets\Eloquent\AssociationsPersistence;
-use Conveyor\Persistence\WebSockets\Eloquent\ChannelsPersistence;
+use Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
+use Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
 use Exception;
 use Hook\Filter;
 use Mockery;
@@ -110,7 +110,7 @@ class MessageRouterTest extends TestCase
         $server = Mockery::mock(Server::class);
         $server->shouldReceive('push')->times(0);
 
-        $associationPersistence = Mockery::mock(AssociationsPersistence::class);
+        $associationPersistence = Mockery::mock(SocketUserAssocPersistenceTable::class);
         $associationPersistence->shouldReceive('assoc')
             ->andReturnUsing(function ($fd, $userId) {
                 $this->assertEquals(1, $fd);
@@ -145,7 +145,7 @@ class MessageRouterTest extends TestCase
         $server = Mockery::mock(Server::class);
         $server->shouldReceive('push')->times(0);
 
-        $channelsPersistence = Mockery::mock(ChannelsPersistence::class);
+        $channelsPersistence = Mockery::mock(SocketChannelPersistenceTable::class);
         $channelsPersistence->shouldReceive('getAllConnections')->andReturn([]);
         $channelsPersistence->shouldReceive('connect')
             ->andReturnUsing(function ($fd, $channel) use ($expectedChannel) {
@@ -174,7 +174,7 @@ class MessageRouterTest extends TestCase
         $server = Mockery::mock(Server::class);
         $server->shouldReceive('push')->times(0);
 
-        $channelsPersistence = Mockery::mock(ChannelsPersistence::class);
+        $channelsPersistence = Mockery::mock(SocketChannelPersistenceTable::class);
         $channelsPersistence->shouldReceive('disconnect')
             ->andReturnUsing(function ($fd) {
                 $this->assertEquals(1, $fd);
@@ -282,7 +282,7 @@ class MessageRouterTest extends TestCase
             'channel' => 'test-channel',
         ]);
 
-        $channelPersistence = new ChannelsPersistence($this->getDatabaseOptions());
+        $channelPersistence = new SocketChannelPersistenceTable();
 
         Conveyor::refresh([$channelPersistence]);
 

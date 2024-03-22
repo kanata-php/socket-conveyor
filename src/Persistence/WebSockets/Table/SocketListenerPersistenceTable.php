@@ -3,9 +3,10 @@
 namespace Conveyor\Persistence\WebSockets\Table;
 
 use Conveyor\Persistence\Interfaces\ListenerPersistenceInterface;
+use Conveyor\Persistence\WebSockets\Table\Abstracts\TablePersistence;
 use OpenSwoole\Table;
 
-class SocketListenerPersistenceTable implements ListenerPersistenceInterface
+class SocketListenerPersistenceTable extends TablePersistence implements ListenerPersistenceInterface
 {
     protected Table $table;
 
@@ -75,7 +76,7 @@ class SocketListenerPersistenceTable implements ListenerPersistenceInterface
 
     private function createTable(): void
     {
-        $this->table = new Table(10024);
+        $this->table = new Table(self::MAX_TABLE_SIZE);
         $this->table->column('listening', Table::TYPE_STRING, 200);
         $this->table->create();
     }

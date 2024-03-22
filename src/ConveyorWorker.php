@@ -2,7 +2,6 @@
 
 namespace Conveyor;
 
-use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Events\AfterMessageHandledEvent;
 use Conveyor\Events\BeforeMessageHandledEvent;
 use Conveyor\Events\MessageReceivedEvent;
@@ -10,7 +9,6 @@ use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use OpenSwoole\Process;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use Tests\Assets\SampleAction;
 
 class ConveyorWorker
 {
@@ -82,7 +80,12 @@ class ConveyorWorker
                         eventName: Constants::EVENT_BEFORE_MESSAGE_HANDLED,
                     );
 
-                    $this->executeConveyor($fd, $data);
+                    // TODO: implement a buffer zone
+                    if ($this->conveyorOptions[Constants::USE_MESSAGE_SUB_PROCESS] ?? false) {
+                        $this->executeConveyor($fd, $data);
+                    } else {
+                        $this->executeConveyorInSubProcess($fd, $data);
+                    }
 
                     $this->eventDispatcher->dispatch(
                         event: new AfterMessageHandledEvent($this->server, $data, $fd),
@@ -102,6 +105,17 @@ class ConveyorWorker
     }
 
     private function executeConveyor(int $fd, string $data): void
+    {
+        Conveyor::init(options: $this->conveyorOptions)
+            ->server($this->server)
+            ->fd($fd)
+            ->persistence($this->persistence)
+            ->addActions($this->conveyorOptions[Constants::ACTIONS] ?? [])
+            ->closeConnections()
+            ->run($data);
+    }
+
+    private function executeConveyorInSubProcess(int $fd, string $data): void
     {
         $subProcess = new Process(function ($process) use ($fd, $data) {
             Conveyor::init(options: $this->conveyorOptions)
