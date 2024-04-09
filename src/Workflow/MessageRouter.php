@@ -119,7 +119,7 @@ class MessageRouter
     {
         $parsedData = json_decode($data, true);
 
-        if (null === $parsedData) {
+        if (!is_array($parsedData)) {
             $parsedData = [
                 'action' => BaseAction::NAME,
                 'data' => $data,
