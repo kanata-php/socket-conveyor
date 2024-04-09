@@ -323,7 +323,9 @@ abstract class AbstractAction implements ActionInterface
             $this->server,
         );
 
-        $this->server->push($fd, $data);
+        if ($this->server->isEstablished($fd)) {
+            $this->server->push($fd, $data);
+        }
 
         $this->checkAcknowledgment($fd, $data);
     }

@@ -16,7 +16,6 @@
         "symfony/var-dumper": "^6.1",
         "phpunit/phpunit": "^9.2",
         "mockery/mockery": "^1.4",
-        "codedungeon/phpunit-result-printer": "^0.30.0",
         "openswoole/ide-helper": "^22.0",
         "phpro/grumphp": "^2.3",
         "phpstan/phpstan": "^1.10",

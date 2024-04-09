@@ -4,6 +4,7 @@ namespace Conveyor\Actions\Traits;
 
 use Conveyor\Actions\AcknowledgeAction;
 use Conveyor\Constants;
+use Conveyor\Helpers\Arr;
 
 trait HasAcknowledgment
 {
@@ -43,7 +44,7 @@ trait HasAcknowledgment
 
         $parsedData = json_decode($data, true);
         if (
-            $parsedData['action'] !== AcknowledgeAction::NAME
+            Arr::get($parsedData, 'action') !== AcknowledgeAction::NAME
             || !isset($parsedData['id'])
         ) {
             return;
@@ -64,7 +65,9 @@ trait HasAcknowledgment
                 function () use ($fd, $data, $messageHash, &$timers) {
                     if ($this->messageAcknowledmentPersistence->has($messageHash)) {
                         $this->messageAcknowledmentPersistence->subtract($messageHash);
-                        $this->server->push($fd, $data);
+                        if ($this->server->isEstablished($fd)) {
+                            $this->server->push($fd, $data);
+                        }
                         return;
                     }
 

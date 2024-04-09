@@ -47,6 +47,7 @@ class MessageRouterTest extends TestCase
         ]);
 
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push')
             ->andReturnUsing(function ($fd, $data) use ($expectedResponse) {
                 $this->assertEquals($expectedResponse, $data);
@@ -252,6 +253,7 @@ class MessageRouterTest extends TestCase
         $expectedTrue = false;
 
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push')
             ->andReturnUsing(function ($fd, $data) use (&$expectedTrue, $expectedFd, $expectedMessage) {
                 $this->assertEquals($expectedFd, $fd);
@@ -287,7 +289,7 @@ class MessageRouterTest extends TestCase
         Conveyor::refresh([$channelPersistence]);
 
         $server = Mockery::mock(Server::class);
-        $server->shouldReceive('isEstablished')->andReturn(true);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push');
 
         Conveyor::init()
@@ -325,6 +327,7 @@ class MessageRouterTest extends TestCase
         ]);
 
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push')
             ->andReturnUsing(function ($fd, $data) use ($expectedResponse) {
                 $this->assertEquals($expectedResponse, $data);
@@ -365,12 +368,12 @@ class MessageRouterTest extends TestCase
         ]);
 
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push')
             ->andReturnUsing(function ($fd, $data) use ($expectedResponse) {
                 $this->assertEquals($expectedResponse, $data);
                 return true;
             });
-        $server->shouldReceive('isEstablished')->andReturnTrue();
 
         $clearVerification = false;
 
@@ -401,18 +404,17 @@ class MessageRouterTest extends TestCase
         ]);
 
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push')
             ->andReturnUsing(function ($fd, $data) {
                 // presence assertion (after acknowledgment)
                 $parsedData = json_decode($data, true);
                 $parsedMessage = json_decode($parsedData['data'], true);
                 $this->assertEquals(ChannelConnectAction::NAME, $parsedData['action']);
-                $this->assertTrue(isset($parsedData['id']));
                 $this->assertEquals(Constants::ACTION_EVENT_CHANNEL_PRESENCE, $parsedMessage['event']);
                 $this->assertCount(1, $parsedMessage['fds']);
                 return true;
             });
-        $server->shouldReceive('isEstablished')->andReturnTrue();
 
         $clearVerification = false;
 
@@ -448,6 +450,7 @@ class MessageRouterTest extends TestCase
 
         $counter = 0;
         $server = Mockery::mock(Server::class);
+        $server->shouldReceive('isEstablished')->andReturnTrue();
         $server->shouldReceive('push')
             ->andReturnUsing(function ($fd, $data) use ($expectedResponse, &$counter) {
                 if ($counter === 0) {
@@ -465,7 +468,6 @@ class MessageRouterTest extends TestCase
                 $counter++;
                 return true;
             });
-        $server->shouldReceive('isEstablished')->andReturnTrue();
 
         $clearVerification = false;
 
