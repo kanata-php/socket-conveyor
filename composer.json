@@ -7,7 +7,6 @@
         "php": "^8.2",
         "ext-openswoole": "^22.0|^22.1",
         "league/pipeline": "^1.0",
-        "illuminate/database": "^10.22",
         "symfony/workflow": "^7.0",
         "symfony/event-dispatcher": "^7.0",
         "lotharthesavior/hook": "^0.0.1"
