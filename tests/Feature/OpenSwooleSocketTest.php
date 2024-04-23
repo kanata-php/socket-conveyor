@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\Constants;
-use Conveyor\Conveyor;
 use Conveyor\ConveyorServer;
-use Conveyor\ConveyorWorker;
+use Conveyor\SubProtocols\Conveyor\Actions\ChannelConnectAction;
+use Conveyor\SubProtocols\Conveyor\Actions\Interfaces\ActionInterface;
+use Conveyor\SubProtocols\Conveyor\Conveyor;
 use Exception;
 use Hook\Filter;
 use JetBrains\PhpStorm\NoReturn;
@@ -16,7 +15,6 @@ use OpenSwoole\Atomic;
 use OpenSwoole\Process;
 use Tests\Assets\SampleAction;
 use Tests\TestCase;
-use OpenSwoole\Table;
 
 class OpenSwooleSocketTest extends TestCase
 {
@@ -100,7 +98,7 @@ class OpenSwooleSocketTest extends TestCase
         $clientsNumber = 10;
         $totalMessages = 10;
         $totalMessagesTimes = 5;
-        $expectedTotal = 450;
+        $expectedTotal = 500;
         $workers = [];
         $counter = new Atomic(0);
 

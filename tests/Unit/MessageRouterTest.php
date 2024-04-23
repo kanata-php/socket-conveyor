@@ -2,17 +2,17 @@
 
 namespace Tests\Unit;
 
-use Conveyor\Actions\AcknowledgeAction;
-use Conveyor\Actions\AssocUserToFdAction;
-use Conveyor\Actions\BaseAction;
-use Conveyor\Actions\BroadcastAction;
-use Conveyor\Actions\ChannelConnectAction;
-use Conveyor\Actions\ChannelDisconnectAction;
-use Conveyor\Actions\FanoutAction;
 use Conveyor\Constants;
-use Conveyor\Conveyor;
-use Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
-use Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
+use Conveyor\SubProtocols\Conveyor\Actions\AcknowledgeAction;
+use Conveyor\SubProtocols\Conveyor\Actions\AssocUserToFdAction;
+use Conveyor\SubProtocols\Conveyor\Actions\BaseAction;
+use Conveyor\SubProtocols\Conveyor\Actions\BroadcastAction;
+use Conveyor\SubProtocols\Conveyor\Actions\ChannelConnectAction;
+use Conveyor\SubProtocols\Conveyor\Actions\ChannelDisconnectAction;
+use Conveyor\SubProtocols\Conveyor\Actions\FanoutAction;
+use Conveyor\SubProtocols\Conveyor\Conveyor;
+use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
+use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
 use Exception;
 use Hook\Filter;
 use Mockery;
@@ -84,6 +84,9 @@ class MessageRouterTest extends TestCase
         $server = Mockery::mock(Server::class);
         $server->connections = [1, 2, 3];
         $server->shouldReceive('isEstablished')->andReturn(true);
+        $server->shouldReceive('push')
+            ->with(1, $expectedResponse)
+            ->times(1);
         $server->shouldReceive('push')
             ->with(2, $expectedResponse)
             ->times(1);
@@ -308,7 +311,7 @@ class MessageRouterTest extends TestCase
     public function testTheAcknowledgmentSetMessageId()
     {
         Filter::addFilter(
-            Constants::FILTER_ACTION_PUSH_MESSAGE,
+            Constants::FILTER_PUSH_MESSAGE,
             function (string $data, int $fd, Server $server) {
                 $parsedData = json_decode($data, true);
                 $this->assertTrue(isset($parsedData['id']));
@@ -348,7 +351,7 @@ class MessageRouterTest extends TestCase
             });
 
         $this->assertTrue($clearVerification);
-        Filter::removeAllFilters(Constants::FILTER_ACTION_PUSH_MESSAGE);
+        Filter::removeAllFilters(Constants::FILTER_PUSH_MESSAGE);
     }
 
     public function testChannelAcknowledgmentAlone()

@@ -2,18 +2,21 @@
 
 namespace Conveyor;
 
+use Conveyor\Config\ConveyorOptions;
+use Conveyor\Constants as ConveyorConstants;
 use Conveyor\Events\PreServerStartEvent;
-use Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\SubProtocols\Conveyor\Conveyor;
+use Conveyor\SubProtocols\Conveyor\ConveyorWorker;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\Traits\HasHandlers;
 use Exception;
-use Conveyor\Constants as ConveyorConstants;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
+use OpenSwoole\Server as OpenSwooleBaseServer;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use OpenSwoole\Server as OpenSwooleBaseServer;
 
 class ConveyorServer
 {
@@ -24,9 +27,6 @@ class ConveyorServer
      */
 
     protected Server $server;
-    protected ConveyorWorker $conveyorWorker;
-    protected ConveyorLock $conveyorLock;
-    protected ?ConveyorTick $conveyorTick = null;
     protected EventDispatcher $eventDispatcher;
 
     /**
@@ -37,9 +37,8 @@ class ConveyorServer
      * @param int $port
      * @param int $mode
      * @param int $ssl
-     * @param int $workers
      * @param array<array-key, mixed> $serverOptions
-     * @param array<array-key, mixed> $conveyorOptions
+     * @param ConveyorOptions|array<array-key, mixed> $conveyorOptions
      * @param array<array-key, callable> $eventListeners
      * @param array<array-key, GenericPersistenceInterface> $persistence
      * @throws Exception
@@ -49,23 +48,24 @@ class ConveyorServer
         protected int $port = 8989,
         protected int $mode = OpenSwooleBaseServer::POOL_MODE,
         protected int $ssl = Constant::SOCK_TCP,
-        protected int $workers = 10,
         protected array $serverOptions = [],
-        protected array $conveyorOptions = [],
+        protected array|ConveyorOptions $conveyorOptions = [],
         protected array $eventListeners = [],
         protected array $persistence = [],
+        // protected array
     ) {
-        $this->conveyorOptions = array_merge(Constants::DEFAULT_OPTIONS, $this->conveyorOptions);
+        if (is_array($this->conveyorOptions)) {
+            $this->conveyorOptions = ConveyorOptions::fromArray(array_merge(
+                Constants::DEFAULT_OPTIONS,
+                $this->conveyorOptions,
+            ));
+        }
 
         $this->startPersistence($persistence);
 
         $this->startListener();
 
-        $this->startLock();
-
         $this->initializeServer();
-
-        $this->startServerTick();
 
         $this->startWorker();
 
@@ -77,9 +77,8 @@ class ConveyorServer
      * @param int $port
      * @param int $mode
      * @param int $ssl
-     * @param int $workers
      * @param array<array-key, mixed> $serverOptions
-     * @param array<array-key, mixed> $conveyorOptions
+     * @param ConveyorOptions|array<array-key, mixed> $conveyorOptions
      * @param array<array-key, callable> $eventListeners
      * @param array<array-key, GenericPersistenceInterface> $persistence
      * @return ConveyorServer
@@ -90,9 +89,8 @@ class ConveyorServer
         int $port = 8989,
         int $mode = OpenSwooleBaseServer::POOL_MODE,
         int $ssl = Constant::SOCK_TCP,
-        int $workers = 10,
         array $serverOptions = [],
-        array $conveyorOptions = [],
+        ConveyorOptions|array $conveyorOptions = [],
         array $eventListeners = [],
         array $persistence = [],
     ): ConveyorServer {
@@ -101,7 +99,6 @@ class ConveyorServer
             port: $port,
             mode: $mode,
             ssl: $ssl,
-            workers: $workers,
             serverOptions: $serverOptions,
             conveyorOptions: $conveyorOptions,
             eventListeners: $eventListeners,
@@ -130,46 +127,33 @@ class ConveyorServer
         Conveyor::refresh($this->persistence);
     }
 
-    private function startLock(): void
-    {
-        $this->conveyorLock = new ConveyorLock(
-            eventDispatcher: $this->eventDispatcher,
-        );
-    }
-
     private function initializeServer(): void
     {
         $this->server = new Server($this->host, $this->port, $this->mode, $this->ssl);
 
         $this->server->set(array_merge([
-            'worker_num' => 5,
-            'websocket_subprotocol' => 'socketconveyor.com',
+            'worker_num' => 10,
+            'task_worker_num' => 10,
+            'task_ipc_mode' => 3,
         ], $this->serverOptions));
-    }
-
-    private function startServerTick(): void
-    {
-        if (!$this->conveyorOptions[ConveyorConstants::TIMER_TICK]) {
-            return;
-        }
-
-        $this->conveyorTick = new ConveyorTick(
-            server: $this->server,
-            conveyorLock: $this->conveyorLock,
-            eventDispatcher: $this->eventDispatcher,
-            interval: 1000,
-        );
     }
 
     private function startWorker(): void
     {
-        $this->conveyorWorker = new ConveyorWorker(
-            server: $this->server,
-            workers: $this->workers,
-            conveyorOptions: $this->conveyorOptions,
-            eventDispatcher: $this->eventDispatcher,
-            persistence: $this->persistence,
-        );
+        // @phpstan-ignore-next-line
+        $selectedSubProtocol = $this->conveyorOptions->{ConveyorConstants::WEBSOCKET_SUBPROTOCOL};
+
+        if (ConveyorConstants::SOCKET_CONVEYOR === $selectedSubProtocol) {
+            new ConveyorWorker(
+                server: $this->server,
+                conveyorOptions: $this->conveyorOptions,
+                eventDispatcher: $this->eventDispatcher,
+                persistence: $this->persistence,
+            );
+            return;
+        }
+
+        throw new Exception('Invalid WebSocket SubProtocol: ' . $selectedSubProtocol . '!');
     }
 
     protected function startServer(): void
@@ -186,7 +170,23 @@ class ConveyorServer
             frame: $frame,
         ));
 
-        // TODO: consider adding the close event
+        $this->server->on('task', fn(Server $server, int $taskId, int $reactorId, mixed $data) => $this->onTask(
+            server: $server,
+            taskId: $taskId,
+            reactorId: $reactorId,
+            data: $data,
+        ));
+
+        $this->server->on('finish', fn(Server $server, int $taskId, mixed $data) => $this->onFinish(
+            server: $server,
+            taskId: $taskId,
+            data: $data
+        ));
+
+        $this->server->on('close', fn(Server $server, int $fd) => $this->onClose(
+            server: $server,
+            fd: $fd,
+        ));
 
         $this->eventDispatcher->dispatch(
             event: new PreServerStartEvent($this->server),

@@ -4,13 +4,12 @@ namespace Conveyor\Events;
 
 use OpenSwoole\WebSocket\Server;
 
-class MessageReceivedEvent
+class TaskFinishedEvent
 {
     public function __construct(
         public Server $server,
         public string $data,
         public int $taskId,
-        public int $reactorId,
     ) {
     }
 }

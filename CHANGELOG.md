@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 Updates should follow the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [3.0.0] - 
+
+- Added extensibility for other Subprotocols.
+- Changed channel broadcasting behavior to always include "self" (the connection triggering the broadcast).
+- Removed Server Timer as it is easily added via event listeners.
+- Removed Server Lock as there is no need for that anymore.
+- Removed Listener Action.
+- Removed State Conveyor's Trait as there is no need for that anymore.
+- Added extra server event handlers.
+- Implemented initial version of Channel Presence!
+
 ## [2.0.0] - 2023-09-29
 
 - Updated the interface of the SocketMessageRouter.

@@ -4,13 +4,11 @@ namespace Conveyor\Events;
 
 use OpenSwoole\WebSocket\Server;
 
-class MessageReceivedEvent
+class ConnectionCloseEvent
 {
     public function __construct(
         public Server $server,
-        public string $data,
-        public int $taskId,
-        public int $reactorId,
+        public int $fd,
     ) {
     }
 }

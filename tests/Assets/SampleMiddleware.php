@@ -2,7 +2,7 @@
 
 namespace Tests\Assets;
 
-use Conveyor\ActionMiddlewares\Abstractions\AbstractActionMiddleware;
+use Conveyor\SubProtocols\Conveyor\ActionMiddlewares\Abstractions\AbstractActionMiddleware;
 use Exception;
 
 class SampleMiddleware extends AbstractActionMiddleware

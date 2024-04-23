@@ -3,8 +3,10 @@
 namespace Conveyor\Traits;
 
 use Conveyor\Constants;
+use Conveyor\Events\ConnectionCloseEvent;
 use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\ServerStartedEvent;
+use Conveyor\Events\TaskFinishedEvent;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 use OpenSwoole\WebSocket\Frame;
@@ -17,7 +19,6 @@ trait HasHandlers
         $this->eventDispatcher->dispatch(
             event: new ServerStartedEvent(
                 server: $server,
-                // clientPool: $this->redisPool,
             ),
             eventName: Constants::EVENT_SERVER_STARTED,
         );
@@ -25,25 +26,10 @@ trait HasHandlers
 
     protected function onMessage(Server $server, Frame $frame): void
     {
-        // if ($this->conveyorOptions[Constants::USE_REDIS]) {
-        //     $this->queue->set(uniqid($frame->fd), ['data' => json_encode([
-        //         'data' => $frame->data,
-        //         'fd' => $frame->fd,
-        //     ])]);
-        //     return;
-        // }
-
-        $this->eventDispatcher->dispatch(
-            event: new MessageReceivedEvent(
-                server: $this->server,
-                data: json_encode([
-                    'data' => $frame->data,
-                    'fd' => $frame->fd,
-                ]),
-                // redisPool: $this->redisPool,
-            ),
-            eventName: Constants::EVENT_MESSAGE_RECEIVED,
-        );
+        $server->task(json_encode([
+            'fd' => $frame->fd,
+            'data' => $frame->data,
+        ]));
     }
 
     protected function onHandshake(Request $request, Response $response): bool
@@ -59,17 +45,6 @@ trait HasHandlers
             $response->end();
             return false;
         }
-
-        // Check the number of connections
-        // if (
-        //     $this->conveyorOptions[Constants::CONNECTIONS_LIMIT] !== -1
-        //     && $this->connectionsCount->get()
-        //         >= $this->conveyorOptions[Constants::CONNECTIONS_LIMIT]
-        // ) {
-        //     $response->status(503);
-        //     $response->end();
-        //     return false;
-        // }
 
         $key = base64_encode(sha1(
             $request->header['sec-websocket-key']
@@ -97,19 +72,60 @@ trait HasHandlers
         // @phpstan-ignore-next-line
         $this->server->defer(function () use ($fd) {
             $action = Constants::ACTION_CONNECTION_INFO;
-            $data = json_encode(['fd' => $fd, 'event' => $action]);
-            $hash = md5($data . time());
-            $this->server->push($fd, json_encode([
-                'action' => $action,
-                'data' => $data,
-                'id' => $hash,
-            ]));
-        });
 
-        // $this->connectionsCount->add(1);
+            $data = [
+                'action' => $action,
+                'data' => json_encode(['fd' => $fd, 'event' => $action]),
+            ];
+
+            // @phpstan-ignore-next-line
+            if ($this->conveyorOptions->{Constants::USE_ACKNOWLEDGMENT}) {
+                $data['id'] = md5(json_encode($data) . time());
+            }
+
+            $this->server->push($fd, json_encode($data));
+        });
 
         $response->status(101);
         $response->end();
         return true;
+    }
+
+    protected function onClose(Server $server, int $fd): void
+    {
+        $this->eventDispatcher->dispatch(
+            event: new ConnectionCloseEvent(
+                server: $server,
+                fd: $fd,
+            ),
+            eventName: Constants::EVENT_SERVER_CLOSE,
+        );
+    }
+
+    protected function onTask(Server $server, int $taskId, int $reactorId, string $data): void
+    {
+        $this->eventDispatcher->dispatch(
+            event: new MessageReceivedEvent(
+                server: $server,
+                data: $data,
+                taskId: $taskId,
+                reactorId: $reactorId,
+            ),
+            eventName: Constants::EVENT_MESSAGE_RECEIVED,
+        );
+
+        $server->finish($data);
+    }
+
+    protected function onFinish(Server $server, int $taskId, mixed $data): void
+    {
+        $this->eventDispatcher->dispatch(
+            event: new TaskFinishedEvent(
+                server: $server,
+                data: $data,
+                taskId: $taskId,
+            ),
+            eventName: Constants::EVENT_TASK_FINISHED,
+        );
     }
 }
