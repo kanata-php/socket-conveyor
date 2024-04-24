@@ -52,7 +52,6 @@ class ConveyorServer
         protected array|ConveyorOptions $conveyorOptions = [],
         protected array $eventListeners = [],
         protected array $persistence = [],
-        // protected array
     ) {
         if (is_array($this->conveyorOptions)) {
             $this->conveyorOptions = ConveyorOptions::fromArray(array_merge(
