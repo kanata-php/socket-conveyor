@@ -56,4 +56,20 @@ trait Options
      * Expected value: <array-key, ActionInterface>
      */
     public const ACTIONS = 'actions';
+
+    /**
+     * Description: The URL to use for websocket authentication. This is
+     *              important for protected websocket channels.
+     * Expected value: <string>
+     * Default: null
+     * Example: (for laravel broadcast case) 'http://localhost:8080/api/broadcasting/auth'
+     */
+    public const WEBSOCKET_AUTH_URL = 'option.websocket_auth_url';
+
+    /**
+     * Description: The Token to be used in the websocket authentication URL.
+     * Expected value: <string>
+     * Default: null
+     */
+    public const WEBSOCKET_AUTH_TOKEN = 'option.websocket_auth_token';
 }

@@ -9,7 +9,8 @@
         "league/pipeline": "^1.0",
         "symfony/workflow": "^7.0",
         "symfony/event-dispatcher": "^7.0",
-        "lotharthesavior/hook": "^0.0.1"
+        "lotharthesavior/hook": "^0.0.1",
+        "guzzlehttp/guzzle": "^7.8"
     },
     "require-dev": {
         "symfony/var-dumper": "^6.1",

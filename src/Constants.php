@@ -29,5 +29,7 @@ class Constants
         self::USE_ACKNOWLEDGMENT => false,
         self::ACKNOWLEDGMENT_ATTEMPTS => 3,
         self::ACKNOWLEDGMENT_TIMOUT => 0.5,
+        self::WEBSOCKET_AUTH_URL => null,
+        self::WEBSOCKET_AUTH_TOKEN => null,
     ];
 }

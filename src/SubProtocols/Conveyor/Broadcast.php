@@ -52,6 +52,45 @@ class Broadcast
     }
 
     /**
+     * Forcing broadcast to channel. Useful when broadcasting from
+     * your server.
+     *
+     * @param string $data
+     * @param string $channel
+     * @param Server $server
+     * @param ChannelPersistenceInterface $channelPersistence
+     * @param MessageAcknowledgementPersistenceInterface|null $ackPersistence
+     * @param bool $includeSelf
+     * @return void
+     */
+    public static function forceBroadcastToChannel(
+        string $data,
+        string $channel,
+        Server $server,
+        ChannelPersistenceInterface $channelPersistence,
+        ?MessageAcknowledgementPersistenceInterface $ackPersistence = null,
+        bool $includeSelf = true,
+    ): void {
+        $connections = array_filter(
+            $channelPersistence->getAllConnections(),
+            fn($c) => $c === $channel
+        );
+
+        foreach ($connections as $fd => $channel) {
+            if (!$server->isEstablished($fd)) {
+                continue;
+            }
+
+            self::push(
+                fd: $fd,
+                data: $data,
+                server: $server,
+                ackPersistence: $ackPersistence,
+            );
+        }
+    }
+
+    /**
      * Broadcast when broadcasting without channel.
      *
      * @param string $data

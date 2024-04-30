@@ -169,6 +169,11 @@ class ConveyorServer
             frame: $frame,
         ));
 
+        $this->server->on('request', fn(Request $request, Response $response) => $this->onRequest(
+            request: $request,
+            response: $response,
+        ));
+
         $this->server->on('task', fn(Server $server, int $taskId, int $reactorId, mixed $data) => $this->onTask(
             server: $server,
             taskId: $taskId,

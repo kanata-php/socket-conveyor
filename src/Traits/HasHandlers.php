@@ -5,6 +5,7 @@ namespace Conveyor\Traits;
 use Conveyor\Constants;
 use Conveyor\Events\ConnectionCloseEvent;
 use Conveyor\Events\MessageReceivedEvent;
+use Conveyor\Events\RequestReceivedEvent;
 use Conveyor\Events\ServerStartedEvent;
 use Conveyor\Events\TaskFinishedEvent;
 use OpenSwoole\Http\Request;
@@ -30,6 +31,17 @@ trait HasHandlers
             'fd' => $frame->fd,
             'data' => $frame->data,
         ]));
+    }
+
+    protected function onRequest(Request $request, Response $response): void
+    {
+        $this->eventDispatcher->dispatch(
+            event: new RequestReceivedEvent(
+                request: $request,
+                response: $response,
+            ),
+            eventName: Constants::EVENT_REQUEST_RECEIVED,
+        );
     }
 
     protected function onHandshake(Request $request, Response $response): bool
