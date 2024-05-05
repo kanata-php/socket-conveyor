@@ -13,10 +13,12 @@ use Conveyor\Helpers\Arr;
 use Conveyor\Helpers\Http;
 use Conveyor\SubProtocols\Conveyor\Actions\BroadcastAction;
 use Conveyor\SubProtocols\Conveyor\Broadcast as ConveyorBroadcast;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Traits\HasAcknowledgement;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Hook\Filter;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 use OpenSwoole\WebSocket\Server;
@@ -31,7 +33,7 @@ class ConveyorWorker
      * @param ConveyorOptions $conveyorOptions
      * @param EventDispatcher|null $eventDispatcher
      * @param array<array-key, GenericPersistenceInterface> $persistence
-     * @param ?Client $client
+     * @param Client|null $httpClient
      */
     public function __construct(
         protected Server $server,
@@ -91,7 +93,7 @@ class ConveyorWorker
         $uri = $request->server['request_uri'];
 
         if (
-            !str_contains($uri, 'jacked/auth')
+            !str_contains($uri, 'jacked/message')
             || strtoupper($method) !== 'POST'
         ) {
             Http::json(
@@ -114,7 +116,9 @@ class ConveyorWorker
         $content = json_decode($request->getContent(), true);
 
         $channel = Arr::get($content, 'channel');
-        $connections = $this->persistence['channels']->getAllConnections();
+        /** @var ChannelPersistenceInterface $channelPersistence */
+        $channelPersistence = $this->persistence['channels'];
+        $connections = $channelPersistence->getAllConnections();
         if (null === $channel || !in_array($channel, $connections)) {
             Http::json(
                 response: $response,
@@ -134,12 +138,31 @@ class ConveyorWorker
             return;
         }
 
-        if (null === $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL}) {
+        /**
+         * Description: This is a filter for websocket auth callback. If callable
+         *              returned, that will be the one to be used.
+         * Name: websocket_auth_callback
+         * Params:
+         *   - $params: array
+         * Returns: callback|string
+         */
+        $authMethod = Filter::applyFilters(
+            'websocket_auth_callback',
+            $content,
+        );
+
+        if (
+            null === $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL} // @phpstan-ignore-line
+            && !is_callable($authMethod)
+        ) {
             $this->forceChannelMessage($channel, $message);
+            return;
         }
 
-        // TODO: add filter for websocket auth customization point here
-        if (!$this->websocketAuthRequest($channel)) {
+        if (
+            (!is_callable($authMethod) && !$this->websocketAuthRequest($channel))
+            || (is_callable($authMethod) && !$authMethod($channel))
+        ) {
             Http::json(
                 response: $response,
                 content: [ 'error' => 'Failed to authorize!' ],
@@ -176,13 +199,15 @@ class ConveyorWorker
                 'Accept' => 'application/json',
             ],
         ];
+
+        // @phpstan-ignore-next-line
         if ($this->conveyorOptions->{Constants::WEBSOCKET_AUTH_TOKEN}) {
             $params['headers']['Authorization'] = 'Bearer ' . $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_TOKEN};
         }
 
         try {
             $authResponse = $httpClient->get(
-                $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL},
+                $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL}, // @phpstan-ignore-line
                 $params,
             );
         } catch (GuzzleException $e) {

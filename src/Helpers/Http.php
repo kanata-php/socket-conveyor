@@ -6,6 +6,12 @@ use OpenSwoole\Http\Response;
 
 class Http
 {
+    /**
+     * @param Response $response
+     * @param array<array-key, mixed> $content
+     * @param int $status
+     * @return void
+     */
     public static function json(
         Response $response,
         array $content,
