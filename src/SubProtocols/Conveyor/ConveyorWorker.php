@@ -93,14 +93,18 @@ class ConveyorWorker
         $uri = $request->server['request_uri'];
 
         if (
-            !str_contains($uri, 'jacked/message')
+            !str_contains($uri, 'conveyor/message')
             || strtoupper($method) !== 'POST'
         ) {
-            Http::json(
-                response: $response,
-                content: [],
-                status: 404,
+            $httpCallback = Filter::applyFilters(
+                Constants::FILTER_REQUEST_HANDLER,
+                fn(Request $request, Response $response) => Http::json(
+                    response: $response,
+                    content: [],
+                    status: 404,
+                ),
             );
+            $httpCallback($request, $response);
             return;
         }
 
