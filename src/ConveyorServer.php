@@ -5,6 +5,7 @@ namespace Conveyor;
 use Conveyor\Config\ConveyorOptions;
 use Conveyor\Constants as ConveyorConstants;
 use Conveyor\Events\PreServerStartEvent;
+use Conveyor\Interfaces\ConveyorServerInterface;
 use Conveyor\SubProtocols\Conveyor\Conveyor;
 use Conveyor\SubProtocols\Conveyor\ConveyorWorker;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
@@ -18,7 +19,7 @@ use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
-class ConveyorServer
+class ConveyorServer implements ConveyorServerInterface
 {
     use HasHandlers;
 
