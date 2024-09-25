@@ -10,6 +10,7 @@ use Conveyor\SubProtocols\Conveyor\Conveyor;
 use Conveyor\SubProtocols\Conveyor\ConveyorWorker;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\Traits\HasHandlers;
+use Conveyor\Traits\HasProperties;
 use Exception;
 use OpenSwoole\Constant;
 use OpenSwoole\Http\Request;
@@ -22,38 +23,45 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 class ConveyorServer implements ConveyorServerInterface
 {
     use HasHandlers;
-
-    /**
-     * Conveyor Parts
-     */
+    use HasProperties;
 
     protected Server $server;
+
     protected EventDispatcher $eventDispatcher;
+
+    protected string $host = '0.0.0.0';
+
+    protected int $port = 8989;
+
+    protected int $mode = OpenSwooleBaseServer::POOL_MODE;
+
+    protected int $socketType = Constant::SOCK_TCP;
 
     /**
      * Reference for Server Options:
      * https://openswoole.com/docs/modules/swoole-server/configuration
      *
-     * @param string $host
-     * @param int $port
-     * @param int $mode
-     * @param int $ssl
-     * @param array<array-key, mixed> $serverOptions
-     * @param ConveyorOptions|array<array-key, mixed> $conveyorOptions
-     * @param array<array-key, callable> $eventListeners
-     * @param array<array-key, GenericPersistenceInterface> $persistence
-     * @throws Exception
+     * @var array<mixed> $serverOptions
      */
-    public function __construct(
-        protected string $host = '0.0.0.0',
-        protected int $port = 8989,
-        protected int $mode = OpenSwooleBaseServer::POOL_MODE,
-        protected int $ssl = Constant::SOCK_TCP,
-        protected array $serverOptions = [],
-        protected array|ConveyorOptions $conveyorOptions = [],
-        protected array $eventListeners = [],
-        protected array $persistence = [],
-    ) {
+    protected array $serverOptions = [];
+
+    /**
+     * @var array<mixed>|ConveyorOptions
+     */
+    protected array|ConveyorOptions $conveyorOptions = [];
+
+    /**
+     * @var array<callable|array<string>> $eventListeners
+     */
+    protected array $eventListeners = [];
+
+    /**
+     * @var array<GenericPersistenceInterface> $persistence
+     */
+    protected array $persistence = [];
+
+    public function start(): void
+    {
         if (is_array($this->conveyorOptions)) {
             $this->conveyorOptions = ConveyorOptions::fromArray(array_merge(
                 Constants::DEFAULT_OPTIONS,
@@ -61,7 +69,7 @@ class ConveyorServer implements ConveyorServerInterface
             ));
         }
 
-        $this->startPersistence($persistence);
+        $this->startPersistence($this->persistence);
 
         $this->startListener();
 
@@ -70,40 +78,6 @@ class ConveyorServer implements ConveyorServerInterface
         $this->startWorker();
 
         $this->startServer();
-    }
-
-    /**
-     * @param string $host
-     * @param int $port
-     * @param int $mode
-     * @param int $ssl
-     * @param array<array-key, mixed> $serverOptions
-     * @param ConveyorOptions|array<array-key, mixed> $conveyorOptions
-     * @param array<array-key, callable> $eventListeners
-     * @param array<array-key, GenericPersistenceInterface> $persistence
-     * @return ConveyorServer
-     * @throws Exception
-     */
-    public static function start(
-        string $host = '0.0.0.0',
-        int $port = 8989,
-        int $mode = OpenSwooleBaseServer::POOL_MODE,
-        int $ssl = Constant::SOCK_TCP,
-        array $serverOptions = [],
-        ConveyorOptions|array $conveyorOptions = [],
-        array $eventListeners = [],
-        array $persistence = [],
-    ): ConveyorServer {
-        return new self(
-            host: $host,
-            port: $port,
-            mode: $mode,
-            ssl: $ssl,
-            serverOptions: $serverOptions,
-            conveyorOptions: $conveyorOptions,
-            eventListeners: $eventListeners,
-            persistence: $persistence,
-        );
     }
 
     private function startListener(): void
@@ -129,7 +103,7 @@ class ConveyorServer implements ConveyorServerInterface
 
     private function initializeServer(): void
     {
-        $this->server = new Server($this->host, $this->port, $this->mode, $this->ssl);
+        $this->server = new Server($this->host, $this->port, $this->mode, $this->socketType);
 
         $this->server->set(array_merge([
             'worker_num' => 10,

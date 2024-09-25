@@ -61,13 +61,13 @@ class OpenSwooleSocketTest extends TestCase
             $actions,
             $usePresence
         ) {
-            ConveyorServer::start(
-                port: $this->port,
-                conveyorOptions: [
+            (new ConveyorServer())
+                ->port($this->port)
+                ->conveyorOptions([
                     Constants::ACTIONS => $actions,
                     Constants::USE_PRESENCE => $usePresence,
-                ],
-            );
+                ])
+                ->start();
         });
 
         $pid = $httpServer->start();
