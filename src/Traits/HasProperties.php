@@ -2,79 +2,22 @@
 
 namespace Conveyor\Traits;
 
-use Conveyor\Config\ConveyorOptions;
-use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use BadMethodCallException;
 
 trait HasProperties
 {
-    public function host(string $host): static
-    {
-        $this->host = $host;
-
-        return $this;
-    }
-
-    public function port(int $port): static
-    {
-        $this->port = $port;
-
-        return $this;
-    }
-
-    public function mode(int $mode): static
-    {
-        $this->mode = $mode;
-
-        return $this;
-    }
-
-    public function socketType(int $socketType): static
-    {
-        $this->socketType = $socketType;
-
-        return $this;
-    }
-
     /**
-     * @param array<mixed> $serverOptions
+     * @param string $name
+     * @param array<mixed> $arguments
      * @return $this
      */
-    public function serverOptions(array $serverOptions): static
+    public function __call(string $name, array $arguments): static
     {
-        $this->serverOptions = $serverOptions;
+        if (!property_exists($this, $name)) {
+            throw new BadMethodCallException("Undefined method called: {$name}");
+        }
 
-        return $this;
-    }
-
-    /**
-     * @param array<mixed>|ConveyorOptions $conveyorOptions
-     * @return $this
-     */
-    public function conveyorOptions(array|ConveyorOptions $conveyorOptions): static
-    {
-        $this->conveyorOptions = $conveyorOptions;
-
-        return $this;
-    }
-
-    /**
-     * @param array<callable|array<string>> $eventListeners
-     * @return $this
-     */
-    public function eventListeners(array $eventListeners): static
-    {
-        $this->eventListeners = $eventListeners;
-
-        return $this;
-    }
-
-    /**
-     * @param array<GenericPersistenceInterface> $persistence
-     * @return $this
-     */
-    public function persistence(array $persistence): static
-    {
-        $this->persistence = $persistence;
+        $this->$name = $arguments[0];
 
         return $this;
     }

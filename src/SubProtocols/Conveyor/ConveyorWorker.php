@@ -89,12 +89,10 @@ class ConveyorWorker
 
     private function processRequest(Request $request, Response $response): void
     {
-        $method = $request->server['request_method'];
-        $uri = $request->server['request_uri'];
-
         if (
-            !str_contains($uri, 'conveyor/message')
-            || strtoupper($method) !== 'POST'
+            // if it is not a conveyor protected endpoint...
+            !str_contains($request->server['request_uri'], 'conveyor/message')
+            || strtoupper($request->server['request_method']) !== 'POST'
         ) {
             $httpCallback = Filter::applyFilters(
                 Constants::FILTER_REQUEST_HANDLER,
