@@ -12,5 +12,4 @@ trait Events
     public const EVENT_SERVER_CLOSE = 'conveyor.server_close';
     public const EVENT_BEFORE_MESSAGE_HANDLED = 'conveyor.before_message_handled';
     public const EVENT_AFTER_MESSAGE_HANDLED = 'conveyor.after_message_handled';
-    public const EVENT_SERVER_TICK = 'conveyor.server_tick';
 }

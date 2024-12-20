@@ -158,6 +158,10 @@ class ConveyorWorker
             && !is_callable($authMethod)
         ) {
             $this->forceChannelMessage($channel, $message);
+            Http::json(
+                response: $response,
+                content: [ 'success' => 'Message sent successfully!' ],
+            );
             return;
         }
 
