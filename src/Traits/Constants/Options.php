@@ -72,4 +72,11 @@ trait Options
      * Default: null
      */
     public const WEBSOCKET_AUTH_TOKEN = 'option.websocket_auth_token';
+
+    /**
+     * Description: The Token to be used to open a connection with the websocket server.
+     * Expected value: <string>
+     * Default: null
+     */
+    public const WEBSOCKET_SERVER_TOKEN = 'option.websocket_server_token';
 }

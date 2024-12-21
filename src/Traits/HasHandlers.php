@@ -8,6 +8,7 @@ use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\RequestReceivedEvent;
 use Conveyor\Events\ServerStartedEvent;
 use Conveyor\Events\TaskFinishedEvent;
+use Hook\Filter;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 use OpenSwoole\WebSocket\Frame;
@@ -58,6 +59,11 @@ trait HasHandlers
             return false;
         }
 
+        if (!$this->validateAuth($request)) {
+            $response->end();
+            return false;
+        }
+
         $key = base64_encode(sha1(
             $request->header['sec-websocket-key']
             . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
@@ -101,6 +107,34 @@ trait HasHandlers
         $response->status(101);
         $response->end();
         return true;
+    }
+
+    private function validateAuth(Request $request): bool
+    {
+        // @phpstan-ignore-next-line
+        if (null === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {
+            return true;
+        }
+
+        if (!isset($request->get['token'])) {
+            return false;
+        }
+
+        $token = $request->get['token'];
+
+        /**
+         * Description: This is a filter for websocket handshake auth callback. If callable
+         *              returned, that will be the one to be used.
+         * Name: websocket_handshake_auth_callback
+         * Returns: callback|null
+         */
+        $handshakeAuthMethod = Filter::applyFilters('websocket_handshake_auth_callback', null);
+
+        if (is_callable($handshakeAuthMethod)) {
+            return $handshakeAuthMethod($token);
+        }
+
+        return $token === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN};
     }
 
     protected function onClose(Server $server, int $fd): void

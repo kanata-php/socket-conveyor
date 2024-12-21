@@ -145,12 +145,13 @@ class ConveyorWorker
          *              returned, that will be the one to be used.
          * Name: websocket_auth_callback
          * Params:
-         *   - $params: array
-         * Returns: callback|string
+         *   - $content: array Request Body
+         *   - $header: array Request Header
          */
         $authMethod = Filter::applyFilters(
             'websocket_auth_callback',
             $content,
+            $request->header,
         );
 
         if (
@@ -208,6 +209,7 @@ class ConveyorWorker
 
         // @phpstan-ignore-next-line
         if ($this->conveyorOptions->{Constants::WEBSOCKET_AUTH_TOKEN}) {
+            // @phpstan-ignore-next-line
             $params['headers']['Authorization'] = 'Bearer ' . $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_TOKEN};
         }
 
