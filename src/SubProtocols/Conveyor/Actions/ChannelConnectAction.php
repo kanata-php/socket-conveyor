@@ -70,6 +70,10 @@ class ChannelConnectAction extends AbstractAction
      */
     private function authCheck(string $channel, string $auth): bool
     {
+        if ($auth === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {
+            return true;
+        }
+
         $record = $this->authTokenPersistence->byToken($auth);
         $this->authTokenPersistence->consume($auth);
 
