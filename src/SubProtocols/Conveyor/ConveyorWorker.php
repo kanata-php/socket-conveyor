@@ -124,7 +124,6 @@ class ConveyorWorker
             ),
         );
         $httpCallback($request, $response);
-        var_dump('test');
     }
 
     private function checkToken(string $token): bool
