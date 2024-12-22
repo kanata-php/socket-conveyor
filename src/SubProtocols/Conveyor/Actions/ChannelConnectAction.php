@@ -6,8 +6,6 @@ use Conveyor\Constants;
 use Conveyor\SubProtocols\Conveyor\Actions\Abstractions\AbstractAction;
 use Conveyor\SubProtocols\Conveyor\Actions\Traits\HasPresence;
 use Exception;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
 
 class ChannelConnectAction extends AbstractAction
@@ -29,7 +27,8 @@ class ChannelConnectAction extends AbstractAction
 
         $channel = $data['channel'];
 
-        if ($this->isAuthEnabled() && !$this->websocketAuthRequest($channel, auth: $data['auth'])) {
+        if ($this->isAuthEnabled() && !$this->authCheck($channel, auth: $data['auth'])) {
+            $this->send('Failed to connect to channel', $this->fd);
             return null;
         }
 
@@ -58,7 +57,7 @@ class ChannelConnectAction extends AbstractAction
 
     private function isAuthEnabled(): bool
     {
-        return null !== $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL}; // @phpstan-ignore-line
+        return null !== $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}; // @phpstan-ignore-line
     }
 
     /**
@@ -69,32 +68,12 @@ class ChannelConnectAction extends AbstractAction
      * @param string $auth
      * @return bool
      */
-    private function websocketAuthRequest(string $channel, string $auth): bool
+    private function authCheck(string $channel, string $auth): bool
     {
-        $httpClient = $this->httpClient ?? new Client([ 'timeout' => 2.0 ]);
-        $params = [
-            'query' => [
-                'channel_name' => $channel,
-            ],
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-                'Authorization' => 'Bearer ' . $auth,
-            ],
-        ];
+        $record = $this->authTokenPersistence->byToken($auth);
+        $this->authTokenPersistence->consume($auth);
 
-        try {
-            $authResponse = $httpClient->get(
-                $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL}, // @phpstan-ignore-line
-                $params,
-            );
-        } catch (GuzzleException $e) {
-            // TODO: add logging
-            return false;
-        }
-
-        $parsedResponse = json_decode($authResponse->getBody()->getContents(), true);
-        if (200 !== $authResponse->getStatusCode() || !isset($parsedResponse['auth'])) {
+        if ($record === false || $record['channel'] !== $channel) {
             return false;
         }
 

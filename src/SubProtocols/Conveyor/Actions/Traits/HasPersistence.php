@@ -2,6 +2,7 @@
 
 namespace Conveyor\SubProtocols\Conveyor\Actions\Traits;
 
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\AuthTokenPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\MessageAcknowledgementPersistenceInterface;
@@ -13,7 +14,9 @@ trait HasPersistence
 
     public ?UserAssocPersistenceInterface $userAssocPersistence = null;
 
-    public ?MessageAcknowledgementPersistenceInterface $messageAcknowledmentPersistence = null;
+    public ?MessageAcknowledgementPersistenceInterface $messageAcknowledgementPersistence = null;
+
+    public ?AuthTokenPersistenceInterface $authTokenPersistence = null;
 
     /**
      * This procedure happens at the bootstrap of the Action, not during
@@ -34,7 +37,11 @@ trait HasPersistence
                 break;
 
             case is_a($persistence, MessageAcknowledgementPersistenceInterface::class):
-                $this->messageAcknowledmentPersistence = $persistence;
+                $this->messageAcknowledgementPersistence = $persistence;
+                break;
+
+            case is_a($persistence, AuthTokenPersistenceInterface::class):
+                $this->authTokenPersistence = $persistence;
                 break;
         }
     }

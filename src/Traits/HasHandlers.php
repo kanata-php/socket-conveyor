@@ -122,6 +122,8 @@ trait HasHandlers
 
         $token = $request->get['token'];
 
+        // check with custom auth
+
         /**
          * Description: This is a filter for websocket handshake auth callback. If callable
          *              returned, that will be the one to be used.
@@ -134,7 +136,25 @@ trait HasHandlers
             return $handshakeAuthMethod($token);
         }
 
-        return $token === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN};
+        // check with the main token
+
+        if ($token === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {
+            return true;
+        }
+
+        // check with temp auth
+
+        $record = $this->persistence[Constants::AUTH_TOKENS]->byToken($token);
+
+        if (empty($record['channel'])) {
+            $this->persistence[Constants::AUTH_TOKENS]->consume($token);
+        }
+
+        if ($record) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function onClose(Server $server, int $fd): void

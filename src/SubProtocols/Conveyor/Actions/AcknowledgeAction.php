@@ -20,7 +20,7 @@ class AcknowledgeAction extends AbstractAction
      */
     public function execute(array $data): bool
     {
-        $this->messageAcknowledmentPersistence->acknowledge($data['data']);
+        $this->messageAcknowledgementPersistence->acknowledge($data['data']);
         return true;
     }
 

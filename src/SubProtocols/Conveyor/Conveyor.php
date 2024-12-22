@@ -9,6 +9,7 @@ use Conveyor\SubProtocols\Conveyor\Actions\Interfaces\ActionInterface;
 use Conveyor\SubProtocols\Conveyor\Actions\Traits\HasPersistence;
 use Conveyor\SubProtocols\Conveyor\Exceptions\InvalidActionException;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketAuthTokenTable;
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketMessageAcknowledgmentPersistenceTable;
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
@@ -83,9 +84,10 @@ class Conveyor
     public static function defaultPersistence(): array
     {
         return [
-            'channels' => new SocketChannelPersistenceTable(),
-            'user-associations' => new SocketUserAssocPersistenceTable(),
-            'messages-acknowledgments' => new SocketMessageAcknowledgmentPersistenceTable(),
+            Constants::CHANNELS => new SocketChannelPersistenceTable(),
+            Constants::USER_ASSOCIATIONS => new SocketUserAssocPersistenceTable(),
+            Constants::MESSAGES_ACKNOWLEDGEMENTS => new SocketMessageAcknowledgmentPersistenceTable(),
+            Constants::AUTH_TOKENS => new SocketAuthTokenTable(),
         ];
     }
 

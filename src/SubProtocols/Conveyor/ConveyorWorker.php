@@ -13,6 +13,7 @@ use Conveyor\Helpers\Arr;
 use Conveyor\Helpers\Http;
 use Conveyor\SubProtocols\Conveyor\Actions\BroadcastAction;
 use Conveyor\SubProtocols\Conveyor\Broadcast as ConveyorBroadcast;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\AuthTokenPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Traits\HasAcknowledgement;
@@ -73,8 +74,8 @@ class ConveyorWorker
 
     private function closeConnection(int $fd): void
     {
-        if (isset($this->persistence['channels'])) {
-            $this->persistence['channels']->disconnect($fd); // @phpstan-ignore-line
+        if (isset($this->persistence[Constants::CHANNELS])) {
+            $this->persistence[Constants::CHANNELS]->disconnect($fd); // @phpstan-ignore-line
         }
     }
 
@@ -89,24 +90,67 @@ class ConveyorWorker
 
     private function processRequest(Request $request, Response $response): void
     {
-        if (
-            // if it is not a conveyor protected endpoint...
-            !str_contains($request->server['request_uri'], 'conveyor/message')
-            || strtoupper($request->server['request_method']) !== 'POST'
-        ) {
-            $httpCallback = Filter::applyFilters(
-                Constants::FILTER_REQUEST_HANDLER,
-                fn(Request $request, Response $response) => Http::json(
-                    response: $response,
-                    content: [],
-                    status: 404,
-                ),
+        if (!isset($request->get['token']) || !$this->checkToken($request->get['token'])) {
+            Http::json(
+                response: $response,
+                content: [ 'error' => 'Unauthorized!' ],
+                status: 401,
             );
-            $httpCallback($request, $response);
             return;
         }
 
-        if (!isset($this->persistence['channels'])) {
+        // HTTP broadcast
+        if (
+            str_contains($request->server['request_uri'], 'conveyor/message')
+            && strtoupper($request->server['request_method']) === 'POST'
+        ) {
+            $this->broadcastToChannel($request, $response);
+            return;
+        }
+
+        // Temp token
+        if (
+            str_contains($request->server['request_uri'], 'conveyor/auth')
+            && strtoupper($request->server['request_method']) === 'POST'
+        ) {
+            $this->tempToken($request, $response);
+            return;
+        }
+
+        $httpCallback = Filter::applyFilters(
+            Constants::FILTER_REQUEST_HANDLER,
+            fn(Request $request, Response $response) => Http::json(
+                response: $response,
+                content: [],
+                status: 404,
+            ),
+        );
+        $httpCallback($request, $response);
+        var_dump('test');
+    }
+
+    private function checkToken(string $token): bool
+    {
+        // @phpstan-ignore-next-line
+        if ($token === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {
+            return true;
+        }
+
+        $record = $this->persistence[Constants::AUTH_TOKENS]->byToken($token);
+
+        return $record === false ? false : true;
+    }
+
+    /**
+     * This endpoint expects a POST request with a body with the following structure:
+     * {
+     *     "channel": "channel-name",
+     *     "message": "message"
+     * }
+     */
+    private function broadcastToChannel(Request $request, Response $response): void
+    {
+        if (!isset($this->persistence[Constants::CHANNELS])) {
             Http::json(
                 response: $response,
                 content: [ 'error' => 'Channels not enabled!' ],
@@ -118,9 +162,8 @@ class ConveyorWorker
         $content = json_decode($request->getContent(), true);
 
         $channel = Arr::get($content, 'channel');
-        /** @var ChannelPersistenceInterface $channelPersistence */
-        $channelPersistence = $this->persistence['channels'];
-        $connections = $channelPersistence->getAllConnections();
+
+        $connections = $this->persistence[Constants::CHANNELS]->getAllConnections();
         if (null === $channel || !in_array($channel, $connections)) {
             Http::json(
                 response: $response,
@@ -154,10 +197,7 @@ class ConveyorWorker
             $request->header,
         );
 
-        if (
-            null === $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL} // @phpstan-ignore-line
-            && !is_callable($authMethod)
-        ) {
+        if (!is_callable($authMethod)) {
             $this->forceChannelMessage($channel, $message);
             Http::json(
                 response: $response,
@@ -166,10 +206,7 @@ class ConveyorWorker
             return;
         }
 
-        if (
-            (!is_callable($authMethod) && !$this->websocketAuthRequest($channel))
-            || (is_callable($authMethod) && !$authMethod($channel))
-        ) {
+        if (!$authMethod($channel)) {
             Http::json(
                 response: $response,
                 content: [ 'error' => 'Failed to authorize!' ],
@@ -188,47 +225,24 @@ class ConveyorWorker
     }
 
     /**
-     * This implementation is for Laravel Broadcasting. This is just
-     * the fallback, you are able to customize by using Filter Hooks.
-     *
-     * @param string $channel
-     * @return bool
+     * This endpoint expects a POST request with a body with the following structure:
+     * {
+     *     "channel": "channel-name",
+     * }
      */
-    private function websocketAuthRequest(string $channel): bool
+    private function tempToken(Request $request, Response $response): void
     {
-        $httpClient = $this->httpClient ?? new Client([ 'timeout' => 2.0 ]);
-        $params = [
-            'query' => [
-                'channel_name' => $channel,
-            ],
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ],
-        ];
+        $token = $request->get['token'];
+        $content = json_decode($request->getContent(), true);
 
-        // @phpstan-ignore-next-line
-        if ($this->conveyorOptions->{Constants::WEBSOCKET_AUTH_TOKEN}) {
-            // @phpstan-ignore-next-line
-            $params['headers']['Authorization'] = 'Bearer ' . $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_TOKEN};
-        }
+        $authToken = md5(uniqid($token));
 
-        try {
-            $authResponse = $httpClient->get(
-                $this->conveyorOptions->{Constants::WEBSOCKET_AUTH_URL}, // @phpstan-ignore-line
-                $params,
-            );
-        } catch (GuzzleException $e) {
-            // TODO: add logging
-            return false;
-        }
+        /** @var AuthTokenPersistenceInterface $table */
+        $table = $this->persistence[Constants::AUTH_TOKENS];
+        $table->storeToken($authToken, isset($content['channel']) ? $content['channel'] : '');
 
-        $parsedResponse = json_decode($authResponse->getBody()->getContents(), true);
-        if (200 !== $authResponse->getStatusCode() || !isset($parsedResponse['auth'])) {
-            return false;
-        }
-
-        return true;
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode([ 'auth' => $authToken ]));
     }
 
     private function forceChannelMessage(string $channel, string $message): void
@@ -240,8 +254,8 @@ class ConveyorWorker
             ]),
             channel: $channel,
             server: $this->server,
-            channelPersistence: Arr::get($this->persistence, 'channels'),
-            ackPersistence: Arr::get($this->persistence, 'messages-acknowledgments'),
+            channelPersistence: Arr::get($this->persistence, Constants::CHANNELS),
+            ackPersistence: Arr::get($this->persistence, Constants::MESSAGES_ACKNOWLEDGEMENTS),
         );
     }
 

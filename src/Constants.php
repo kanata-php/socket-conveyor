@@ -7,6 +7,7 @@ use Conveyor\Traits\Constants\Events;
 use Conveyor\Traits\Constants\Filters;
 use Conveyor\Traits\Constants\Options;
 use Conveyor\Traits\Constants\HasReactiveActions;
+use Conveyor\Traits\Constants\Persistence;
 use Conveyor\Traits\Constants\SubProtocols;
 
 class Constants
@@ -17,6 +18,7 @@ class Constants
     use ActionEvents;
     use HasReactiveActions;
     use SubProtocols;
+    use Persistence;
 
     /**
      * Description: Default options for Conveyor.

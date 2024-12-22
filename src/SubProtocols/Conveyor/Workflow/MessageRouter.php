@@ -6,6 +6,7 @@ use Conveyor\Config\ConveyorOptions;
 use Conveyor\SubProtocols\Conveyor\Actions\ActionManager;
 use Conveyor\SubProtocols\Conveyor\Actions\BaseAction;
 use Conveyor\SubProtocols\Conveyor\Exceptions\InvalidActionException;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\AuthTokenPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\MessageAcknowledgementPersistenceInterface;
@@ -25,6 +26,8 @@ class MessageRouter
     public ?UserAssocPersistenceInterface $userAssocPersistence = null;
 
     public ?MessageAcknowledgementPersistenceInterface $messageAcknowledgmentPersistence = null;
+
+    public ?AuthTokenPersistenceInterface $authTokenPersistence = null;
 
     // context
 
@@ -81,6 +84,10 @@ class MessageRouter
             case is_a($persistence, MessageAcknowledgementPersistenceInterface::class):
                 $this->messageAcknowledgmentPersistence = $persistence;
                 break;
+
+            case is_a($persistence, AuthTokenPersistenceInterface::class):
+                $this->authTokenPersistence = $persistence;
+                break;
         }
     }
 
@@ -125,6 +132,7 @@ class MessageRouter
                 $this->channelPersistence,
                 $this->userAssocPersistence,
                 $this->messageAcknowledgmentPersistence,
+                $this->authTokenPersistence,
             ]),
         );
     }

@@ -42,7 +42,7 @@ trait HasPresence
             currentFd: $this->getFd(),
             server: $this->server,
             channelPersistence: $this->channelPersistence,
-            ackPersistence: $this->messageAcknowledmentPersistence,
+            ackPersistence: $this->messageAcknowledgementPersistence,
         );
     }
 }

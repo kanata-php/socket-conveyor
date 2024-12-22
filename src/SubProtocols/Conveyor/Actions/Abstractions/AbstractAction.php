@@ -137,7 +137,7 @@ abstract class AbstractAction implements ActionInterface
                 fd: $fd,
                 data: $data,
                 server: $this->server,
-                ackPersistence: $this->messageAcknowledmentPersistence,
+                ackPersistence: $this->messageAcknowledgementPersistence,
             );
             return;
         }
@@ -157,7 +157,7 @@ abstract class AbstractAction implements ActionInterface
                 fd: $this->getFd(),
                 data: $data,
                 server: $this->server,
-                ackPersistence: $this->messageAcknowledmentPersistence,
+                ackPersistence: $this->messageAcknowledgementPersistence,
             );
         }
     }
@@ -179,7 +179,7 @@ abstract class AbstractAction implements ActionInterface
                 fd: $fd,
                 data: $data,
                 server: $this->server,
-                ackPersistence: $this->messageAcknowledmentPersistence,
+                ackPersistence: $this->messageAcknowledgementPersistence,
             );
         }
     }
@@ -200,7 +200,7 @@ abstract class AbstractAction implements ActionInterface
                 currentFd: $this->getFd(),
                 server: $this->server,
                 channelPersistence: $this->channelPersistence,
-                ackPersistence: $this->messageAcknowledmentPersistence,
+                ackPersistence: $this->messageAcknowledgementPersistence,
             );
             return;
         }
@@ -211,7 +211,7 @@ abstract class AbstractAction implements ActionInterface
             currentFd: $this->getFd(),
             server: $this->server,
             channelPersistence: $this->channelPersistence,
-            ackPersistence: $this->messageAcknowledmentPersistence,
+            ackPersistence: $this->messageAcknowledgementPersistence,
         );
     }
 
