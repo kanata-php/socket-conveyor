@@ -22,6 +22,10 @@ class AssocUserToFdAction extends AbstractAction
      */
     public function execute(array $data): null
     {
+        if (!$this->validateData($data)) {
+            return false;
+        }
+
         $this->connectUserToFd($data);
         return null;
     }
@@ -38,16 +42,13 @@ class AssocUserToFdAction extends AbstractAction
         }
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     * @return void
-     *
-     * @throws InvalidArgumentException
-     */
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
         if (!isset($data['userId'])) {
-            throw new InvalidArgumentException('The userId is required to associate connection to team!');
+            $this->send('The userId is required to associate connection to team!', $this->fd);
+            return false;
         }
+
+        return true;
     }
 }

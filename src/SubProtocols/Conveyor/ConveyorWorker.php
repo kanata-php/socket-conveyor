@@ -88,7 +88,7 @@ class ConveyorWorker
 
     private function processRequest(Request $request, Response $response): void
     {
-        if (!isset($request->get['token']) || !$this->checkToken($request->get['token'])) {
+        if (!$this->checkToken($request->get['token'] ?? null)) {
             Http::json(
                 response: $response,
                 content: [ 'error' => 'Unauthorized!' ],
@@ -126,7 +126,7 @@ class ConveyorWorker
         $httpCallback($request, $response);
     }
 
-    private function checkToken(string $token): bool
+    private function checkToken(?string $token): bool
     {
         // @phpstan-ignore-next-line
         if ($token === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {

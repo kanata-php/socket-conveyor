@@ -20,20 +20,21 @@ class AcknowledgeAction extends AbstractAction
      */
     public function execute(array $data): bool
     {
+        if (!$this->validateData($data)) {
+            return false;
+        }
+
         $this->messageAcknowledgementPersistence->acknowledge($data['data']);
         return true;
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     * @return void
-     *
-     * @throws InvalidArgumentException
-     */
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
         if (!isset($data['data'])) {
-            throw new InvalidArgumentException('AcknowledgeAction required \'data\' field to be created!');
+            $this->send('AcknowledgeAction required \'data\' field to be created!', $this->fd);
+            return false;
         }
+
+        return true;
     }
 }

@@ -11,15 +11,22 @@ class BaseAction extends AbstractAction
 
     protected string $name = self::NAME;
 
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
         if (!isset($data['data'])) {
-            throw new InvalidArgumentException('BaseAction required \'data\' field to be created!');
+            $this->send('BaseAction required \'data\' field to be created!', $this->fd);
+            return false;
         }
+
+        return true;
     }
 
     public function execute(array $data): mixed
     {
+        if (!$this->validateData($data)) {
+            return false;
+        }
+
         $this->send($data['data'], $this->fd);
         return null;
     }

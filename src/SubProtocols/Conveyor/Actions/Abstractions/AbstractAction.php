@@ -217,11 +217,11 @@ abstract class AbstractAction implements ActionInterface
 
     /**
      * @param array<array-key, mixed> $data
-     * @return void
+     * @return mixed
      *
      * @throws Exception
      */
-    abstract public function validateData(array $data): void;
+    abstract public function validateData(array $data): mixed;
 
     /**
      * Execute action.

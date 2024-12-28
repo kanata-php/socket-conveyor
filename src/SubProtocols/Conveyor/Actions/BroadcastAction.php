@@ -4,7 +4,6 @@ namespace Conveyor\SubProtocols\Conveyor\Actions;
 
 use Conveyor\SubProtocols\Conveyor\Actions\Abstractions\AbstractAction;
 use Exception;
-use InvalidArgumentException;
 
 class BroadcastAction extends AbstractAction
 {
@@ -20,20 +19,21 @@ class BroadcastAction extends AbstractAction
      */
     public function execute(array $data): mixed
     {
+        if (!$this->validateData($data)) {
+            return false;
+        }
+
         $this->send($data['data'], null, true);
         return true;
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     * @return void
-     *
-     * @throws InvalidArgumentException
-     */
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
         if (!isset($data['data'])) {
-            throw new InvalidArgumentException('BroadcastAction required \'data\' field to be created!');
+            $this->send('BroadcastAction required \'data\' field to be created!', $this->fd);
+            return false;
         }
+
+        return true;
     }
 }

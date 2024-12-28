@@ -23,7 +23,9 @@ class ChannelConnectAction extends AbstractAction
      */
     public function execute(array $data): mixed
     {
-        $this->validateData($data);
+        if (!$this->validateData($data)) {
+            return false;
+        }
 
         $channel = $data['channel'];
 
@@ -44,15 +46,17 @@ class ChannelConnectAction extends AbstractAction
         return null;
     }
 
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
         if (!isset($data['channel'])) {
-            throw new InvalidArgumentException('Channel connection must specify "channel"!');
+            $this->send('Channel connection must specify "channel"!', $this->fd);
         }
 
         if ($this->isAuthEnabled() && !isset($data['auth'])) {
-            throw new InvalidArgumentException('Channel connection must specify "auth" when authentication is set!');
+            $this->send('Channel connection must specify "auth" when authentication is set!', $this->fd);
         }
+
+        return true;
     }
 
     private function isAuthEnabled(): bool

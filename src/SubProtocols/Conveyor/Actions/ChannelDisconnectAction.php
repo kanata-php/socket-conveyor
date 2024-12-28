@@ -15,17 +15,16 @@ class ChannelDisconnectAction extends AbstractAction
 
     protected string $name = self::NAME;
 
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
+        return true;
     }
 
-    /**
-     * @throws Exception
-     */
     public function execute(array $data): mixed
     {
-        // @throws Exception
-        $this->validateData($data);
+        if (!$this->validateData($data)) {
+            return false;
+        }
 
         if (null !== $this->channelPersistence) {
             $this->channelPersistence->disconnect($this->fd);
