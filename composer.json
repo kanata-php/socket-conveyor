@@ -4,8 +4,8 @@
     "type": "library",
     "license": "MIT",
     "require": {
-        "php": "^8.2",
-        "ext-openswoole": "^22.0|^22.1",
+        "php": ">=8.2",
+        "ext-openswoole": ">=22.0",
         "league/pipeline": "^1.0",
         "symfony/workflow": "^7.0",
         "symfony/event-dispatcher": "^7.0",

@@ -26,14 +26,16 @@ class SampleAction extends AbstractAction
 
     /**
      * @param array $data
-     * @return void
+     * @return mixed
      *
      * @throws InvalidArgumentException
      */
-    public function validateData(array $data): void
+    public function validateData(array $data): mixed
     {
         if (!isset($data['action'])) {
             throw new InvalidArgumentException('SampleAction required \'action\' field to be created!');
         }
+
+        return null;
     }
 }
