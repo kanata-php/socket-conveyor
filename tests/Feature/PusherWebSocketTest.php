@@ -56,6 +56,10 @@ class PusherWebSocketTest extends TestCase
         $httpServer = new Process(function (Process $worker) {
             (new ConveyorServer())
                 ->port($this->port)
+                ->serverOptions([
+                    'worker_num' => 1,
+                    'task_worker_num' => 1,
+                ])
                 ->conveyorOptions([
                     Constants::WEBSOCKET_SUBPROTOCOL => Constants::PUSHER,
                     Constants::USE_PRESENCE => true,
@@ -348,6 +352,46 @@ class PusherWebSocketTest extends TestCase
 
         $alice->close();
         $bob->close();
+        Process::kill($serverPid);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testOneSocketCanStaySubscribedToMultipleChannels(): void
+    {
+        $serverPid = $this->startServer();
+
+        $client = $this->newClient();
+        $this->connect($client);
+
+        foreach (['orders.1', 'orders.2'] as $channel) {
+            $client->send(json_encode([
+                'event' => PusherEvent::SUBSCRIBE,
+                'data' => ['channel' => $channel],
+            ]));
+
+            $frame = $this->receiveFrame($client);
+            $this->assertEquals(PusherEvent::SUBSCRIPTION_SUCCEEDED, $frame['event']);
+            $this->assertEquals($channel, $frame['channel']);
+        }
+
+        foreach (['orders.1' => 1, 'orders.2' => 2] as $channel => $id) {
+            $response = $this->signedPost('/apps/' . $this->appId . '/events', [
+                'name' => 'OrderShipped',
+                'channels' => [$channel],
+                'data' => json_encode(['id' => $id]),
+            ]);
+
+            $this->assertEquals(200, $response['status']);
+
+            $frame = $this->receiveFrame($client);
+            $this->assertEquals('OrderShipped', $frame['event']);
+            $this->assertEquals($channel, $frame['channel']);
+            $this->assertEquals(['id' => $id], json_decode($frame['data'], true));
+        }
+
+        $client->close();
         Process::kill($serverPid);
     }
 }

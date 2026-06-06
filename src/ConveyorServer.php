@@ -9,6 +9,7 @@ use Conveyor\Interfaces\ConveyorServerInterface;
 use Conveyor\SubProtocols\Conveyor\Conveyor;
 use Conveyor\SubProtocols\Conveyor\ConveyorWorker;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\SubProtocols\Pusher\PusherChannelRepository;
 use Conveyor\SubProtocols\Pusher\PusherWorker;
 use Conveyor\SubProtocols\Pusher\SocketIdRepository;
 use Conveyor\Traits\HasHandlers;
@@ -67,6 +68,13 @@ class ConveyorServer implements ConveyorServerInterface
      * Created before $server->start() so its tables are inherited by workers.
      */
     protected ?SocketIdRepository $socketIdRepository = null;
+
+    /**
+     * Pusher sockets can subscribe to many channels at once. The native
+     * Conveyor channel persistence is one-channel-per-fd, so Pusher keeps its
+     * own fd+channel subscription table without changing the native contract.
+     */
+    protected ?PusherChannelRepository $pusherChannelRepository = null;
 
     public function start(): void
     {
@@ -137,12 +145,14 @@ class ConveyorServer implements ConveyorServerInterface
 
         if (ConveyorConstants::PUSHER === $selectedSubProtocol) {
             $this->socketIdRepository = new SocketIdRepository();
+            $this->pusherChannelRepository = new PusherChannelRepository();
             new PusherWorker(
                 server: $this->server,
                 conveyorOptions: $this->conveyorOptions,
                 eventDispatcher: $this->eventDispatcher,
                 persistence: $this->persistence,
                 socketIdRepository: $this->socketIdRepository,
+                channelRepository: $this->pusherChannelRepository,
             );
             return;
         }

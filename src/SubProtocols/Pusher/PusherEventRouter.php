@@ -4,7 +4,6 @@ namespace Conveyor\SubProtocols\Pusher;
 
 use Conveyor\Constants;
 use Conveyor\SubProtocols\Conveyor\Broadcast;
-use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\PresenceChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
@@ -33,6 +32,7 @@ class PusherEventRouter
         private Server $server,
         private array $persistence,
         private SocketIdRepository $socketIds,
+        private PusherChannelRepository $channels,
         private AppManager $appManager,
     ) {
         $this->signer = new PusherSigner();
@@ -72,7 +72,7 @@ class PusherEventRouter
         $removed = $this->presence()->removeConnection($fd);
 
         // Remove the channel mapping before notifying so the leaver is excluded.
-        $this->channels()->disconnect($fd);
+        $this->channels->unsubscribeAll($fd);
 
         foreach ($removed as [$channel, $channelData]) {
             $userId = $this->userIdFromChannelData($channelData);
@@ -103,15 +103,13 @@ class PusherEventRouter
             ? $this->socketIds->fdFor($excludeSocketId)
             : null;
 
-        Broadcast::broadcastToChannel(
-            data: $frame,
-            channel: $channel,
-            currentFd: $excludeFd ?? 0,
-            server: $this->server,
-            channelPersistence: $this->channels(),
-            ackPersistence: null,
-            includeSelf: $excludeFd === null,
-        );
+        foreach ($this->channels->subscribersOf($channel) as $fd => $subscribedChannel) {
+            if (!$this->server->isEstablished((int) $fd) || ($excludeFd !== null && (int) $fd === $excludeFd)) {
+                continue;
+            }
+
+            $this->push((int) $fd, $frame);
+        }
     }
 
     /**
@@ -121,10 +119,7 @@ class PusherEventRouter
      */
     public function subscribersOf(string $channel): array
     {
-        return array_filter(
-            $this->channels()->getAllConnections(),
-            fn($subscribed) => $subscribed === $channel,
-        );
+        return $this->channels->subscribersOf($channel);
     }
 
     /**
@@ -134,7 +129,7 @@ class PusherEventRouter
      */
     public function allSubscriptions(): array
     {
-        return $this->channels()->getAllConnections();
+        return $this->channels->allSubscriptions();
     }
 
     /**
@@ -199,13 +194,13 @@ class PusherEventRouter
                 return;
             }
 
-            $this->channels()->connect($fd, $channel);
+            $this->channels->subscribe($fd, $channel);
             $this->push($fd, PusherFrame::subscriptionSucceeded($channel));
             return;
         }
 
         // Public channel: no authentication required.
-        $this->channels()->connect($fd, $channel);
+        $this->channels->subscribe($fd, $channel);
         $this->push($fd, PusherFrame::subscriptionSucceeded($channel));
     }
 
@@ -240,7 +235,7 @@ class PusherEventRouter
         $userId = $parsed['user_id'];
         $userInfo = $parsed['user_info'] ?? null;
 
-        $this->channels()->connect($fd, $channel);
+        $this->channels->subscribe($fd, $channel);
         $this->presence()->add($fd, $channel, $channelData);
 
         if (is_numeric($userId)) {
@@ -275,7 +270,7 @@ class PusherEventRouter
             $this->presence()->remove($fd, $channel);
         }
 
-        $this->channels()->disconnect($fd);
+        $this->channels->unsubscribe($fd, $channel);
 
         if ($isPresence && $userId !== null && !$this->userStillPresent($channel, $userId)) {
             $this->deliver(
@@ -304,6 +299,14 @@ class PusherEventRouter
             $this->push($fd, PusherFrame::error(
                 PusherEvent::ERROR_GENERIC,
                 'Client events are only supported on private and presence channels',
+            ));
+            return;
+        }
+
+        if (!$this->channels->isSubscribed($fd, $channel)) {
+            $this->push($fd, PusherFrame::error(
+                PusherEvent::ERROR_UNAUTHORIZED,
+                'Connection is not subscribed to this channel',
             ));
             return;
         }
@@ -376,14 +379,6 @@ class PusherEventRouter
         $encoded = json_encode($payload, self::JSON_FLAGS);
 
         return $encoded === false ? '{}' : $encoded;
-    }
-
-    private function channels(): ChannelPersistenceInterface
-    {
-        /** @var ChannelPersistenceInterface $channels */
-        $channels = $this->persistence[Constants::CHANNELS];
-
-        return $channels;
     }
 
     private function presence(): PresenceChannelPersistenceInterface

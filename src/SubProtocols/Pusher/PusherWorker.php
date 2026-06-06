@@ -32,6 +32,7 @@ class PusherWorker
         protected EventDispatcher $eventDispatcher,
         protected array $persistence,
         protected SocketIdRepository $socketIdRepository,
+        protected PusherChannelRepository $channelRepository,
     ) {
         $appManager = new AppManager($this->conveyorOptions);
 
@@ -39,6 +40,7 @@ class PusherWorker
             server: $this->server,
             persistence: $this->persistence,
             socketIds: $this->socketIdRepository,
+            channels: $this->channelRepository,
             appManager: $appManager,
         );
         $this->restController = new PusherRestController($this->router, $appManager);
