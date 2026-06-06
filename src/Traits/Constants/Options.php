@@ -79,4 +79,13 @@ trait Options
      * Default: null
      */
     public const WEBSOCKET_SERVER_TOKEN = 'option.websocket_server_token';
+
+    /**
+     * Description: Pusher application credentials. Each entry is an array with
+     *              keys: app_id, key, secret, and optionally enable_client_messages
+     *              and enabled.
+     * Expected value: <array<array-key, array<array-key, mixed>>>
+     * Default: []
+     */
+    public const APPS = 'option.apps';
 }

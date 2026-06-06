@@ -9,6 +9,8 @@ use Conveyor\Interfaces\ConveyorServerInterface;
 use Conveyor\SubProtocols\Conveyor\Conveyor;
 use Conveyor\SubProtocols\Conveyor\ConveyorWorker;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
+use Conveyor\SubProtocols\Pusher\PusherWorker;
+use Conveyor\SubProtocols\Pusher\SocketIdRepository;
 use Conveyor\Traits\HasHandlers;
 use Conveyor\Traits\HasProperties;
 use Exception;
@@ -59,6 +61,12 @@ class ConveyorServer implements ConveyorServerInterface
      * @var array<GenericPersistenceInterface> $persistence
      */
     protected array $persistence = [];
+
+    /**
+     * Shared-memory socket_id <-> fd registry for the Pusher subprotocol.
+     * Created before $server->start() so its tables are inherited by workers.
+     */
+    protected ?SocketIdRepository $socketIdRepository = null;
 
     public function start(): void
     {
@@ -123,6 +131,18 @@ class ConveyorServer implements ConveyorServerInterface
                 conveyorOptions: $this->conveyorOptions,
                 eventDispatcher: $this->eventDispatcher,
                 persistence: $this->persistence,
+            );
+            return;
+        }
+
+        if (ConveyorConstants::PUSHER === $selectedSubProtocol) {
+            $this->socketIdRepository = new SocketIdRepository();
+            new PusherWorker(
+                server: $this->server,
+                conveyorOptions: $this->conveyorOptions,
+                eventDispatcher: $this->eventDispatcher,
+                persistence: $this->persistence,
+                socketIdRepository: $this->socketIdRepository,
             );
             return;
         }

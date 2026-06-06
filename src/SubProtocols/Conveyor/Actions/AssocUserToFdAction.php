@@ -23,7 +23,7 @@ class AssocUserToFdAction extends AbstractAction
     public function execute(array $data): null
     {
         if (!$this->validateData($data)) {
-            return false;
+            return null;
         }
 
         $this->connectUserToFd($data);

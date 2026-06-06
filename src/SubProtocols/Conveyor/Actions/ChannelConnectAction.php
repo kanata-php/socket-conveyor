@@ -61,7 +61,7 @@ class ChannelConnectAction extends AbstractAction
 
     private function isAuthEnabled(): bool
     {
-        return null !== $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}; // @phpstan-ignore-line
+        return null !== $this->conveyorOptions->__get(Constants::WEBSOCKET_SERVER_TOKEN);
     }
 
     /**
@@ -74,7 +74,7 @@ class ChannelConnectAction extends AbstractAction
      */
     private function authCheck(string $channel, string $auth): bool
     {
-        if ($auth === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {
+        if ($auth === $this->conveyorOptions->__get(Constants::WEBSOCKET_SERVER_TOKEN)) {
             return true;
         }
 

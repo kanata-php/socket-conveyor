@@ -33,5 +33,6 @@ class Constants
         self::ACKNOWLEDGMENT_TIMOUT => 0.5,
         self::WEBSOCKET_AUTH_URL => null,
         self::WEBSOCKET_AUTH_TOKEN => null,
+        self::APPS => [],
     ];
 }

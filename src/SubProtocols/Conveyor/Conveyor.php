@@ -12,6 +12,7 @@ use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInte
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketAuthTokenTable;
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketChannelPersistenceTable;
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketMessageAcknowledgmentPersistenceTable;
+use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketPresenceChannelPersistenceTable;
 use Conveyor\SubProtocols\Conveyor\Persistence\WebSockets\Table\SocketUserAssocPersistenceTable;
 use Conveyor\SubProtocols\Conveyor\Workflow\MessageRouter;
 use Conveyor\SubProtocols\Conveyor\Workflow\RouterWorkflow;
@@ -88,6 +89,7 @@ class Conveyor
             Constants::USER_ASSOCIATIONS => new SocketUserAssocPersistenceTable(),
             Constants::MESSAGES_ACKNOWLEDGEMENTS => new SocketMessageAcknowledgmentPersistenceTable(),
             Constants::AUTH_TOKENS => new SocketAuthTokenTable(),
+            Constants::PRESENCE_CHANNELS => new SocketPresenceChannelPersistenceTable(),
         ];
     }
 

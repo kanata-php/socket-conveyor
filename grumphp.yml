@@ -10,4 +10,4 @@ grumphp:
             testsuite: "Unit"
         shell:
             scripts:
-                - [ "-c", "./vendor/bin/phpstan analyse" ]
+                - [ "-c", "./vendor/bin/phpstan analyse --memory-limit=512M" ]

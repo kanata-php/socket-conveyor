@@ -10,6 +10,7 @@ use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\AuthTokenPersistenceIn
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\MessageAcknowledgementPersistenceInterface;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\PresenceChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
 use Exception;
 use League\Pipeline\Pipeline;
@@ -28,6 +29,8 @@ class MessageRouter
     public ?MessageAcknowledgementPersistenceInterface $messageAcknowledgmentPersistence = null;
 
     public ?AuthTokenPersistenceInterface $authTokenPersistence = null;
+
+    public ?PresenceChannelPersistenceInterface $presenceChannelPersistence = null;
 
     // context
 
@@ -88,6 +91,10 @@ class MessageRouter
             case is_a($persistence, AuthTokenPersistenceInterface::class):
                 $this->authTokenPersistence = $persistence;
                 break;
+
+            case is_a($persistence, PresenceChannelPersistenceInterface::class):
+                $this->presenceChannelPersistence = $persistence;
+                break;
         }
     }
 
@@ -103,6 +110,10 @@ class MessageRouter
 
         if (method_exists($this->messageAcknowledgmentPersistence, 'destroyTable')) {
             $this->messageAcknowledgmentPersistence->destroyTable();
+        }
+
+        if (method_exists($this->presenceChannelPersistence, 'destroyTable')) {
+            $this->presenceChannelPersistence->destroyTable();
         }
     }
 
@@ -133,6 +144,7 @@ class MessageRouter
                 $this->userAssocPersistence,
                 $this->messageAcknowledgmentPersistence,
                 $this->authTokenPersistence,
+                $this->presenceChannelPersistence,
             ]),
         );
     }
