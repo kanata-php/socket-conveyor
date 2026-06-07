@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Socket Conveyor Laravel Echo Smoke</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #f6f7f9;
+        color: #172033;
+      }
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+      h1 {
+        font-size: 28px;
+        line-height: 1.15;
+        margin: 0 0 8px;
+      }
+      .status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 18px 0;
+      }
+      .pill {
+        border: 1px solid #cdd3df;
+        background: #fff;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+      .ok {
+        border-color: #7bbf8e;
+        color: #176232;
+      }
+      .bad {
+        border-color: #d89090;
+        color: #8c1d1d;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+      section {
+        background: #fff;
+        border: 1px solid #d9dee8;
+        border-radius: 8px;
+        padding: 16px;
+        min-height: 190px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+      button {
+        appearance: none;
+        border: 1px solid #27364f;
+        background: #27364f;
+        color: #fff;
+        border-radius: 6px;
+        padding: 9px 11px;
+        font-weight: 650;
+        cursor: pointer;
+        margin: 0 8px 8px 0;
+      }
+      button.secondary {
+        background: #fff;
+        color: #27364f;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #101827;
+        color: #dce8ff;
+        border-radius: 6px;
+        padding: 12px;
+        min-height: 260px;
+        max-height: 440px;
+        overflow: auto;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+      @media (max-width: 820px) {
+        main {
+          padding: 18px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Socket Conveyor Laravel Echo Smoke</h1>
+      <div class="status">
+        <div id="connection" class="pill">loading modules</div>
+        <div id="socket" class="pill">socket_id pending</div>
+        <div class="pill">Echo.channel('public-demo')</div>
+        <div class="pill">Echo.private('demo')</div>
+        <div class="pill">Echo.join('demo')</div>
+      </div>
+
+      <div class="grid">
+        <section>
+          <h2>REST Broadcasts</h2>
+          <button data-channel="public-demo">Public</button>
+          <button data-channel="private-demo">Private</button>
+          <button data-channel="presence-demo">Presence</button>
+          <button id="to-others" class="secondary">Public toOthers()</button>
+        </section>
+        <section>
+          <h2>Echo Whisper</h2>
+          <button id="whisper">presence.whisper('smoke')</button>
+        </section>
+        <section>
+          <h2>Presence Members</h2>
+          <div id="members">waiting</div>
+        </section>
+      </div>
+
+      <pre><code id="log"></code></pre>
+    </main>
+
+    <script src="/config.js"></script>
+    <script type="module">
+      import EchoModule from "https://esm.sh/laravel-echo@2.2.0?bundle";
+      import PusherModule from "https://esm.sh/pusher-js@8.4.0?bundle";
+
+      const Echo = EchoModule.default || EchoModule;
+      const Pusher = PusherModule.default || PusherModule;
+      window.Pusher = Pusher;
+
+      const logEl = document.getElementById("log");
+      const connectionEl = document.getElementById("connection");
+      const socketEl = document.getElementById("socket");
+      const membersEl = document.getElementById("members");
+      const config = window.PUSHER_REAL_CONFIG;
+      let socketId = null;
+      let presence = null;
+
+      function log(label, payload) {
+        const line = `[${new Date().toLocaleTimeString()}] ${label} ${payload ? JSON.stringify(payload) : ""}`;
+        logEl.textContent = `${line}\n${logEl.textContent}`;
+      }
+
+      const echo = new Echo({
+        broadcaster: "pusher",
+        key: config.appKey,
+        wsHost: config.wsHost,
+        wsPort: config.wsPort,
+        forceTLS: false,
+        enabledTransports: ["ws"],
+        disableStats: true,
+        cluster: "mt1",
+        authEndpoint: "/broadcasting/auth",
+        auth: {
+          params: {
+            user_id: String(Math.floor(Math.random() * 9000) + 1000),
+            name: `Echo Browser ${Math.floor(Math.random() * 100)}`,
+          },
+        },
+      });
+
+      echo.connector.pusher.connection.bind("state_change", (states) => {
+        connectionEl.textContent = `${states.previous} -> ${states.current}`;
+        connectionEl.className = `pill ${states.current === "connected" ? "ok" : ""}`;
+        log("connection", states);
+      });
+
+      echo.connector.pusher.connection.bind("connected", () => {
+        socketId = echo.socketId();
+        socketEl.textContent = `socket_id ${socketId}`;
+        socketEl.className = "pill ok";
+      });
+
+      echo.connector.pusher.connection.bind("error", (error) => {
+        connectionEl.className = "pill bad";
+        log("connection error", error);
+      });
+
+      echo
+        .channel("public-demo")
+        .listen(".DemoEvent", (data) => log("Echo public DemoEvent", data));
+
+      echo
+        .private("demo")
+        .listen(".DemoEvent", (data) => log("Echo private DemoEvent", data));
+
+      presence = echo
+        .join("demo")
+        .here((users) => {
+          renderMembers(users);
+          log("Echo presence here", users);
+        })
+        .joining((user) => {
+          log("Echo presence joining", user);
+        })
+        .leaving((user) => {
+          log("Echo presence leaving", user);
+        })
+        .listen(".DemoEvent", (data) => log("Echo presence DemoEvent", data))
+        .listenForWhisper("smoke", (data) => log("Echo whisper smoke", data));
+
+      function renderMembers(users) {
+        membersEl.textContent = users.length
+          ? users
+              .map(
+                (user) =>
+                  `${user.id || user.user_id}: ${JSON.stringify(user.info || user.user_info || user)}`,
+              )
+              .join("\n")
+          : "none yet";
+      }
+
+      async function trigger(channel, excludeSelf = false) {
+        const response = await fetch("/trigger", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channel,
+            event: "DemoEvent",
+            socket_id: excludeSelf ? socketId : null,
+          }),
+        });
+        const result = await response.json();
+        log(`trigger ${channel}`, result);
+      }
+
+      document.querySelectorAll("button[data-channel]").forEach((button) => {
+        button.addEventListener("click", () => trigger(button.dataset.channel));
+      });
+
+      document
+        .getElementById("to-others")
+        .addEventListener("click", () => trigger("public-demo", true));
+      document.getElementById("whisper").addEventListener("click", () => {
+        presence.whisper("smoke", {
+          message: "hello from Laravel Echo",
+          at: new Date().toISOString(),
+        });
+        log("Echo whisper sent");
+      });
+    </script>
+  </body>
+</html>

@@ -9,6 +9,7 @@ use Conveyor\SubProtocols\Pusher\Frame\PusherEvent;
 use Conveyor\SubProtocols\Pusher\PusherSigner;
 use Exception;
 use GuzzleHttp\Client as HttpClient;
+use Hook\Action;
 use OpenSwoole\Process;
 use Tests\TestCase;
 use WebSocket\Client as WsClient;
@@ -49,11 +50,15 @@ class PusherWebSocketTest extends TestCase
     /**
      * @throws Exception
      */
-    protected function startServer(): int
+    protected function startServer(?callable $beforeStart = null): int
     {
         Conveyor::refresh();
 
-        $httpServer = new Process(function (Process $worker) {
+        $httpServer = new Process(function (Process $worker) use ($beforeStart) {
+            if ($beforeStart !== null) {
+                $beforeStart();
+            }
+
             (new ConveyorServer())
                 ->port($this->port)
                 ->serverOptions([
@@ -173,6 +178,101 @@ class PusherWebSocketTest extends TestCase
 
         $client->close();
         Process::kill($serverPid);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testPusherIncomingMessageHookReceivesRawFrames(): void
+    {
+        $hookLog = tempnam(sys_get_temp_dir(), 'conveyor-pusher-hook-');
+        $this->assertIsString($hookLog);
+
+        $serverPid = $this->startServer(function () use ($hookLog): void {
+            Action::addAction(
+                Constants::ACTION_PUSHER_MESSAGE_RECEIVED,
+                function (int $fd, string $raw, array $frame) use ($hookLog): void {
+                    file_put_contents($hookLog, json_encode([
+                        'fd' => $fd,
+                        'raw' => $raw,
+                        'event' => $frame['event'] ?? null,
+                    ]) . PHP_EOL, FILE_APPEND);
+                },
+            );
+        });
+
+        $client = $this->newClient();
+        $this->connect($client);
+
+        $client->send(json_encode([
+            'event' => PusherEvent::SUBSCRIBE,
+            'data' => ['channel' => 'hook-check'],
+        ]));
+
+        $this->assertEquals(PusherEvent::SUBSCRIPTION_SUCCEEDED, $this->receiveFrame($client)['event']);
+
+        $lines = file($hookLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $this->assertIsArray($lines);
+        $this->assertNotEmpty($lines);
+
+        $last = json_decode((string) end($lines), true);
+        $this->assertIsArray($last);
+        $this->assertEquals(PusherEvent::SUBSCRIBE, $last['event']);
+        $this->assertStringContainsString('hook-check', $last['raw']);
+
+        $client->close();
+        Process::kill($serverPid);
+        unlink($hookLog);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testPusherRestEventHookReceivesPublishedEvents(): void
+    {
+        $hookLog = tempnam(sys_get_temp_dir(), 'conveyor-pusher-rest-hook-');
+        $this->assertIsString($hookLog);
+
+        $serverPid = $this->startServer(function () use ($hookLog): void {
+            Action::addAction(
+                Constants::ACTION_PUSHER_REST_EVENT_RECEIVED,
+                function (
+                    array $payload,
+                    string $name,
+                    array $channels,
+                    string $data,
+                    ?string $socketId,
+                ) use ($hookLog): void {
+                    file_put_contents($hookLog, json_encode([
+                        'name' => $name,
+                        'channels' => $channels,
+                        'data' => $data,
+                        'socket_id' => $socketId,
+                    ]) . PHP_EOL, FILE_APPEND);
+                },
+            );
+        });
+
+        $response = $this->signedPost('/apps/' . $this->appId . '/events', [
+            'name' => 'DemoEvent',
+            'channel' => 'presence-room.1',
+            'data' => '{"message":"hello from tinker"}',
+        ]);
+
+        $this->assertEquals(200, $response['status']);
+
+        $lines = file($hookLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $this->assertIsArray($lines);
+        $this->assertNotEmpty($lines);
+
+        $last = json_decode((string) end($lines), true);
+        $this->assertIsArray($last);
+        $this->assertEquals('DemoEvent', $last['name']);
+        $this->assertEquals(['presence-room.1'], $last['channels']);
+        $this->assertEquals('{"message":"hello from tinker"}', $last['data']);
+
+        Process::kill($serverPid);
+        unlink($hookLog);
     }
 
     /**

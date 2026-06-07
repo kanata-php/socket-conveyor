@@ -9,6 +9,7 @@ use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\PresenceChannelPersist
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\UserAssocPersistenceInterface;
 use Conveyor\SubProtocols\Pusher\Frame\PusherEvent;
 use Conveyor\SubProtocols\Pusher\Frame\PusherFrame;
+use Hook\Action;
 use OpenSwoole\WebSocket\Server;
 
 /**
@@ -49,6 +50,14 @@ class PusherEventRouter
         if (!is_string($event)) {
             return;
         }
+
+        Action::doAction(
+            Constants::ACTION_PUSHER_MESSAGE_RECEIVED,
+            $fd,
+            $raw,
+            $frame,
+            $this->server,
+        );
 
         if (str_starts_with($event, self::CLIENT_PREFIX)) {
             $this->handleClientEvent($fd, $event, $frame);

@@ -2,7 +2,8 @@
 
 namespace Conveyor\SubProtocols\Pusher;
 
-use Conveyor\SubProtocols\Pusher\Frame\PusherEvent;
+use Conveyor\Constants;
+use Hook\Action;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 
@@ -190,6 +191,15 @@ class PusherRestController
         ) {
             return false;
         }
+
+        Action::doAction(
+            Constants::ACTION_PUSHER_REST_EVENT_RECEIVED,
+            $payload,
+            $name,
+            $channels,
+            $data,
+            $socketId,
+        );
 
         foreach ($channels as $channel) {
             $this->router->deliver($name, $channel, $data, $socketId);

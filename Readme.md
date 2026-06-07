@@ -9,6 +9,9 @@ Built for PHP8.2+.
 
 See more at the [Documentation](https://socketconveyor.com).
 
+For Laravel Echo / Reverb-compatible usage, see
+[`docs/laravel-echo-reverb-compatibility.md`](docs/laravel-echo-reverb-compatibility.md).
+
 ## Using Conveyor as a Pusher/Reverb server
 
 Conveyor can run in a Pusher-compatible mode for Laravel's stock `pusher` or
