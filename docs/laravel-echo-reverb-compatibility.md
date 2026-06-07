@@ -119,6 +119,47 @@ If the browser shows a `403` or posts to your frontend dev server, such as
 not subscribed. The auth request must reach Laravel, because Laravel owns
 `routes/channels.php` and the authenticated user session.
 
+For Pusher/Reverb mode there is no separate Conveyor access token in the
+browser. The authorized connection uses Pusher channel auth:
+
+> Note: In Pusher mode, the browser asks Laravel whether it may enter a
+> private or presence channel; Laravel checks the logged-in user and returns a
+> signed permission payload that Conveyor verifies with the shared app secret.
+> In Conveyor's native protocol, Conveyor itself uses a server token or
+> temporary channel token instead of Laravel's normal `/broadcasting/auth`
+> Pusher flow.
+
+1. Echo opens the WebSocket to Conveyor at `/app/{key}`.
+2. Conveyor returns a `socket_id`.
+3. Echo posts `socket_id` and `channel_name` to Laravel's `/broadcasting/auth`.
+4. Laravel checks `routes/channels.php` for the authenticated user.
+5. Laravel returns an auth signature created with the same app key and secret
+   configured in Conveyor.
+6. Echo sends that signature to Conveyor in `pusher:subscribe`.
+7. Conveyor validates the signature before subscribing the socket.
+
+Private channel auth response:
+
+```json
+{
+  "auth": "local-key:computed-hmac-signature"
+}
+```
+
+Presence channel auth response:
+
+```json
+{
+  "auth": "local-key:computed-hmac-signature",
+  "channel_data": "{\"user_id\":\"1\",\"user_info\":{\"name\":\"Savio\"}}"
+}
+```
+
+Laravel creates these responses for you when the built-in `reverb` or `pusher`
+broadcaster is configured with the same app id, key, and secret as Conveyor.
+Do not put `CONVEYOR_SERVER_TOKEN` in Echo config; that token belongs only to
+Conveyor's native protocol.
+
 Then use normal Echo APIs:
 
 ```js

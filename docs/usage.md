@@ -321,6 +321,85 @@ Response:
 Use the returned `auth` value in a later `channel-connect` message for the same
 channel. Temporary channel tokens are consumed after use.
 
+### Mint Native Channel Tokens From Laravel
+
+If a Laravel application owns user authentication but you are using Conveyor's
+native protocol, have Laravel call Conveyor's `/conveyor/auth` endpoint from a
+server-side route. Keep `CONVEYOR_SERVER_TOKEN` on the server only; do not expose
+it through Vite or browser JavaScript.
+
+Laravel `.env`:
+
+```dotenv
+CONVEYOR_HTTP_URL=http://127.0.0.1:8989
+CONVEYOR_SERVER_TOKEN=local-server-token
+```
+
+Example Laravel route:
+
+```php
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
+
+Route::post('/conveyor/channel-auth', function (Request $request) {
+    $data = $request->validate([
+        'channel' => ['required', 'string'],
+    ]);
+
+    // Authorize the current user for this channel before minting a token.
+    abort_unless($request->user()?->can('joinConveyorChannel', $data['channel']), 403);
+
+    $url = rtrim(config('services.conveyor.url'), '/') . '/conveyor/auth?'
+        . http_build_query(['token' => config('services.conveyor.server_token')]);
+
+    $response = Http::asJson()->post($url, ['channel' => $data['channel']]);
+
+    abort_unless($response->successful(), 502);
+
+    return $response->json();
+})->middleware('auth');
+```
+
+Add the service config:
+
+```php
+// config/services.php
+'conveyor' => [
+    'url' => env('CONVEYOR_HTTP_URL', 'http://127.0.0.1:8989'),
+    'server_token' => env('CONVEYOR_SERVER_TOKEN'),
+],
+```
+
+The browser asks Laravel for a channel token, then uses it for the native
+WebSocket handshake and `channel-connect` message:
+
+```js
+const response = await fetch('/conveyor/channel-auth', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+  },
+  body: JSON.stringify({ channel: 'orders.1' }),
+})
+
+const { auth } = await response.json()
+const socket = new WebSocket(`ws://127.0.0.1:8989/?token=${encodeURIComponent(auth)}`)
+
+socket.addEventListener('open', () => {
+  socket.send(JSON.stringify({
+    action: 'channel-connect',
+    channel: 'orders.1',
+    auth,
+  }))
+})
+```
+
+This is only for Conveyor's native protocol. For Laravel Echo with the
+Pusher/Reverb-compatible mode, use Laravel's normal `/broadcasting/auth` flow
+instead.
+
 Force a server-side broadcast to a native channel:
 
 ```bash
@@ -554,6 +633,44 @@ Echo subscribes to the Pusher channel name `presence-room.1`.
 In Pusher mode, Conveyor validates private and presence channel signatures
 using the configured app key and secret. An invalid signature produces
 `pusher:error` with unauthorized code `4009`.
+
+There is no Conveyor-specific browser token in Pusher mode. The authorized
+connection is the normal Pusher/Reverb sequence:
+
+> Note: In Pusher mode, the browser asks Laravel whether it may enter a
+> private or presence channel; Laravel checks the logged-in user and returns a
+> signed permission payload that Conveyor verifies with the shared app secret.
+> In Conveyor's native protocol, Conveyor itself uses a server token or
+> temporary channel token instead of Laravel's normal `/broadcasting/auth`
+> Pusher flow.
+
+1. Echo connects to Conveyor at `/app/{key}` and receives a `socket_id`.
+2. Echo posts `socket_id` and `channel_name` to Laravel's `/broadcasting/auth`.
+3. Laravel checks `routes/channels.php`.
+4. Laravel returns an `auth` signature, and presence channels also return
+   `channel_data`.
+5. Echo sends that `auth` value in `pusher:subscribe`.
+6. Conveyor validates the signature with the app secret from `Constants::APPS`.
+
+Private auth response shape:
+
+```json
+{
+  "auth": "local-key:computed-hmac-signature"
+}
+```
+
+Presence auth response shape:
+
+```json
+{
+  "auth": "local-key:computed-hmac-signature",
+  "channel_data": "{\"user_id\":\"1\",\"user_info\":{\"name\":\"Savio\"}}"
+}
+```
+
+Laravel generates this response when its built-in `reverb` or `pusher`
+broadcaster uses the same app id, key, and secret configured in Conveyor.
 
 If the browser shows a `403`, or posts to a frontend dev server such as
 `http://localhost:8081/broadcasting/auth`, the client did not authorize and is

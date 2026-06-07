@@ -48,3 +48,28 @@ PUSHER_APP_SECRET=local-secret
 CONVEYOR_HOST=127.0.0.1
 CONVEYOR_PORT=8990
 ```
+
+The smoke router includes a `/broadcasting/auth` endpoint that stands in for
+Laravel's built-in broadcasting auth route. It receives `socket_id` and
+`channel_name`, then returns the Pusher auth payload that Echo sends back to
+Conveyor during `pusher:subscribe`.
+
+Private channel response:
+
+```json
+{
+  "auth": "local-key:computed-hmac-signature"
+}
+```
+
+Presence channel response:
+
+```json
+{
+  "auth": "local-key:computed-hmac-signature",
+  "channel_data": "{\"user_id\":\"1234\",\"user_info\":{\"name\":\"Browser User\"}}"
+}
+```
+
+In a Laravel app, Laravel's `reverb` or `pusher` broadcaster generates this
+response from the same app key and secret configured in Conveyor.
