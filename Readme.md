@@ -1,16 +1,28 @@
 
 # Socket Conveyor
 
-This package enables you to work with socket messages using routing strategy. For that, you just add an Action Handler implementing the `ActionInterface` to the `SocketMessageRouter` and watch the magic happen!
+This package enables PHP 8.2+ applications to work with WebSocket messages
+using a routing strategy. Add an action handler implementing `ActionInterface`
+to the `SocketMessageRouter`, or run Conveyor in Pusher/Reverb-compatible mode
+for Laravel Echo clients.
 
-As an example of how to accomplish that with PHP, you can use the [OpenSwoole](https://openswoole.com/). You can find out more how to use WebSockets with OpenSwoole [here](https://www.youtube.com/watch?v=Vgw5Ibqc15k).
+Socket Conveyor is built on [OpenSwoole](https://openswoole.com/). You can
+find out more about using WebSockets with OpenSwoole
+[here](https://www.youtube.com/watch?v=Vgw5Ibqc15k).
 
-Built for PHP8.2+.
+Built for PHP 8.2+.
 
-See more at the [Documentation](https://socketconveyor.com).
+## Documentation
 
-For Laravel Echo / Reverb-compatible usage, see
-[`docs/laravel-echo-reverb-compatibility.md`](docs/laravel-echo-reverb-compatibility.md).
+- [Complete usage guide](docs/usage.md): installation, native Conveyor mode,
+  Pusher/Reverb-compatible mode, Laravel Echo setup, HTTP endpoints, smoke
+  testing, and troubleshooting.
+- [Laravel Echo / Reverb compatibility guide](docs/laravel-echo-reverb-compatibility.md):
+  the shortest path for using Conveyor with Laravel's built-in `reverb` or
+  `pusher` broadcaster.
+- [Real Pusher client smoke example](examples/pusher-real/README.md): local
+  browser smoke test using `pusher-js` and Laravel Echo.
+- [Project documentation site](https://socketconveyor.com).
 
 ## Using Conveyor as a Pusher/Reverb server
 
