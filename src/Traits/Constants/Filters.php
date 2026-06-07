@@ -14,4 +14,6 @@ trait Filters
     // Actions
 
     public const ACTION_AFTER_PUSH_MESSAGE = 'action.after_push_message';
+    public const ACTION_PUSHER_MESSAGE_RECEIVED = 'action.pusher_message_received';
+    public const ACTION_PUSHER_REST_EVENT_RECEIVED = 'action.pusher_rest_event_received';
 }

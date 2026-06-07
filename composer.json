@@ -31,6 +31,9 @@
         }
     },
     "scripts": {
+        "phpstan": [
+            "vendor/bin/phpstan analyse --memory-limit=512M"
+        ],
         "test": [
             "vendor/bin/phpunit --testsuite All"
         ]

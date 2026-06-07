@@ -14,6 +14,7 @@ use Conveyor\Helpers\Http;
 use Conveyor\SubProtocols\Conveyor\Actions\BroadcastAction;
 use Conveyor\SubProtocols\Conveyor\Broadcast as ConveyorBroadcast;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\AuthTokenPersistenceInterface;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\ChannelPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\GenericPersistenceInterface;
 use Conveyor\SubProtocols\Conveyor\Traits\HasAcknowledgement;
 use GuzzleHttp\Client;
@@ -133,7 +134,9 @@ class ConveyorWorker
             return true;
         }
 
-        $record = $this->persistence[Constants::AUTH_TOKENS]->byToken($token);
+        /** @var AuthTokenPersistenceInterface $authTokens */
+        $authTokens = $this->persistence[Constants::AUTH_TOKENS];
+        $record = $authTokens->byToken($token);
 
         return $record === false ? false : true;
     }
@@ -160,7 +163,9 @@ class ConveyorWorker
 
         $channel = Arr::get($content, 'channel');
 
-        $connections = $this->persistence[Constants::CHANNELS]->getAllConnections();
+        /** @var ChannelPersistenceInterface $channels */
+        $channels = $this->persistence[Constants::CHANNELS];
+        $connections = $channels->getAllConnections();
         if (null === $channel || !in_array($channel, $connections)) {
             Http::json(
                 response: $response,

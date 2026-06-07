@@ -8,6 +8,10 @@ use Conveyor\Events\MessageReceivedEvent;
 use Conveyor\Events\RequestReceivedEvent;
 use Conveyor\Events\ServerStartedEvent;
 use Conveyor\Events\TaskFinishedEvent;
+use Conveyor\SubProtocols\Pusher\AppManager;
+use Conveyor\SubProtocols\Pusher\Frame\PusherEvent;
+use Conveyor\SubProtocols\Pusher\Frame\PusherFrame;
+use Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\AuthTokenPersistenceInterface;
 use Hook\Filter;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
@@ -47,6 +51,11 @@ trait HasHandlers
 
     protected function onHandshake(Request $request, Response $response): bool
     {
+        // @phpstan-ignore-next-line
+        if (Constants::PUSHER === $this->conveyorOptions->{Constants::WEBSOCKET_SUBPROTOCOL}) {
+            return $this->onPusherHandshake($request, $response);
+        }
+
         $secWebSocketKey = $request->header['sec-websocket-key'];
         $patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
 
@@ -109,6 +118,93 @@ trait HasHandlers
         return true;
     }
 
+    /**
+     * Pusher-protocol handshake.
+     *
+     * Completes the WebSocket upgrade, then either pushes
+     * `pusher:connection_established` for a known app, or — for an unknown or
+     * disabled app — pushes a `pusher:error` (4001) over the socket and closes
+     * it, as the Pusher protocol delivers the error before disconnecting.
+     */
+    private function onPusherHandshake(Request $request, Response $response): bool
+    {
+        $secWebSocketKey = $request->header['sec-websocket-key'] ?? '';
+        $pattern = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
+
+        if (
+            0 === preg_match($pattern, $secWebSocketKey)
+            || 16 !== strlen(base64_decode($secWebSocketKey))
+        ) {
+            $response->end();
+            return false;
+        }
+
+        $appKey = $this->parsePusherAppKey($request);
+        // @phpstan-ignore-next-line
+        $appManager = new AppManager($this->conveyorOptions);
+        $app = $appKey !== null ? $appManager->findByKey($appKey) : null;
+
+        $accept = base64_encode(sha1(
+            $secWebSocketKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
+            true
+        ));
+
+        $headers = [
+            'Upgrade' => 'websocket',
+            'Connection' => 'Upgrade',
+            'Sec-WebSocket-Accept' => $accept,
+            'Sec-WebSocket-Version' => '13',
+        ];
+
+        if (isset($request->header['sec-websocket-protocol'])) {
+            $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
+        }
+
+        foreach ($headers as $key => $val) {
+            $response->header($key, $val);
+        }
+
+        $response->status(101);
+        $response->end();
+
+        $fd = $request->fd;
+
+        if ($app === null || !$app->enabled) {
+            // @phpstan-ignore-next-line
+            $this->server->defer(function () use ($fd) {
+                $this->server->push(
+                    $fd,
+                    PusherFrame::error(PusherEvent::ERROR_APP_NOT_FOUND, 'Could not find app'),
+                );
+                $this->server->close($fd);
+            });
+            return true;
+        }
+
+        $socketId = $this->socketIdRepository->register($fd);
+        $this->socketIdRepository->bindApp($fd, $app->key);
+
+        // @phpstan-ignore-next-line
+        $this->server->defer(function () use ($fd, $socketId) {
+            $this->server->push($fd, PusherFrame::connectionEstablished($socketId, 120));
+        });
+
+        return true;
+    }
+
+    private function parsePusherAppKey(Request $request): ?string
+    {
+        $uri = $request->server['path_info']
+            ?? $request->server['request_uri']
+            ?? '';
+
+        if (preg_match('#/app/([^/?]+)#', $uri, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
     private function validateAuth(Request $request): bool
     {
         // @phpstan-ignore-next-line
@@ -138,16 +234,18 @@ trait HasHandlers
 
         // check with the main token
 
-        if ($token === $this->conveyorOptions->{Constants::WEBSOCKET_SERVER_TOKEN}) {
+        if ($token === $this->conveyorOptions->__get(Constants::WEBSOCKET_SERVER_TOKEN)) {
             return true;
         }
 
         // check with temp auth
 
-        $record = $this->persistence[Constants::AUTH_TOKENS]->byToken($token);
+        /** @var AuthTokenPersistenceInterface $authTokens */
+        $authTokens = $this->persistence[Constants::AUTH_TOKENS];
+        $record = $authTokens->byToken($token);
 
         if (empty($record['channel'])) {
-            $this->persistence[Constants::AUTH_TOKENS]->consume($token);
+            $authTokens->consume($token);
         }
 
         if ($record) {
