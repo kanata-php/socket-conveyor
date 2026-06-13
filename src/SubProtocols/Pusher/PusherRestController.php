@@ -140,12 +140,20 @@ class PusherRestController
             return;
         }
 
-        if (!$this->publishEvent($payload)) {
+        $event = $this->validateEvent($payload);
+        if ($event === null) {
             $this->json($response, ['error' => 'Invalid event'], 400);
             return;
         }
 
+        // Respond before fanning out. The Pusher REST publish endpoint is
+        // fire-and-forget (it returns `{}` with no delivery guarantee), and
+        // deferring delivery until after the response means a subscriber that
+        // is momentarily not reading its socket cannot block the publishing
+        // coroutine on a full send buffer — which, under concurrent load,
+        // previously parked every publish coroutine and deadlocked the worker.
         $this->json($response, []);
+        $this->deliverEvent($event);
     }
 
     private function handleBatchEvents(Request $request, Response $response): void
@@ -161,20 +169,38 @@ class PusherRestController
             return;
         }
 
+        // Validate the whole batch before responding so an invalid event still
+        // yields a 400, then respond and fan out (see handleEvents).
+        $events = [];
         foreach ($payload['batch'] as $event) {
-            if (!is_array($event) || !$this->publishEvent($event)) {
+            if (!is_array($event) || ($validated = $this->validateEvent($event)) === null) {
                 $this->json($response, ['error' => 'Invalid event'], 400);
                 return;
             }
+            $events[] = $validated;
         }
 
         $this->json($response, []);
+
+        foreach ($events as $validated) {
+            $this->deliverEvent($validated);
+        }
     }
 
     /**
+     * Validate and normalise a publish payload, returning the delivery-ready
+     * event or null when the payload is invalid.
+     *
      * @param array<array-key, mixed> $payload
+     * @return array{
+     *     name: string,
+     *     channels: array<array-key, string>,
+     *     data: string,
+     *     socketId: ?string,
+     *     payload: array<array-key, mixed>
+     * }|null
      */
-    private function publishEvent(array $payload): bool
+    private function validateEvent(array $payload): ?array
     {
         $name = $payload['name'] ?? null;
         $data = $payload['data'] ?? null;
@@ -189,23 +215,44 @@ class PusherRestController
             || $channels === []
             || ($socketId !== null && !is_string($socketId))
         ) {
-            return false;
+            return null;
         }
 
+        return [
+            'name' => $name,
+            'channels' => $channels,
+            'data' => $data,
+            'socketId' => $socketId,
+            'payload' => $payload,
+        ];
+    }
+
+    /**
+     * Fan a validated event out to its channels. Safe to call after the HTTP
+     * response has been sent.
+     *
+     * @param array{
+     *     name: string,
+     *     channels: array<array-key, string>,
+     *     data: string,
+     *     socketId: ?string,
+     *     payload: array<array-key, mixed>
+     * } $event
+     */
+    private function deliverEvent(array $event): void
+    {
         Action::doAction(
             Constants::ACTION_PUSHER_REST_EVENT_RECEIVED,
-            $payload,
-            $name,
-            $channels,
-            $data,
-            $socketId,
+            $event['payload'],
+            $event['name'],
+            $event['channels'],
+            $event['data'],
+            $event['socketId'],
         );
 
-        foreach ($channels as $channel) {
-            $this->router->deliver($name, $channel, $data, $socketId);
+        foreach ($event['channels'] as $channel) {
+            $this->router->deliver($event['name'], $channel, $event['data'], $event['socketId']);
         }
-
-        return true;
     }
 
     /**

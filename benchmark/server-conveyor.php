@@ -13,6 +13,7 @@ $port = (int) (getenv('BENCHMARK_CONVEYOR_PORT') ?: getenv('CONVEYOR_PORT') ?: 8
 $appId = getenv('BENCHMARK_CONVEYOR_APP_ID') ?: getenv('PUSHER_APP_ID') ?: 'local-app';
 $appKey = getenv('BENCHMARK_CONVEYOR_APP_KEY') ?: getenv('PUSHER_APP_KEY') ?: 'local-key';
 $appSecret = getenv('BENCHMARK_CONVEYOR_APP_SECRET') ?: getenv('PUSHER_APP_SECRET') ?: 'local-secret';
+$logRequests = filter_var(getenv('BENCHMARK_LOG_REQUESTS') ?: false, FILTER_VALIDATE_BOOLEAN);
 
 fwrite(STDOUT, sprintf(
     "Socket Conveyor benchmark target listening on %s:%d app_id=%s app_key=%s\n",
@@ -28,6 +29,11 @@ fwrite(STDOUT, sprintf(
     ->serverOptions([
         'worker_num' => (int) (getenv('BENCHMARK_CONVEYOR_WORKERS') ?: 1),
         'task_worker_num' => (int) (getenv('BENCHMARK_CONVEYOR_TASK_WORKERS') ?: 1),
+        // When the fanout pushes to a subscriber whose send buffer is full,
+        // send_yield (default on) suspends the publishing coroutine until the
+        // buffer drains. Allow toggling/sizing for deadlock investigation.
+        'send_yield' => filter_var(getenv('BENCHMARK_CONVEYOR_SEND_YIELD') ?: 'true', FILTER_VALIDATE_BOOLEAN),
+        'buffer_output_size' => (int) (getenv('BENCHMARK_CONVEYOR_BUFFER_OUTPUT') ?: 32 * 1024 * 1024),
     ])
     ->conveyorOptions([
         Constants::WEBSOCKET_SUBPROTOCOL => Constants::PUSHER,
@@ -40,7 +46,7 @@ fwrite(STDOUT, sprintf(
             'enabled' => true,
         ]],
     ])
-    ->eventListeners([
+    ->eventListeners($logRequests ? [
         Constants::EVENT_REQUEST_RECEIVED => function (
             RequestReceivedEvent $event,
         ) {
@@ -48,5 +54,5 @@ fwrite(STDOUT, sprintf(
             echo "Received request: {$event->request->server['request_method']} "
                 . "{$event->request->server['request_uri']}\n";
         },
-    ])
+    ] : [])
     ->start();

@@ -163,7 +163,17 @@ class Broadcast
         $connected = $server->isEstablished($fd);
 
         if ($connected) {
-            $server->push($fd, $data);
+            $pushed = $server->push($fd, $data);
+
+            // A false return means the frame could not be queued or flushed —
+            // the send buffer overflowed or a bounded send_timeout elapsed,
+            // i.e. a slow or dead consumer. Evict it instead of letting its
+            // backpressure stall (and, under concurrent fanout, deadlock) the
+            // broadcaster. With the default blocking push this only fires once
+            // send_timeout (set in ConveyorServer) elapses.
+            if ($pushed === false) {
+                $server->close($fd);
+            }
         }
 
         /**

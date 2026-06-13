@@ -49,7 +49,9 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cd "$ROOT_DIR"
-php benchmark/server-conveyor.php > "$SERVER_LOG" 2>&1 &
+# Match the Reverb runner's memory budget (php -d memory_limit=-1) so the two
+# servers compete under the same constraints; overridable via env.
+php -d memory_limit="${BENCHMARK_CONVEYOR_MEMORY_LIMIT:--1}" benchmark/server-conveyor.php > "$SERVER_LOG" 2>&1 &
 SERVER_PID="$!"
 
 sleep "${BENCHMARK_STARTUP_SECONDS:-2}"
@@ -62,11 +64,21 @@ if [[ -f .venv/bin/activate ]]; then
     source .venv/bin/activate
 fi
 
+# Distribute the load generator across cores so Locust itself is not the
+# bottleneck. Without this a single Locust process saturates one core and caps
+# throughput well below what the server can handle, making the comparison a
+# measure of the generator rather than the server.
+LOCUST_EXTRA=()
+[[ -n "${BENCHMARK_PROCESSES:-}" ]] && LOCUST_EXTRA+=(--processes "${BENCHMARK_PROCESSES}")
+
 locust -f locustfile.py \
     --headless \
     --users "${BENCHMARK_USERS:-100}" \
     --spawn-rate "${BENCHMARK_SPAWN_RATE:-10}" \
     --run-time "${BENCHMARK_RUN_TIME:-2m}" \
+    --reset-stats \
+    --stop-timeout "${BENCHMARK_STOP_TIMEOUT:-2}" \
+    "${LOCUST_EXTRA[@]}" \
     --host "$HOST" \
     --csv "$CSV_PREFIX"
 

@@ -125,6 +125,12 @@ class ConveyorServer implements ConveyorServerInterface
             'worker_num' => 10,
             'task_worker_num' => 10,
             'task_ipc_mode' => 3,
+            // Bound how long a push to a slow/dead consumer may block the
+            // sending coroutine. Without a bound, one non-draining client can
+            // park the broadcaster indefinitely (and, under concurrent fanout,
+            // deadlock the worker). On timeout the push returns false and
+            // Broadcast::push evicts the connection. Overridable per deployment.
+            'send_timeout' => 30.0,
         ], $this->serverOptions));
     }
 

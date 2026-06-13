@@ -133,6 +133,25 @@ settings for Conveyor and Reverb when comparing result files. See
 `benchmark/laravel-reverb/README.md` for fixture details and override
 environment variables.
 
+### Fair comparison window
+
+Both runners pass `--reset-stats` and a bounded `--stop-timeout` so the two
+servers are measured over the **same window**:
+
+- `--reset-stats` zeroes the counters once every user has spawned, so the
+  ramp-up period (≈ `users / spawn-rate` seconds) is excluded. Because both
+  runs use identical `users`/`spawn-rate`, the measured steady-state interval
+  is the same length for each server.
+- `--stop-timeout` caps how long Locust waits for in-flight tasks after
+  `--run-time` elapses. Without it, a slower server drains its request backlog
+  for much longer, keeping the run alive and inflating its total request count
+  long after the load window closed.
+
+Together these stop a slow side from racking up "extra" requests during ramp-up
+and drain, so **total request counts become directly comparable** rather than a
+function of wall-clock run length. Prefer comparing `Requests/s` and the latency
+percentiles regardless — those are duration-independent.
+
 ## Target Environment
 
 Locust uses `--host` for the target base URL. The benchmark-specific settings
@@ -152,6 +171,9 @@ come from environment variables:
   `0.01`.
 - `BENCHMARK_WAIT_MAX_SECONDS`: maximum wait between Locust tasks. Default:
   `0.05`.
+- `BENCHMARK_STOP_TIMEOUT`: seconds Locust waits for in-flight tasks to finish
+  after `--run-time` elapses. Caps the post-run drain so a slow server cannot
+  extend its measured window. Default: `2`.
 
 The included Conveyor benchmark server also accepts:
 

@@ -15,10 +15,16 @@ export BENCHMARK_APP_ID="${BENCHMARK_APP_ID:-local-app}"
 export BENCHMARK_APP_KEY="${BENCHMARK_APP_KEY:-local-key}"
 export BENCHMARK_APP_SECRET="${BENCHMARK_APP_SECRET:-local-secret}"
 
+LOCUST_EXTRA=()
+[[ -n "${BENCHMARK_PROCESSES:-}" ]] && LOCUST_EXTRA+=(--processes "${BENCHMARK_PROCESSES}")
+
 exec locust -f locustfile.py \
-    # --headless \
+    --headless \
     --users "${BENCHMARK_USERS:-100}" \
     --spawn-rate "${BENCHMARK_SPAWN_RATE:-10}" \
     --run-time "${BENCHMARK_RUN_TIME:-2m}" \
+    --reset-stats \
+    --stop-timeout "${BENCHMARK_STOP_TIMEOUT:-2}" \
+    "${LOCUST_EXTRA[@]}" \
     --host "${BENCHMARK_HOST:-http://127.0.0.1:8991}" \
     --csv "${BENCHMARK_CSV_PREFIX:-../results/reverb-laravel13}"

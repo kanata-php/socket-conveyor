@@ -73,11 +73,21 @@ export BENCHMARK_APP_ID="${BENCHMARK_APP_ID:-local-app}"
 export BENCHMARK_APP_KEY="${BENCHMARK_APP_KEY:-local-key}"
 export BENCHMARK_APP_SECRET="${BENCHMARK_APP_SECRET:-local-secret}"
 
+# Distribute the load generator across cores so Locust itself is not the
+# bottleneck. Without this a single Locust process saturates one core and caps
+# throughput well below what the server can handle, making the comparison a
+# measure of the generator rather than the server.
+LOCUST_EXTRA=()
+[[ -n "${BENCHMARK_PROCESSES:-}" ]] && LOCUST_EXTRA+=(--processes "${BENCHMARK_PROCESSES}")
+
 locust -f locustfile.py \
     --headless \
     --users "${BENCHMARK_USERS:-100}" \
     --spawn-rate "${BENCHMARK_SPAWN_RATE:-10}" \
     --run-time "${BENCHMARK_RUN_TIME:-2m}" \
+    --reset-stats \
+    --stop-timeout "${BENCHMARK_STOP_TIMEOUT:-2}" \
+    "${LOCUST_EXTRA[@]}" \
     --host "$HOST" \
     --csv "$CSV_PREFIX"
 

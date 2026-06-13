@@ -86,12 +86,15 @@ class MessageRouterTest extends TestCase
         $server->shouldReceive('isEstablished')->andReturn(true);
         $server->shouldReceive('push')
             ->with(1, $expectedResponse)
+            ->andReturnTrue()
             ->times(1);
         $server->shouldReceive('push')
             ->with(2, $expectedResponse)
+            ->andReturnTrue()
             ->times(1);
         $server->shouldReceive('push')
             ->with(3, $expectedResponse)
+            ->andReturnTrue()
             ->times(1);
 
         $result = Conveyor::init()
@@ -209,12 +212,15 @@ class MessageRouterTest extends TestCase
         $server->shouldReceive('isEstablished')->times(3)->andReturn(true);
         $server->shouldReceive('push')
             ->with(1, $message)
+            ->andReturnTrue()
             ->times(1);
         $server->shouldReceive('push')
             ->with(2, $message)
+            ->andReturnTrue()
             ->times(1);
         $server->shouldReceive('push')
             ->with(3, $message)
+            ->andReturnTrue()
             ->times(1);
 
         $result = Conveyor::init()
