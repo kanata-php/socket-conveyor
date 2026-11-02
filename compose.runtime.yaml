@@ -1,0 +1,21 @@
+# Isolated development runtime: no host ports, environment files, or secrets.
+# docker compose -f compose.runtime.yaml build
+# docker compose -f compose.runtime.yaml run --rm runtime composer install --no-interaction --prefer-dist --no-scripts --no-plugins
+# docker compose -f compose.runtime.yaml run --rm runtime composer test
+# For comparisons, run both existing benchmark runners inside ONE runtime container.
+services:
+  runtime:
+    build:
+      context: .
+      dockerfile: docker/runtime.Dockerfile
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    environment:
+      COMPOSER_HOME: /tmp/composer
+    volumes:
+      - .:/workspace
+    # Reuse Docker's bridge without allocating another network subnet.
+    network_mode: bridge
+    init: true
+    stdin_open: true
+    tty: true
