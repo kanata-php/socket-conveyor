@@ -114,7 +114,9 @@ def analyze_trial(path: Path, require_exit_status: bool) -> Trial:
         server_log.read_text(errors="replace"),
     ):
         reasons.append("server log contains error")
-    if run_log.exists() and "CPU usage above 90%" in run_log.read_text(errors="replace"):
+    if not run_log.exists():
+        reasons.append("missing run.log")
+    elif "CPU usage above 90%" in run_log.read_text(errors="replace"):
         reasons.append("locust reported cpu saturation")
     # ps CPU is summed across the master and all worker processes; 95% of
     # one core is not saturation for a six-worker generator. Locust emits its
@@ -226,7 +228,7 @@ def main() -> int:
         print("## Claim Draft")
         print()
         print(
-            "Across the valid paired trials in this run, Socket Conveyor reached "
+            "Across independently filtered valid trials in this run, Socket Conveyor reached "
             f"median REST publish throughput of {median(conveyor):.2f} requests/sec "
             f"versus Laravel Reverb's {median(reverb):.2f} requests/sec "
             f"({ratio:.2f}x), with zero recorded Locust failures or exceptions."

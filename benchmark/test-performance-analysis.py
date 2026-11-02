@@ -43,6 +43,12 @@ class TrialValidityTest(unittest.TestCase):
             (path / 'run.log').write_text('CPU usage above 90%')
             self.assertIn('cpu saturation', analysis.analyze_trial(path, True).invalid_reason)
 
+    def test_missing_run_log_invalidates_trial(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self.fixture(root)
+            (path / 'run.log').unlink()
+            self.assertIn('missing run.log', analysis.analyze_trial(path, True).invalid_reason)
+
     def test_missing_resource_samples_invalidate_trial(self):
         with tempfile.TemporaryDirectory() as root:
             path = self.fixture(root)

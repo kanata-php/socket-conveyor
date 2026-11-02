@@ -39,24 +39,37 @@ terminate_process_tree() {
     while (( SECONDS < deadline )); do
         local any_alive=false
         for pid in "${pids[@]}"; do
-            if kill -0 "$pid" 2>/dev/null; then
+            if process_is_running "$pid"; then
                 any_alive=true
                 break
             fi
         done
-
         [[ "$any_alive" == false ]] && return 0
         sleep 1
     done
 
-    mapfile -t pids < <(collect_descendants "$root"; printf '%s\n' "$root")
+    # Preserve the original descendants: they may have been reparented after
+    # their supervisor exited and no longer appear below root.
+    mapfile -t pids < <(printf '%s\n' "${pids[@]}"; collect_descendants "$root")
     for pid in "${pids[@]}"; do
-        kill "$pid" 2>/dev/null || true
+        process_is_running "$pid" && kill "$pid" 2>/dev/null || true
     done
-
     sleep 1
+    for pid in "${pids[@]}"; do
+        if process_is_running "$pid"; then
+            printf 'Owned process %s survived shutdown of tree %s\n' "$pid" "$root" >&2
+            return 1
+        fi
+    done
+}
 
-    printf 'Timed out waiting for process tree rooted at %s to exit cleanly\n' "$root" >&2
+# Used by the indirectly invoked trap cleanup helpers.
+# shellcheck disable=SC2329
+process_is_running() {
+    local state
+    state="$(ps -o stat= -p "$1" 2>/dev/null)" || return 1
+    [[ -n "$state" && "$state" != *Z* ]]
+
 }
 
 wait_for_port_free() {
@@ -128,10 +141,15 @@ sample_resources() {
 # Invoked indirectly by trap.
 # shellcheck disable=SC2329
 cleanup() {
-    [[ -n "${LOCUST_SAMPLER_PID:-}" ]] && terminate_process_tree "$LOCUST_SAMPLER_PID"
-    [[ -n "${LOCUST_PID:-}" ]] && terminate_process_tree "$LOCUST_PID"
-    [[ -n "${SAMPLER_PID:-}" ]] && terminate_process_tree "$SAMPLER_PID"
-    [[ -n "${SERVER_PID:-}" ]] && terminate_process_tree "$SERVER_PID"
+    local status=$?
+    local cleanup_status=0
+    trap - EXIT INT TERM
+    [[ -z "${LOCUST_SAMPLER_PID:-}" ]] || terminate_process_tree "$LOCUST_SAMPLER_PID" || cleanup_status=1
+    [[ -z "${LOCUST_PID:-}" ]] || terminate_process_tree "$LOCUST_PID" || cleanup_status=1
+    [[ -z "${SAMPLER_PID:-}" ]] || terminate_process_tree "$SAMPLER_PID" || cleanup_status=1
+    [[ -z "${SERVER_PID:-}" ]] || terminate_process_tree "$SERVER_PID" || cleanup_status=1
+    (( status != 0 )) || status="$cleanup_status"
+    exit "$status"
 }
 trap cleanup EXIT INT TERM
 
