@@ -25,8 +25,8 @@
 ## Gates and next action
 
 - Hosted Tests workflow must be green on the final PR head; local evidence does not replace this gate.
-- Required harness review submission needs the user's run-bound approval after the findings are presented.
+- The existing human-controlled `review-off` switch disables harness review submission; independent native review still approved the final correctness fixes and results without findings.
 - Original harness dispatch preparation failed with CalledProcessError; native workers completed in separate explicit worktrees.
 - Graph service unavailable; bounded exact source and saved artifact review used instead.
-- Cleanup merged worker worktrees only after combined verification; preserve original checkout and all raw benchmark evidence.
+- Three clean merged worker worktrees and their branches were removed after combined verification; the failed dispatch worktree is retained, and the original checkout and all raw benchmark evidence are preserved.
 - Follow-ups: no general capacity claim, internet latency, multi-node fanout or every-subscriber delivery validation was requested.
