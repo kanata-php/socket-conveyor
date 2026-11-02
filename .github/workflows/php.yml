@@ -38,4 +38,7 @@ jobs:
       run: composer install --prefer-dist --no-progress
 
     - name: Run test suite
-      run: composer run-script test
+      timeout-minutes: 3
+      run: |
+        php --ri openswoole
+        composer run-script test -- --debug
