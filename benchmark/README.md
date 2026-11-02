@@ -133,10 +133,25 @@ settings for Conveyor and Reverb when comparing result files. See
 `benchmark/laravel-reverb/README.md` for fixture details and override
 environment variables.
 
+For a performance comparison, use the protocol in
+`PERFORMANCE_METHODOLOGY.md` and the paired-run harness:
+
+```bash
+BENCHMARK_TRIALS=5 BENCHMARK_PROCESSES=6 \
+  bash benchmark/run-performance-comparison.sh
+```
+
+The harness captures environment metadata, warmups, paired trials, server
+resources, Locust resources, raw Locust CSVs, and an aggregate report under
+`benchmark/results/runs/<timestamp>/`. It records each target runner's exit
+status and continues after failed trials so the report can account for the full
+planned matrix. The analyzer drafts a claim only when both targets have at least
+`BENCHMARK_MIN_VALID_TRIALS` valid trials; the default minimum is `5`.
+
 ### Fair comparison window
 
-Both runners pass `--reset-stats` and a bounded `--stop-timeout` so the two
-servers are measured over the **same window**:
+Both resource runners pass `--reset-stats` by default and a bounded
+`--stop-timeout` so the two servers are measured over the **same window**:
 
 - `--reset-stats` zeroes the counters once every user has spawned, so the
   ramp-up period (≈ `users / spawn-rate` seconds) is excluded. Because both
@@ -151,6 +166,11 @@ Together these stop a slow side from racking up "extra" requests during ramp-up
 and drain, so **total request counts become directly comparable** rather than a
 function of wall-clock run length. Prefer comparing `Requests/s` and the latency
 percentiles regardless — those are duration-independent.
+
+Set `BENCHMARK_RESET_STATS=false` only when you need the full ramp-up samples,
+especially `WS connect` and `WS subscribe`. In that mode, compare throughput
+over a steady-state window from the `*_stats_history.csv` files instead of
+using final total request counts directly.
 
 ## Target Environment
 
@@ -171,6 +191,11 @@ come from environment variables:
   `0.01`.
 - `BENCHMARK_WAIT_MAX_SECONDS`: maximum wait between Locust tasks. Default:
   `0.05`.
+- `BENCHMARK_PROCESSES`: optional Locust process count passed through as
+  `--processes` for distributed local load generation.
+- `BENCHMARK_RESET_STATS`: whether the benchmark runners pass Locust
+  `--reset-stats`. Default: `true`. Set to `false` to keep ramp-up
+  connect/subscribe samples.
 - `BENCHMARK_STOP_TIMEOUT`: seconds Locust waits for in-flight tasks to finish
   after `--run-time` elapses. Caps the post-run drain so a slow server cannot
   extend its measured window. Default: `2`.

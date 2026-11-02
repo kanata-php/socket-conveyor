@@ -123,6 +123,13 @@ Locust benchmark settings:
   `0.01`.
 - `BENCHMARK_WAIT_MAX_SECONDS`: maximum wait between Locust tasks. Default:
   `0.05`.
+- `BENCHMARK_PROCESSES`: optional process count used by the included headless
+  runner scripts when passing Locust `--processes`.
+- `BENCHMARK_RESET_STATS`: whether the included headless runner scripts pass
+  Locust `--reset-stats`. Default: `true` for comparable steady-state totals.
+  Set to `false` to preserve ramp-up `WS connect` and `WS subscribe` samples.
+- `BENCHMARK_STOP_TIMEOUT`: seconds the included headless runner scripts let
+  Locust wait for in-flight tasks after `--run-time` elapses. Default: `2`.
 
 Included Conveyor server settings:
 
