@@ -22,6 +22,8 @@ collect_descendants() {
     done
 }
 
+# Invoked by the EXIT/INT/TERM cleanup handler.
+# shellcheck disable=SC2329
 terminate_process_tree() {
     local root="${1:-}"
     [[ -z "$root" ]] && return 0
@@ -123,6 +125,8 @@ sample_resources() {
     done
 }
 
+# Invoked indirectly by trap.
+# shellcheck disable=SC2329
 cleanup() {
     [[ -n "${LOCUST_SAMPLER_PID:-}" ]] && terminate_process_tree "$LOCUST_SAMPLER_PID"
     [[ -n "${LOCUST_PID:-}" ]] && terminate_process_tree "$LOCUST_PID"
