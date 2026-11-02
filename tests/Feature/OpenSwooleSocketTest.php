@@ -18,33 +18,9 @@ use Tests\TestCase;
 
 class OpenSwooleSocketTest extends TestCase
 {
+    use ServerProcessCleanup;
+
     public int $port = 8989;
-
-    protected function getServerProcesses(): false|string
-    {
-        return exec('lsof -i -P -n | grep LISTEN | grep ' . $this->port);
-    }
-
-    /**
-     * @before
-     * @after
-     * @throws Exception
-     */
-    public function tearServerDown(): void
-    {
-        // kill processes
-        exec('lsof -i -P -n '
-            . '| grep LISTEN '
-            . '| grep ' . $this->port . ' '
-            . '| awk \'{print $2}\' '
-            . '| xargs -I {} kill -9 {} > /dev/null  2>&1');
-
-        // verify
-        $output2 = $this->getServerProcesses();
-        if (!empty($output2)) {
-            throw new Exception('Failed to kill server. Output: ' . $output2);
-        }
-    }
 
     /**
      * @param array<array-key, ActionInterface> $actions
@@ -71,6 +47,7 @@ class OpenSwooleSocketTest extends TestCase
         });
 
         $pid = $httpServer->start();
+        $this->serverPid = $pid;
 
         $counter = 0;
         $threshold = 10; // seconds
