@@ -1,0 +1,4 @@
+# Ignore generated benchmark artifacts; keep docs and this file.
+*
+!.gitignore
+!CLAUDE.md

@@ -21,6 +21,8 @@ fi
 
 php artisan vendor:publish --tag=reverb-config --force --no-interaction
 
+# PHP owns the dollar-prefixed variables in this single-quoted program.
+# shellcheck disable=SC2016
 php -r '
 $path = ".env";
 $values = [

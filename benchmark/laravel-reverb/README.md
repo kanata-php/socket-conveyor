@@ -53,6 +53,13 @@ The run script accepts these overrides:
 - `BENCHMARK_USERS`: Locust user count. Default: `100`.
 - `BENCHMARK_SPAWN_RATE`: Locust spawn rate. Default: `10`.
 - `BENCHMARK_RUN_TIME`: Locust run time. Default: `2m`.
+- `BENCHMARK_PROCESSES`: optional Locust process count passed through as
+  `--processes`.
+- `BENCHMARK_RESET_STATS`: whether to pass Locust `--reset-stats`. Default:
+  `true` for comparable steady-state totals. Set to `false` to keep ramp-up
+  connect/subscribe samples.
+- `BENCHMARK_STOP_TIMEOUT`: seconds Locust waits for in-flight tasks after the
+  run time elapses. Default: `2`.
 - `BENCHMARK_CSV_PREFIX`: CSV output prefix. Default:
   `../results/reverb-laravel13`.
 
