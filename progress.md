@@ -10,10 +10,13 @@
 
 ## Evidence
 
-- Docker full suite: 69 tests, 267 assertions; PHPStan and Composer validation passed.
+- Docker full suites: 69 tests, 267 assertions on both PHP 8.2 / OpenSwoole 25 and PHP 8.4 / OpenSwoole 26; PHPStan and Composer validation passed.
+- Hosted PHP 8.2 initially exposed a test-fixture defect: Atomic wait/wakeup mutated counters on OpenSwoole 25; bounded polling in the three affected tests now preserves exact numerical assertions (`bccac4d`), with production source unchanged.
+- CI retains extension/test diagnostics and a three-minute test-step timeout; the diagnostic run accurately identified the stalled router test.
+- CI-repair evidence: `/tmp/socket-ci-fixed82.log`, `/tmp/socket-ci-fixed84.log`; a fresh independent review approved both modified files without findings.
 - Combined harness command: `COMPOSE_PROJECT_NAME=socket-conveyor-task-runtime PATH="$PWD/docker:$PATH" harness-runtime exec scripts/verify.sh --project "$PWD"`.
 - Earlier combined run exposed asynchronous test teardown; the shared helper now signals only its owned child, waits for exit/listener closure and reaps it.
-- Final local verification log: `/tmp/socket-conveyor-delivery-verify.log`.
+- Final local verification log: `/tmp/socket-conveyor-release-verify.log`.
 - Benchmark: 100 users, 6 Locust workers, 2 minutes, 256-byte payload, warmup plus 5 valid trials per server.
 - Conveyor median REST publish: 887.57 requests/sec; Reverb: 649.22; ratio 1.37x, limited to this shared-host workload.
 - Results: [benchmark/PERFORMANCE_RESULTS_20261102.md](benchmark/PERFORMANCE_RESULTS_20261102.md).
