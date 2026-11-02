@@ -116,7 +116,7 @@ sample_resources() {
         pid_list="$(IFS=,; echo "${pids[*]}")"
 
         ps -o pcpu= -o rss= -o vsz= -p "$pid_list" 2>/dev/null \
-            | awk -v ts="$(date --iso-8601=seconds)" -v count="${#pids[@]}" '
+            | awk -v ts="$(date +%Y-%m-%dT%H:%M:%S%z)" -v count="${#pids[@]}" '
                 { cpu += $1; rss += $2; vsz += $3 }
                 END { printf "%s,%d,%.2f,%d,%d\n", ts, count, cpu, rss, vsz }
             ' >> "$report"

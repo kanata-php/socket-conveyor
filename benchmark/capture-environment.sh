@@ -16,7 +16,7 @@ run_section() {
 
 {
     printf '# Benchmark Environment\n'
-    printf '\nCaptured at: %s\n' "$(date --iso-8601=seconds)"
+    printf '\nCaptured at: %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)"
     printf 'Working directory: %s\n' "$(pwd)"
     printf 'Git commit: %s\n' "$(git rev-parse HEAD 2>/dev/null || printf unknown)"
     printf 'Git status:\n'
