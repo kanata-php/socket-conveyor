@@ -59,7 +59,7 @@ run uses portable timestamps.
 ## Artifacts
 
 Local artifact directory:
-`/home/savior/Code/Studies/socket-conveyor-benchmark/benchmark/results/runs/20261102-paired-v2/`
+`/home/savior/Code/Studies/socket-conveyor/benchmark/results/runs/20261102-paired-v2/`
 
 It contains `environment.txt`, `execution.log`, `report.md`,
 `source-provenance.txt`, `during-run-script.patch`, both warmup directories, and
