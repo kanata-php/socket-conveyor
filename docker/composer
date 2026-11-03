@@ -1,0 +1,5 @@
+#!/bin/sh
+# Put this directory first on PATH to run harness Composer checks in Docker.
+set -eu
+project_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+exec docker compose -f "$project_dir/compose.runtime.yaml" run --rm -T runtime composer "$@"

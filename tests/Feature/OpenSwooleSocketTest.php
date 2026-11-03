@@ -18,31 +18,17 @@ use Tests\TestCase;
 
 class OpenSwooleSocketTest extends TestCase
 {
+    use ServerProcessCleanup;
+
     public int $port = 8989;
 
-    protected function getServerProcesses(): false|string
+    private function waitForCounter(Atomic $counter, int $expected, float $timeout): void
     {
-        return exec('lsof -i -P -n | grep LISTEN | grep ' . $this->port);
-    }
-
-    /**
-     * @before
-     * @after
-     * @throws Exception
-     */
-    public function tearServerDown(): void
-    {
-        // kill processes
-        exec('lsof -i -P -n '
-            . '| grep LISTEN '
-            . '| grep ' . $this->port . ' '
-            . '| awk \'{print $2}\' '
-            . '| xargs -I {} kill -9 {} > /dev/null  2>&1');
-
-        // verify
-        $output2 = $this->getServerProcesses();
-        if (!empty($output2)) {
-            throw new Exception('Failed to kill server. Output: ' . $output2);
+        // Atomic::wait()/wakeup() use the value as a semaphore on OpenSwoole 25;
+        // they must not share storage with a numeric message count.
+        $deadline = microtime(true) + $timeout;
+        while ($counter->get() < $expected && microtime(true) < $deadline) {
+            usleep(10000);
         }
     }
 
@@ -71,6 +57,7 @@ class OpenSwooleSocketTest extends TestCase
         });
 
         $pid = $httpServer->start();
+        $this->serverPid = $pid;
 
         $counter = 0;
         $threshold = 10; // seconds
@@ -125,15 +112,10 @@ class OpenSwooleSocketTest extends TestCase
                         string $message
                     ) use (
                         $counter,
-                        $expectedTotal,
                     ) {
                         $parsedData = json_decode($message, true);
                         if (substr($parsedData['data'], 0, 5) === 'test-') {
                             $counter->add(1);
-                        }
-
-                        if ($counter->get() >= $expectedTotal) {
-                            $counter->wakeup();
                         }
                     },
                 ]);
@@ -146,9 +128,7 @@ class OpenSwooleSocketTest extends TestCase
             $workers[$process->pid] = $process;
         }
 
-        while ($counter->get() < $expectedTotal) {
-            $counter->wait(0.5);
-        }
+        $this->waitForCounter($counter, $expectedTotal, 10);
 
         foreach ($workers as $pid => $worker) {
             Process::kill($pid);
@@ -195,14 +175,13 @@ class OpenSwooleSocketTest extends TestCase
                     if ($parsedData['data'] === 'done') {
                         $counter->add(1);
                     }
-                    $counter->wakeup();
                 },
             ]);
             $client->connect();
         });
         $pid = $process->start();
 
-        $counter->wait(2);
+        $this->waitForCounter($counter, $expectedTotal, 2);
         Process::kill($pid);
         Process::kill($serverPid);
 
@@ -266,14 +245,13 @@ class OpenSwooleSocketTest extends TestCase
                     if ($parsedData['data']['users'][1] === $expectedName) {
                         $counter->add(1);
                     }
-                    $counter->wakeup();
                 },
             ]);
             $client->connect();
         });
         $pid = $process->start();
 
-        $counter->wait(2);
+        $this->waitForCounter($counter, $expectedTotal, 2);
         Process::kill($pid);
         Process::kill($serverPid);
 

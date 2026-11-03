@@ -17,13 +17,13 @@ export BENCHMARK_APP_SECRET="${BENCHMARK_APP_SECRET:-local-secret}"
 
 LOCUST_EXTRA=()
 [[ -n "${BENCHMARK_PROCESSES:-}" ]] && LOCUST_EXTRA+=(--processes "${BENCHMARK_PROCESSES}")
+[[ "${BENCHMARK_RESET_STATS:-true}" == "true" ]] && LOCUST_EXTRA+=(--reset-stats)
 
 exec locust -f locustfile.py \
     --headless \
     --users "${BENCHMARK_USERS:-100}" \
     --spawn-rate "${BENCHMARK_SPAWN_RATE:-10}" \
     --run-time "${BENCHMARK_RUN_TIME:-2m}" \
-    --reset-stats \
     --stop-timeout "${BENCHMARK_STOP_TIMEOUT:-2}" \
     "${LOCUST_EXTRA[@]}" \
     --host "${BENCHMARK_HOST:-http://127.0.0.1:8991}" \

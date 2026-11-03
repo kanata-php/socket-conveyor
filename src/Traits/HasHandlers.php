@@ -278,7 +278,10 @@ trait HasHandlers
             eventName: Constants::EVENT_MESSAGE_RECEIVED,
         );
 
-        $server->finish($data);
+        // Return task results only when the application consumes the finish event.
+        if ($this->eventDispatcher->hasListeners(Constants::EVENT_TASK_FINISHED)) {
+            $server->finish($data);
+        }
     }
 
     protected function onFinish(Server $server, int $taskId, mixed $data): void

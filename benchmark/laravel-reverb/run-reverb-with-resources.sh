@@ -11,6 +11,7 @@ mkdir -p "$RESULTS_DIR"
 HOST="${BENCHMARK_HOST:-http://127.0.0.1:8991}"
 CSV_PREFIX="${BENCHMARK_CSV_PREFIX:-$RESULTS_DIR/reverb-laravel13}"
 RESOURCE_REPORT="${BENCHMARK_RESOURCE_REPORT:-$RESULTS_DIR/reverb-laravel13-resources.csv}"
+LOCUST_RESOURCE_REPORT="${BENCHMARK_LOCUST_RESOURCE_REPORT:-$RESULTS_DIR/reverb-laravel13-locust-resources.csv}"
 SERVER_LOG="${BENCHMARK_SERVER_LOG:-$RESULTS_DIR/reverb-laravel13-server.log}"
 
 if [[ ! -f "$APP_DIR/artisan" ]]; then
@@ -28,6 +29,101 @@ collect_descendants() {
     done
 }
 
+# Invoked by the EXIT/INT/TERM cleanup handler.
+# shellcheck disable=SC2329
+terminate_process_tree() {
+    local root="${1:-}"
+    [[ -z "$root" ]] && return 0
+
+    mapfile -t pids < <(collect_descendants "$root"; printf '%s\n' "$root")
+    # Ask the root process to shut down first. OpenSwoole, Reverb, and Locust
+    # all have supervisors that clean up their own child processes; signalling
+    # every child at once can make the supervisor report shutdown noise even
+    # when the workload completed successfully.
+    kill "$root" 2>/dev/null || true
+
+    local deadline=$((SECONDS + ${BENCHMARK_PROCESS_STOP_TIMEOUT:-10}))
+    while (( SECONDS < deadline )); do
+        local any_alive=false
+        for pid in "${pids[@]}"; do
+            if process_is_running "$pid"; then
+                any_alive=true
+                break
+            fi
+        done
+        [[ "$any_alive" == false ]] && return 0
+        sleep 1
+    done
+
+    # Preserve the original descendants: they may have been reparented after
+    # their supervisor exited and no longer appear below root.
+    mapfile -t pids < <(printf '%s\n' "${pids[@]}"; collect_descendants "$root")
+    for pid in "${pids[@]}"; do
+        process_is_running "$pid" && kill "$pid" 2>/dev/null || true
+    done
+    sleep 1
+    for pid in "${pids[@]}"; do
+        if process_is_running "$pid"; then
+            printf 'Owned process %s survived shutdown of tree %s\n' "$pid" "$root" >&2
+            return 1
+        fi
+    done
+}
+
+# Used by the indirectly invoked trap cleanup helpers.
+# shellcheck disable=SC2329
+process_is_running() {
+    local state
+    state="$(ps -o stat= -p "$1" 2>/dev/null)" || return 1
+    [[ -n "$state" && "$state" != *Z* ]]
+
+}
+
+wait_for_port_free() {
+    local host="$1"
+    local port="$2"
+    local deadline=$((SECONDS + ${BENCHMARK_PORT_FREE_TIMEOUT:-30}))
+
+    while port_in_use "$host" "$port"; do
+        if (( SECONDS >= deadline )); then
+            echo "Port $host:$port is still in use" >&2
+            return 1
+        fi
+        sleep 1
+    done
+}
+
+port_in_use() {
+    local host="$1"
+    local port="$2"
+
+    if command -v ss >/dev/null 2>&1 && ss -H -ltn "sport = :$port" 2>/dev/null | grep -q .; then
+        return 0
+    fi
+
+    (echo > "/dev/tcp/$host/$port") >/dev/null 2>&1
+}
+
+wait_for_port_accepting() {
+    local host="$1"
+    local port="$2"
+    local deadline=$((SECONDS + ${BENCHMARK_STARTUP_TIMEOUT:-30}))
+
+    while ! (echo > "/dev/tcp/$host/$port") >/dev/null 2>&1; do
+        if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+            echo "Server process exited before $host:$port became reachable" >&2
+            return 1
+        fi
+
+        if (( SECONDS >= deadline )); then
+            echo "Timed out waiting for server at $host:$port" >&2
+            return 1
+        fi
+
+        sleep 1
+    done
+}
+
 sample_resources() {
     local root_pid="$1"
     local report="$2"
@@ -40,7 +136,7 @@ sample_resources() {
         pid_list="$(IFS=,; echo "${pids[*]}")"
 
         ps -o pcpu= -o rss= -o vsz= -p "$pid_list" 2>/dev/null \
-            | awk -v ts="$(date --iso-8601=seconds)" -v count="${#pids[@]}" '
+            | awk -v ts="$(date +%Y-%m-%dT%H:%M:%S%z)" -v count="${#pids[@]}" '
                 { cpu += $1; rss += $2; vsz += $3 }
                 END { printf "%s,%d,%.2f,%d,%d\n", ts, count, cpu, rss, vsz }
             ' >> "$report"
@@ -49,17 +145,30 @@ sample_resources() {
     done
 }
 
+# Invoked indirectly by trap.
+# shellcheck disable=SC2329
 cleanup() {
-    [[ -n "${SAMPLER_PID:-}" ]] && kill "$SAMPLER_PID" 2>/dev/null || true
-    [[ -n "${SERVER_PID:-}" ]] && kill "$SERVER_PID" 2>/dev/null || true
+    local status=$?
+    local cleanup_status=0
+    trap - EXIT INT TERM
+    [[ -z "${LOCUST_SAMPLER_PID:-}" ]] || terminate_process_tree "$LOCUST_SAMPLER_PID" || cleanup_status=1
+    [[ -z "${LOCUST_PID:-}" ]] || terminate_process_tree "$LOCUST_PID" || cleanup_status=1
+    [[ -z "${SAMPLER_PID:-}" ]] || terminate_process_tree "$SAMPLER_PID" || cleanup_status=1
+    [[ -z "${SERVER_PID:-}" ]] || terminate_process_tree "$SERVER_PID" || cleanup_status=1
+    (( status != 0 )) || status="$cleanup_status"
+    exit "$status"
 }
 trap cleanup EXIT INT TERM
 
 cd "$APP_DIR"
-php -d memory_limit=-1 artisan reverb:start --host=127.0.0.1 --port=8991 > "$SERVER_LOG" 2>&1 &
+SERVER_HOST=127.0.0.1
+SERVER_PORT=8991
+wait_for_port_free "$SERVER_HOST" "$SERVER_PORT"
+php -d memory_limit=-1 artisan reverb:start --host="$SERVER_HOST" --port="$SERVER_PORT" > "$SERVER_LOG" 2>&1 &
 SERVER_PID="$!"
 
 sleep "${BENCHMARK_STARTUP_SECONDS:-2}"
+wait_for_port_accepting "$SERVER_HOST" "$SERVER_PORT"
 sample_resources "$SERVER_PID" "$RESOURCE_REPORT" &
 SAMPLER_PID="$!"
 
@@ -79,18 +188,35 @@ export BENCHMARK_APP_SECRET="${BENCHMARK_APP_SECRET:-local-secret}"
 # measure of the generator rather than the server.
 LOCUST_EXTRA=()
 [[ -n "${BENCHMARK_PROCESSES:-}" ]] && LOCUST_EXTRA+=(--processes "${BENCHMARK_PROCESSES}")
+# See run-conveyor-with-resources.sh: BENCHMARK_RESET_STATS=false keeps full
+# connect/subscribe samples (compare throughput via *_stats_history.csv instead).
+[[ "${BENCHMARK_RESET_STATS:-true}" == "true" ]] && LOCUST_EXTRA+=(--reset-stats)
 
 locust -f locustfile.py \
     --headless \
     --users "${BENCHMARK_USERS:-100}" \
     --spawn-rate "${BENCHMARK_SPAWN_RATE:-10}" \
     --run-time "${BENCHMARK_RUN_TIME:-2m}" \
-    --reset-stats \
     --stop-timeout "${BENCHMARK_STOP_TIMEOUT:-2}" \
     "${LOCUST_EXTRA[@]}" \
     --host "$HOST" \
-    --csv "$CSV_PREFIX"
+    --csv "$CSV_PREFIX" &
+LOCUST_PID="$!"
+
+sample_resources "$LOCUST_PID" "$LOCUST_RESOURCE_REPORT" &
+LOCUST_SAMPLER_PID="$!"
+
+set +e
+wait "$LOCUST_PID"
+LOCUST_STATUS="$?"
+set -e
+
+kill "$LOCUST_SAMPLER_PID" 2>/dev/null || true
+LOCUST_SAMPLER_PID=""
 
 echo "Resource report: $RESOURCE_REPORT"
+echo "Locust resource report: $LOCUST_RESOURCE_REPORT"
 echo "Locust CSV prefix: $CSV_PREFIX"
 echo "Server log: $SERVER_LOG"
+
+exit "$LOCUST_STATUS"

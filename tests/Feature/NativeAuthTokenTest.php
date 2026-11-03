@@ -14,33 +14,11 @@ use WebSocket\Client as WsClient;
 
 class NativeAuthTokenTest extends TestCase
 {
+    use ServerProcessCleanup;
+
     private int $port = 8991;
 
     private string $serverToken = 'local-server-token';
-
-    protected function getServerProcesses(): false|string
-    {
-        return exec('lsof -i -P -n | grep LISTEN | grep ' . $this->port);
-    }
-
-    /**
-     * @before
-     * @after
-     * @throws Exception
-     */
-    public function tearServerDown(): void
-    {
-        exec('lsof -i -P -n '
-            . '| grep LISTEN '
-            . '| grep ' . $this->port . ' '
-            . '| awk \'{print $2}\' '
-            . '| xargs -I {} kill -9 {} > /dev/null  2>&1');
-
-        $output = $this->getServerProcesses();
-        if (!empty($output)) {
-            throw new Exception('Failed to kill server. Output: ' . $output);
-        }
-    }
 
     /**
      * @throws Exception
@@ -63,6 +41,7 @@ class NativeAuthTokenTest extends TestCase
         });
 
         $pid = $httpServer->start();
+        $this->serverPid = $pid;
 
         $counter = 0;
         $threshold = 10;
