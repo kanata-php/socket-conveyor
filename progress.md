@@ -1,6 +1,6 @@
 # Urgent handoff — security remediation, November 4, 2026
 
-- Branch/commit: primary `master` at `3bd8134`; no other branches or worktrees are authorized.
+- Branch/source commit: primary `master` at `dacb29345b9fc93391f322d27e794c1402498062`; no other branches or worktrees are authorized.
 - Active scope: repair security audit F1–F5 using the requested security specialist, software engineer and QA engineer; preserve native Conveyor and Laravel Echo behavior.
 - Security contract completed: `/home/savior/.cache/socket-conveyor-remediation/security/CONTRACT.md`; fresh engineering and QA workers are developing production and independent test patches in separate scratch copies for integration here.
 - Integrated the initial 20-file production patch and a targeted dependency follow-up: PHPUnit 9.6.38, PHPCS 3.13.6 and three Symfony packages 7.4.23; full and production Composer audits passed in the dependency candidate. The original audit evidence is `/home/savior/.cache/socket-conveyor-security-2.6.0/REPORT.md`.
@@ -11,8 +11,9 @@
 - Final security found a preparatory presence-read exception could skip close revocation; integrated the `close-repair` patch with expected-generation revocation and admission release in finally blocks. Eight fault-stage regressions pass; fresh independent security approved the final tree (`acceptance/REVIEW.md`).
 - Final integrated verification passed: 106 tests / 598 assertions, PHPStan, PSR12 and both Composer audits; all 14 wire cases passed, including real overflow/eviction, 500/500 healthy deliveries and 200 follow-ups over 5.79 seconds. Logs: `verify-final.log`, `phpcs-final.log`, `static-audit.log`, `wire-integrated/results.json` in the cache.
 - Built/smoked candidate images natively on amd64/resende and arm64/MacPro; both PHP 8.5.12/OpenSwoole 26.2.0 non-root/read-only smokes passed. Trivy 0.76.1, database updated 2026-11-04T13:16:53Z, reports zero known vulnerabilities across 42 Alpine and 62 production Composer packages for each image; this does not comprehensively audit source-built PHP/OpenSwoole or unknown defects. Images remain local candidates, not published releases.
-- Scrutinizer remains failed on `3bd8134`; its public API supplies no failed command or stderr, and its website is inaccessible to available tools. The prior owner request for a redacted error log remains pending. GitHub Actions passing does not satisfy this external gate.
-- Next: commit/push the approved fixes on master and require all final-head hosted checks green. Actual Scrutinizer remains a required gate; no release publication is included in this implementation task.
+- GitHub Tests run `41914007671` and Docker image run `41914007651` passed on `dacb293`; actual Scrutinizer inspection `e7c88b04-f8ca-4803-ad87-dd2f2d19f255` errored, with no API artifacts. The owner supplied its actual error: PECL tried current OpenSwoole requiring PHP >=8.3 on PHP 7.3.15. This confirms the service runtime mismatch rather than a source-test failure.
+- Integrated `.scrutinizer.yml`: explicitly select PHP 8.4.27 and OpenSwoole, install locked dependencies and required process-test utilities, run the complete suite and retain `php-scrutinizer-run` plus website PHPCS rules. The fresh engineer validated documented configuration and passing Docker platform/tests/static checks; actual hosted acceptance is still required.
+- Next: push the Scrutinizer configuration and verify both GitHub workflows and a current Scrutinizer inspection/index on that exact final master SHA. Detailed evidence is under cache `scrutinizer-runtime`. No release publication is included in this implementation task.
 - Preserve the live MacPro demo, existing credentials, published `2.6.0`, unrelated work and backups.
 
 ## Roles and checks
