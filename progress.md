@@ -1,4 +1,13 @@
-# Docker image — November 3, 2026
+# Docker Hub release — November 4, 2026
+
+- Scope: publish semver image `lotharthesavior/socket-conveyor:2.6.0` with `2.6`, `2`, and `latest` aliases; Linux amd64 and arm64. Runtime code is unchanged from `53dc6a9`, whose Tests and Docker image CI workflows passed; the release commit adds documentation and supplies the final OCI revision label.
+- Release build and verification logs live under `/home/savior/.cache/socket-conveyor-release/`.
+- Build amd64 natively on resende and arm64 natively on MacPro; an initial slow QEMU build was canceled. MacPro's task-owned exported build context and logs are `/tmp/socket-conveyor-release-2.6.0-53dc6a9/`; no additional Git branch or worktree was created. Source inputs come from the same committed Dockerfile allowlist. Rebuild the cached final stage with the final release revision label after committing the docs.
+- Verify each architecture with `python3 docker/smoke.py lotharthesavior/socket-conveyor:2.6.0-amd64` on resende and the `2.6.0-arm64` tag on MacPro; publish only after both pass, combine the per-architecture manifests, then confirm anonymous Docker Hub access, manifest platforms, and release aliases. Pull the combined `2.6.0` image and verify its smoke too.
+- README and Docker guide now show the versioned Docker Hub command; commit these docs on master, push, and require both hosted workflows green on that final commit.
+- Existing Docker authentication is reused; no credentials are generated, decoded, or modified. Leave the live MacPro demo containers running and retain only master/primary worktree.
+
+## Docker image — November 3, 2026
 
 - Working directly on `master` at `17aae61`; only master and the primary worktree remain.
 - Prior work was merged as PR #3, released as 2.5.1, and passed hosted Tests on the merge commit.

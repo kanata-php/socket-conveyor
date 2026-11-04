@@ -14,9 +14,16 @@ Built for PHP 8.2+.
 
 ## Docker
 
-Run Conveyor with PHP and OpenSwoole included using the root
-[Dockerfile](Dockerfile); see the [Docker quick start](docker/README.md) for
-building the image and starting it with your existing application credentials.
+Run Conveyor with PHP and OpenSwoole included using the
+[Docker Hub image](https://hub.docker.com/r/lotharthesavior/socket-conveyor).
+With your existing application credentials exported in the shell:
+
+```sh
+docker run --rm --init -p 127.0.0.1:8080:8080 -e PUSHER_APP_ID -e PUSHER_APP_KEY -e PUSHER_APP_SECRET lotharthesavior/socket-conveyor:2.6.0
+```
+
+See the [Docker quick start](docker/README.md) for Laravel configuration,
+version tags, and building locally with the root [Dockerfile](Dockerfile).
 
 ## Documentation
 

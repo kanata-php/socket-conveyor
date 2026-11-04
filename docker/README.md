@@ -6,7 +6,26 @@ Composer installation is needed. It runs as UID/GID 10001 and includes only
 production Composer dependencies, source, the server launcher, and the license.
 The existing `runtime.Dockerfile` remains the development/benchmark image.
 
-Build from the repository root:
+## Run the published image
+
+The project-maintained image is available on
+[Docker Hub](https://hub.docker.com/r/lotharthesavior/socket-conveyor) for
+Linux amd64 and arm64, including Docker Desktop on Intel and Apple Silicon.
+
+With your existing `PUSHER_APP_ID`, `PUSHER_APP_KEY`, and `PUSHER_APP_SECRET`
+exported in the shell, start it in one command:
+
+```sh
+docker run --rm --init -p 127.0.0.1:8080:8080 -e PUSHER_APP_ID -e PUSHER_APP_KEY -e PUSHER_APP_SECRET lotharthesavior/socket-conveyor:2.6.0
+```
+
+Tags follow Semantic Versioning: `2.6.0` identifies this release, `2.6` tracks
+its minor series, `2` tracks major version 2, and `latest` tracks the latest
+stable release. Use the full version tag for a specific release.
+
+## Build locally
+
+To build from the repository root instead:
 
 ```sh
 docker build --pull -t socket-conveyor:local .
@@ -52,6 +71,6 @@ Terminate public TLS at a suitably configured reverse proxy.
 python3 docker/smoke.py socket-conveyor:local
 ```
 
-This image is built from source locally and in CI; no public registry image is
-published by this change. The build context allowlist excludes `.env` files,
-local dependencies, Git history, and benchmark artifacts.
+The image is built from source and checked in CI. Its OCI image labels record
+the release version and source revision. The build context allowlist excludes `.env`
+files, local dependencies, Git history, and benchmark artifacts.
