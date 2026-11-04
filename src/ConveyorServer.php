@@ -68,6 +68,9 @@ class ConveyorServer implements ConveyorServerInterface
      * Created before $server->start() so its tables are inherited by workers.
      */
     protected ?SocketIdRepository $socketIdRepository = null;
+    protected ?PusherWorker $pusherWorker = null;
+    protected ?\Conveyor\SubProtocols\Pusher\PusherLimits $pusherLimits = null;
+    protected ?\Conveyor\SubProtocols\Pusher\PusherAdmission $pusherAdmission = null;
 
     /**
      * Pusher sockets can subscribe to many channels at once. The native
@@ -119,6 +122,19 @@ class ConveyorServer implements ConveyorServerInterface
 
     private function initializeServer(): void
     {
+        if (!$this->conveyorOptions instanceof ConveyorOptions) {
+            throw new \LogicException('Options must be initialized');
+        }
+        $pusher = $this->conveyorOptions->__get(Constants::WEBSOCKET_SUBPROTOCOL) === Constants::PUSHER;
+        if ($pusher) {
+            new \Conveyor\SubProtocols\Pusher\AppManager($this->conveyorOptions);
+            $configured = $this->conveyorOptions->pusher_limits ?? [];
+            if (!is_array($configured)) {
+                throw new \InvalidArgumentException('Invalid Pusher limits');
+            }
+            $this->pusherLimits = new \Conveyor\SubProtocols\Pusher\PusherLimits($configured);
+            $this->pusherAdmission = new \Conveyor\SubProtocols\Pusher\PusherAdmission($this->pusherLimits);
+        }
         $this->server = new Server($this->host, $this->port, $this->mode, $this->socketType);
 
         $this->server->set(array_merge([
@@ -131,7 +147,19 @@ class ConveyorServer implements ConveyorServerInterface
             // deadlock the worker). On timeout the push returns false and
             // Broadcast::push evicts the connection. Overridable per deployment.
             'send_timeout' => 30.0,
-        ], $this->serverOptions));
+        ], $this->serverOptions, $pusher ? [
+            // OpenSwoole defaults send_yield to enable_coroutine. Parking a broadcast
+            // behind a saturated peer delays every later recipient and can stall the
+            // event worker during native close/resume; use push(false) and eviction.
+            'send_yield' => false,
+            'send_timeout' => $this->pusherLimits->get('send_timeout_seconds'),
+            'buffer_output_size' => $this->pusherLimits->get('send_buffer_bytes'),
+            'socket_buffer_size' => $this->pusherLimits->get('send_buffer_bytes'),
+            'package_max_length' => $this->pusherLimits->get('http_body_bytes'),
+            'heartbeat_idle_time' => $this->pusherLimits->get('idle_seconds'),
+            'heartbeat_check_interval' => $this->pusherLimits->get('heartbeat_seconds'),
+            'max_conn' => 8192,
+        ] : []));
     }
 
     private function startWorker(): void
@@ -150,15 +178,20 @@ class ConveyorServer implements ConveyorServerInterface
         }
 
         if (ConveyorConstants::PUSHER === $selectedSubProtocol) {
-            $this->socketIdRepository = new SocketIdRepository();
-            $this->pusherChannelRepository = new PusherChannelRepository();
-            new PusherWorker(
+            $this->socketIdRepository = new SocketIdRepository($this->pusherLimits);
+            $this->pusherChannelRepository = new PusherChannelRepository(
+                $this->socketIdRepository,
+                $this->pusherLimits,
+            );
+            $this->pusherWorker = new PusherWorker(
                 server: $this->server,
                 conveyorOptions: $this->conveyorOptions,
                 eventDispatcher: $this->eventDispatcher,
                 persistence: $this->persistence,
                 socketIdRepository: $this->socketIdRepository,
                 channelRepository: $this->pusherChannelRepository,
+                admission: $this->pusherAdmission,
+                limits: $this->pusherLimits,
             );
             return;
         }

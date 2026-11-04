@@ -17,8 +17,18 @@ class AppManager
         /** @var array<array-key, array<array-key, mixed>> $apps */
         $apps = $options->{Constants::APPS} ?? [];
 
-        foreach ($apps as $app) {
-            $this->apps[] = PusherApp::fromArray($app);
+        if (!is_array($apps) || count($apps) > 1000) {
+            throw new \InvalidArgumentException('Invalid Pusher apps');
+        }
+        foreach ($apps as $config) {
+            if (!is_array($config)) {
+                throw new \InvalidArgumentException('Invalid Pusher app');
+            }
+            $app = PusherApp::fromArray($config);
+            if ($this->findByKey($app->key) !== null || $this->findByAppId($app->appId) !== null) {
+                throw new \InvalidArgumentException('Duplicate Pusher app');
+            }
+            $this->apps[] = $app;
         }
     }
 

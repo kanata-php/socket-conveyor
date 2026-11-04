@@ -17,16 +17,29 @@ class SocketPresenceChannelPersistenceTable extends TablePersistence implements 
 
     public function add(int $fd, string $channel, string $channelData): void
     {
-        $this->table->set($this->key($fd, $channel), [
-            'fd' => $fd,
-            'channel' => $channel,
-            'channel_data' => $channelData,
-        ]);
+        if (strlen($channel) > 100 || strlen($channelData) > 2048) {
+            throw new \InvalidArgumentException('Presence storage limit');
+        }
+        $key = $this->key($fd, $channel);
+        $existing = $this->table->get($key);
+        if ($existing !== false && ((int) $existing['fd'] !== $fd || $existing['channel'] !== $channel)) {
+            throw new \RuntimeException('Presence storage collision');
+        }
+        $row = ['fd' => $fd, 'channel' => $channel, 'channel_data' => $channelData];
+        if (!$this->table->set($key, $row) || $this->table->get($key) !== $row) {
+            $this->table->del($key);
+            throw new \RuntimeException('Presence storage unavailable');
+        }
     }
 
     public function remove(int $fd, string $channel): void
     {
-        $this->table->del($this->key($fd, $channel));
+        $key = $this->key($fd, $channel);
+        $row = $this->table->get($key);
+        if ($row !== false && ((int) $row['fd'] !== $fd || $row['channel'] !== $channel)) {
+            throw new \RuntimeException('Presence storage collision');
+        }
+        $this->table->del($key);
     }
 
     public function removeConnection(int $fd): array
@@ -84,6 +97,6 @@ class SocketPresenceChannelPersistenceTable extends TablePersistence implements 
 
     private function key(int $fd, string $channel): string
     {
-        return $fd . ':' . $channel;
+        return substr(hash('sha256', json_encode([$fd, $channel], JSON_THROW_ON_ERROR)), 0, 48);
     }
 }

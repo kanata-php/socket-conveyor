@@ -21,6 +21,10 @@ trait ServerProcessCleanup
      */
     public function tearServerDown(): void
     {
+        // Keep native/third-party diagnostics in a file; stderr is PHPUnit child-process IPC.
+        ini_set('display_errors', '0');
+        ini_set('log_errors', '1');
+        ini_set('error_log', '/tmp/conveyor-feature-diagnostics.log');
         if ($this->serverPid === null) {
             if (!empty($this->getServerProcesses())) {
                 throw new Exception('Test server port is already occupied: ' . $this->port);

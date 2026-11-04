@@ -79,3 +79,5 @@ The Pusher mode accepts WebSocket clients at `/app/{key}` and exposes the
 signed REST publish API at `/apps/{app_id}/events`,
 `/apps/{app_id}/batch_events`, and the channel info endpoints under
 `/apps/{app_id}/channels`.
+
+Pusher deployments: see [validation, application isolation and configurable resource budgets](docs/pusher-security.md).

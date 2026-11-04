@@ -32,10 +32,36 @@ trait HasHandlers
 
     protected function onMessage(Server $server, Frame $frame): void
     {
-        $server->task(json_encode([
-            'fd' => $frame->fd,
-            'data' => $frame->data,
-        ]));
+        if ($this->pusherAdmission !== null) {
+            $generation = $this->socketIdRepository->socketIdFor($frame->fd);
+            $app = $this->socketIdRepository->appKeyFor($frame->fd);
+            if ($generation === null || $app === null) {
+                $server->close($frame->fd);
+                return;
+            }
+            $reservation = null;
+            try {
+                $reservation = $this->pusherAdmission->enqueue($generation, $app, strlen($frame->data));
+                $queued = $server->task(json_encode([
+                    'fd' => $frame->fd, 'data' => $frame->data,
+                    'generation' => $generation, 'reservation' => $reservation,
+                ], JSON_THROW_ON_ERROR));
+                if ($queued === false) {
+                    throw new \OverflowException('Task queue unavailable');
+                }
+            } catch (\Throwable $error) {
+                if ($reservation !== null) {
+                    $this->pusherAdmission->release($reservation);
+                }
+                if (!$error instanceof \OverflowException && !$error instanceof \JsonException) {
+                    \Conveyor\SubProtocols\Pusher\PusherEventRouter::diagnostic($error);
+                }
+                // No rejection tasks/log storm: stop intake at the offending connection.
+                $server->close($frame->fd);
+            }
+            return;
+        }
+        $server->task(json_encode(['fd' => $frame->fd, 'data' => $frame->data]));
     }
 
     protected function onRequest(Request $request, Response $response): void
@@ -164,14 +190,33 @@ trait HasHandlers
             $response->header($key, $val);
         }
 
-        $response->status(101);
-        $response->end();
-
         $fd = $request->fd;
+        try {
+            // A new HTTP upgrade is a new generation even if a prior close callback failed.
+            $previous = $this->socketIdRepository->socketIdFor($fd);
+            if ($previous !== null) {
+                $this->pusherWorker?->getEventRouter()->handleClose($fd, $previous);
+                $this->socketIdRepository->forget($fd, $previous);
+            }
+            $socketId = $this->socketIdRepository->register($fd, $app !== null && $app->enabled ? $app->key : null);
+        } catch (\Throwable $error) {
+            \Conveyor\SubProtocols\Pusher\PusherEventRouter::diagnostic($error);
+            $response->status(503);
+            $response->end();
+            return false;
+        }
+        $response->status(101);
+        if (!$response->end()) {
+            $this->socketIdRepository->forget($fd, $socketId);
+            return false;
+        }
 
         if ($app === null || !$app->enabled) {
             // @phpstan-ignore-next-line
-            $this->server->defer(function () use ($fd) {
+            $this->server->defer(function () use ($fd, $socketId) {
+                if ($this->socketIdRepository->socketIdFor($fd) !== $socketId) {
+                    return;
+                }
                 $this->server->push(
                     $fd,
                     PusherFrame::error(PusherEvent::ERROR_APP_NOT_FOUND, 'Could not find app'),
@@ -181,12 +226,18 @@ trait HasHandlers
             return true;
         }
 
-        $socketId = $this->socketIdRepository->register($fd);
-        $this->socketIdRepository->bindApp($fd, $app->key);
-
         // @phpstan-ignore-next-line
         $this->server->defer(function () use ($fd, $socketId) {
-            $this->server->push($fd, PusherFrame::connectionEstablished($socketId, 120));
+            if ($this->socketIdRepository->socketIdFor($fd) === $socketId && $this->server->isEstablished($fd)) {
+                if (
+                    !$this->server->push(
+                        $fd,
+                        PusherFrame::connectionEstablished($socketId, $this->pusherLimits->get('idle_seconds')),
+                    )
+                ) {
+                    $this->server->close($fd);
+                }
+            }
         });
 
         return true;
@@ -261,6 +312,7 @@ trait HasHandlers
             event: new ConnectionCloseEvent(
                 server: $server,
                 fd: $fd,
+                generation: $this->socketIdRepository?->socketIdFor($fd),
             ),
             eventName: Constants::EVENT_SERVER_CLOSE,
         );
@@ -268,15 +320,22 @@ trait HasHandlers
 
     protected function onTask(Server $server, int $taskId, int $reactorId, string $data): void
     {
-        $this->eventDispatcher->dispatch(
-            event: new MessageReceivedEvent(
-                server: $server,
-                data: $data,
-                taskId: $taskId,
-                reactorId: $reactorId,
-            ),
-            eventName: Constants::EVENT_MESSAGE_RECEIVED,
-        );
+        try {
+            $this->eventDispatcher->dispatch(
+                event: new MessageReceivedEvent(
+                    server: $server,
+                    data: $data,
+                    taskId: $taskId,
+                    reactorId: $reactorId,
+                ),
+                eventName: Constants::EVENT_MESSAGE_RECEIVED,
+            );
+        } catch (\Throwable $error) {
+            if ($this->pusherAdmission === null) {
+                throw $error;
+            }
+            \Conveyor\SubProtocols\Pusher\PusherEventRouter::diagnostic($error);
+        }
 
         // Return task results only when the application consumes the finish event.
         if ($this->eventDispatcher->hasListeners(Constants::EVENT_TASK_FINISHED)) {

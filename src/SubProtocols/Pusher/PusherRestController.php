@@ -18,12 +18,34 @@ class PusherRestController
     public function __construct(
         private PusherEventRouter $router,
         private AppManager $appManager,
+        private ?PusherAdmission $admission = null,
+        private ?PusherLimits $limits = null,
     ) {
         $this->signer = new PusherSigner();
     }
 
     public function handle(Request $request, Response $response): void
     {
+        try {
+            $this->handleRequest($request, $response);
+        } catch (\OverflowException $error) {
+            PusherDiagnostics::record($error);
+            $this->json($response, ['error' => 'Rate limit reached'], 429);
+        } catch (\InvalidArgumentException | \JsonException $error) {
+            PusherDiagnostics::record($error);
+            $this->json($response, ['error' => 'Invalid request'], 400);
+        } catch (\Throwable $error) {
+            PusherEventRouter::diagnostic($error);
+            $this->json($response, ['error' => 'Request could not be processed'], 500);
+        }
+    }
+
+    private function handleRequest(Request $request, Response $response): void
+    {
+        if (strlen($request->getContent()) > ($this->limits ?? new PusherLimits())->get('http_body_bytes')) {
+            $this->json($response, ['error' => 'Body too large'], 413);
+            return;
+        }
         $method = strtoupper((string) ($request->server['request_method'] ?? ''));
         $path = $this->path($request);
 
@@ -43,12 +65,15 @@ class PusherRestController
             return;
         }
 
+        if (isset($route['channel'])) {
+            PusherValidation::channel($route['channel']);
+        }
         match ($route['action']) {
-            'events' => $this->handleEvents($request, $response),
-            'batch_events' => $this->handleBatchEvents($request, $response),
-            'channels' => $this->handleChannels($response),
-            'channel' => $this->handleChannel($response, $route['channel']),
-            'users' => $this->handleUsers($response, $route['channel']),
+            'events' => $this->handleEvents($request, $response, $app->key),
+            'batch_events' => $this->handleBatchEvents($request, $response, $app->key),
+            'channels' => $this->handleChannels($response, $app->key),
+            'channel' => $this->handleChannel($response, $route['channel'], $app->key),
+            'users' => $this->handleUsers($response, $route['channel'], $app->key),
             default => $this->json($response, [], 404),
         };
     }
@@ -90,6 +115,11 @@ class PusherRestController
     ): bool {
         /** @var array<array-key, mixed> $params */
         $params = $request->get ?? [];
+        foreach ($params as $value) {
+            if (!is_string($value)) {
+                throw new \InvalidArgumentException('Invalid query parameter');
+            }
+        }
         $authKey = $params['auth_key'] ?? null;
         $timestamp = $params['auth_timestamp'] ?? null;
         $version = $params['auth_version'] ?? null;
@@ -132,7 +162,7 @@ class PusherRestController
         return true;
     }
 
-    private function handleEvents(Request $request, Response $response): void
+    private function handleEvents(Request $request, Response $response, string $appKey): void
     {
         $payload = $this->jsonBody($request);
         if ($payload === null) {
@@ -146,17 +176,16 @@ class PusherRestController
             return;
         }
 
-        // Respond before fanning out. The Pusher REST publish endpoint is
-        // fire-and-forget (it returns `{}` with no delivery guarantee), and
-        // deferring delivery until after the response means a subscriber that
-        // is momentarily not reading its socket cannot block the publishing
-        // coroutine on a full send buffer — which, under concurrent load,
-        // previously parked every publish coroutine and deadlocked the worker.
+        // Acknowledge before fanout: Pusher REST gives no delivery guarantee.
+        // The server's non-yielding Pusher pushes enforce backpressure; an early
+        // response alone cannot prevent later publish coroutines from accumulating
+        // behind a nonreading subscriber.
+        $this->admission?->event($appKey);
         $this->json($response, []);
-        $this->deliverEvent($event);
+        $this->deliverEvent($event, $appKey);
     }
 
-    private function handleBatchEvents(Request $request, Response $response): void
+    private function handleBatchEvents(Request $request, Response $response, string $appKey): void
     {
         $payload = $this->jsonBody($request);
         if ($payload === null || !isset($payload['batch']) || !is_array($payload['batch'])) {
@@ -164,7 +193,10 @@ class PusherRestController
             return;
         }
 
-        if (count($payload['batch']) > self::MAX_BATCH_EVENTS) {
+        if (
+            count($payload['batch']) === 0 || !array_is_list($payload['batch'])
+            || count($payload['batch']) > self::MAX_BATCH_EVENTS
+        ) {
             $this->json($response, ['error' => 'Batch too large'], 400);
             return;
         }
@@ -180,10 +212,11 @@ class PusherRestController
             $events[] = $validated;
         }
 
+        $this->admission?->event($appKey, null, count($events));
         $this->json($response, []);
 
         foreach ($events as $validated) {
-            $this->deliverEvent($validated);
+            $this->deliverEvent($validated, $appKey);
         }
     }
 
@@ -202,7 +235,7 @@ class PusherRestController
      */
     private function validateEvent(array $payload): ?array
     {
-        $name = $payload['name'] ?? null;
+        $name = PusherValidation::event($payload['name'] ?? null, true);
         $data = $payload['data'] ?? null;
         $socketId = $payload['socket_id'] ?? null;
         $channels = $this->channelsFromPayload($payload);
@@ -213,7 +246,7 @@ class PusherRestController
             || !is_string($data)
             || strlen($data) > self::MAX_EVENT_DATA_BYTES
             || $channels === []
-            || ($socketId !== null && !is_string($socketId))
+            || ($socketId !== null && !PusherValidation::socketId($socketId))
         ) {
             return null;
         }
@@ -239,7 +272,7 @@ class PusherRestController
      *     payload: array<array-key, mixed>
      * } $event
      */
-    private function deliverEvent(array $event): void
+    private function deliverEvent(array $event, string $appKey): void
     {
         Action::doAction(
             Constants::ACTION_PUSHER_REST_EVENT_RECEIVED,
@@ -251,7 +284,7 @@ class PusherRestController
         );
 
         foreach ($event['channels'] as $channel) {
-            $this->router->deliver($event['name'], $channel, $event['data'], $event['socketId']);
+            $this->router->deliver($event['name'], $channel, $event['data'], $event['socketId'], $appKey);
         }
     }
 
@@ -261,44 +294,42 @@ class PusherRestController
      */
     private function channelsFromPayload(array $payload): array
     {
-        if (isset($payload['channels']) && is_array($payload['channels'])) {
-            return array_values(array_filter(
-                $payload['channels'],
-                fn($channel) => is_string($channel) && $channel !== '',
-            ));
+        $channels = array_key_exists('channels', $payload) ? $payload['channels'] : [$payload['channel'] ?? null];
+        if (!is_array($channels) || !array_is_list($channels) || count($channels) === 0 || count($channels) > 100) {
+            throw new \InvalidArgumentException('Invalid channel list');
         }
-
-        $channel = $payload['channel'] ?? null;
-
-        return is_string($channel) && $channel !== '' ? [$channel] : [];
+        foreach ($channels as $channel) {
+            PusherValidation::channel($channel);
+        }
+        return array_values(array_unique($channels));
     }
 
-    private function handleChannels(Response $response): void
+    private function handleChannels(Response $response, string $appKey): void
     {
         $channels = [];
-        foreach ($this->occupiedChannels() as $channel) {
+        foreach ($this->occupiedChannels($appKey) as $channel) {
             $channels[$channel] = ['occupied' => true];
         }
 
         $this->json($response, ['channels' => $channels]);
     }
 
-    private function handleChannel(Response $response, string $channel): void
+    private function handleChannel(Response $response, string $channel, string $appKey): void
     {
-        $subscribers = $this->router->subscribersOf($channel);
+        $subscribers = $this->router->subscribersOf($channel, $appKey);
         $payload = [
             'occupied' => $subscribers !== [],
             'subscription_count' => count($subscribers),
         ];
 
         if (str_starts_with($channel, 'presence-')) {
-            $payload['user_count'] = $this->router->roster($channel)['count'];
+            $payload['user_count'] = $this->router->roster($channel, $appKey)['count'];
         }
 
         $this->json($response, $payload);
     }
 
-    private function handleUsers(Response $response, string $channel): void
+    private function handleUsers(Response $response, string $channel, string $appKey): void
     {
         if (!str_starts_with($channel, 'presence-')) {
             $this->json($response, ['users' => []]);
@@ -307,7 +338,7 @@ class PusherRestController
 
         $users = array_map(
             fn(string $id) => ['id' => $id],
-            $this->router->roster($channel)['ids'],
+            $this->router->roster($channel, $appKey)['ids'],
         );
 
         $this->json($response, ['users' => $users]);
@@ -316,10 +347,10 @@ class PusherRestController
     /**
      * @return array<array-key, string>
      */
-    private function occupiedChannels(): array
+    private function occupiedChannels(string $appKey): array
     {
         $channels = [];
-        foreach ($this->router->allSubscriptions() as $channel) {
+        foreach ($this->router->allSubscriptions($appKey) as $channel) {
             $channels[$channel] = true;
         }
 
@@ -331,9 +362,9 @@ class PusherRestController
      */
     private function jsonBody(Request $request): ?array
     {
-        $decoded = json_decode($request->getContent(), true);
-
-        return is_array($decoded) ? $decoded : null;
+        // Convert objects recursively for the existing batch validation API.
+        PusherValidation::object($request->getContent());
+        return json_decode($request->getContent(), true, 64, JSON_THROW_ON_ERROR);
     }
 
     private function path(Request $request): string

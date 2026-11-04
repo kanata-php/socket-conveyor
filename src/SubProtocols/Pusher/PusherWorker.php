@@ -33,8 +33,13 @@ class PusherWorker
         protected array $persistence,
         protected SocketIdRepository $socketIdRepository,
         protected PusherChannelRepository $channelRepository,
+        protected ?PusherAdmission $admission = null,
+        protected ?PusherLimits $limits = null,
     ) {
         $appManager = new AppManager($this->conveyorOptions);
+        /** @var \Conveyor\SubProtocols\Conveyor\Persistence\Interfaces\PresenceChannelPersistenceInterface $presence */
+        $presence = $this->persistence[Constants::PRESENCE_CHANNELS];
+        $this->channelRepository->usePresencePersistence($presence);
 
         $this->router = new PusherEventRouter(
             server: $this->server,
@@ -42,8 +47,9 @@ class PusherWorker
             socketIds: $this->socketIdRepository,
             channels: $this->channelRepository,
             appManager: $appManager,
+            admission: $this->admission,
         );
-        $this->restController = new PusherRestController($this->router, $appManager);
+        $this->restController = new PusherRestController($this->router, $appManager, $this->admission, $this->limits);
 
         $this->addListeners();
     }
@@ -73,18 +79,34 @@ class PusherWorker
 
         $this->eventDispatcher->addListener(
             eventName: Constants::EVENT_SERVER_CLOSE,
-            listener: fn(ConnectionCloseEvent $event) => $this->router->handleClose($event->fd),
+            listener: fn(ConnectionCloseEvent $event) => $this->router->handleClose($event->fd, $event->generation),
         );
     }
 
     private function processMessage(string $data): void
     {
-        $parsedFrame = json_decode($data, true);
-
-        if (!is_array($parsedFrame) || !isset($parsedFrame['fd'], $parsedFrame['data'])) {
+        $parsedFrame = json_decode($data, true, 64);
+        if (
+            !is_array($parsedFrame)
+            || !isset($parsedFrame['fd'], $parsedFrame['data'], $parsedFrame['generation'], $parsedFrame['reservation'])
+            || !is_int($parsedFrame['fd']) || !is_string($parsedFrame['data'])
+            || !is_string($parsedFrame['generation']) || !is_string($parsedFrame['reservation'])
+        ) {
             return;
         }
-
-        $this->router->handle((int) $parsedFrame['fd'], (string) $parsedFrame['data']);
+        $lease = $parsedFrame['reservation'];
+        try {
+            if (
+                $this->socketIdRepository->socketIdFor($parsedFrame['fd']) !== $parsedFrame['generation']
+                || ($this->admission !== null && !$this->admission->claim($lease, $parsedFrame['generation']))
+            ) {
+                return;
+            }
+            $this->router->handle($parsedFrame['fd'], $parsedFrame['data'], $parsedFrame['generation']);
+        } catch (\Throwable $error) {
+            PusherEventRouter::diagnostic($error);
+        } finally {
+            $this->admission?->release($lease);
+        }
     }
 }

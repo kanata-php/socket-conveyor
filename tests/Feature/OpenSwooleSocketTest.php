@@ -16,6 +16,11 @@ use OpenSwoole\Process;
 use Tests\Assets\SampleAction;
 use Tests\TestCase;
 
+/**
+ * Native process/table fixtures must die with each test instead of accumulating across the suite.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class OpenSwooleSocketTest extends TestCase
 {
     use ServerProcessCleanup;

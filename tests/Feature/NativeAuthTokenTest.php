@@ -12,6 +12,11 @@ use OpenSwoole\Process;
 use Tests\TestCase;
 use WebSocket\Client as WsClient;
 
+/**
+ * Native process/table fixtures must die with each test instead of accumulating across the suite.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class NativeAuthTokenTest extends TestCase
 {
     use ServerProcessCleanup;

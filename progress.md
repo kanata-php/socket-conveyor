@@ -1,4 +1,28 @@
-# Docker Hub release — November 4, 2026
+# Urgent handoff — security remediation, November 4, 2026
+
+- Branch/commit: primary `master` at `3bd8134`; no other branches or worktrees are authorized.
+- Active scope: repair security audit F1–F5 using the requested security specialist, software engineer and QA engineer; preserve native Conveyor and Laravel Echo behavior.
+- Security contract completed: `/home/savior/.cache/socket-conveyor-remediation/security/CONTRACT.md`; fresh engineering and QA workers are developing production and independent test patches in separate scratch copies for integration here.
+- Integrated the initial 20-file production patch and a targeted dependency follow-up: PHPUnit 9.6.38, PHPCS 3.13.6 and three Symfony packages 7.4.23; full and production Composer audits passed in the dependency candidate. The original audit evidence is `/home/savior/.cache/socket-conveyor-security-2.6.0/REPORT.md`.
+- Initial engineering checks: baseline 69 tests / 267 assertions, QA scoped 68 tests / 247 assertions, PHPStan and PSR12 passed in Docker; these are candidate results, not final integrated acceptance.
+- Independent security review reproduced a presence-storage orphan when removal fails during close/rollback; integrated the verified repair from `/home/savior/.cache/socket-conveyor-remediation/repair`, retaining quota-charged cleanup journals through transient failure and SIGKILL. Three old-red/new-green regressions cover it.
+- The combined test process previously exhausted memory because native process/table fixtures retained allocations; feature-test process isolation resolves it without weakened assertions.
+- Repaired the intermittent slow-consumer HTTP timeout by explicitly setting Pusher `send_yield=false`; instrumentation established parked owner-worker pushes after buffer saturation. Independent QA passed all 14 wire cases, including actual overflow/eviction and 500/500 healthy deliveries with 200 follow-ups over 5.3 seconds. Evidence: `transport/TRANSPORT.md` and `qa-final/QA.md` in the cache.
+- Final security found a preparatory presence-read exception could skip close revocation; integrated the `close-repair` patch with expected-generation revocation and admission release in finally blocks. Eight fault-stage regressions pass; fresh independent security approved the final tree (`acceptance/REVIEW.md`).
+- Final integrated verification passed: 106 tests / 598 assertions, PHPStan, PSR12 and both Composer audits; all 14 wire cases passed, including real overflow/eviction, 500/500 healthy deliveries and 200 follow-ups over 5.79 seconds. Logs: `verify-final.log`, `phpcs-final.log`, `static-audit.log`, `wire-integrated/results.json` in the cache.
+- Built/smoked candidate images natively on amd64/resende and arm64/MacPro; both PHP 8.5.12/OpenSwoole 26.2.0 non-root/read-only smokes passed. Trivy 0.76.1, database updated 2026-11-04T13:16:53Z, reports zero known vulnerabilities across 42 Alpine and 62 production Composer packages for each image; this does not comprehensively audit source-built PHP/OpenSwoole or unknown defects. Images remain local candidates, not published releases.
+- Scrutinizer remains failed on `3bd8134`; its public API supplies no failed command or stderr, and its website is inaccessible to available tools. The prior owner request for a redacted error log remains pending. GitHub Actions passing does not satisfy this external gate.
+- Next: commit/push the approved fixes on master and require all final-head hosted checks green. Actual Scrutinizer remains a required gate; no release publication is included in this implementation task.
+- Preserve the live MacPro demo, existing credentials, published `2.6.0`, unrelated work and backups.
+
+## Roles and checks
+
+- Security: define the fix contract, then a fresh specialist independently reviews the integrated threat cases.
+- Engineering: own production source/configuration/dependency patch; Docker unit/static checks and minimal dev-tool security updates.
+- QA: own independent regression tests/wire probes; reproduce old failures and verify two-app isolation, worker survival, replay denial, quota recovery and compatibility in bounded disposable containers.
+- Coordinator: integrate patches, maintain this handoff, run final harness/CI checks; do not claim completion while Scrutinizer or any acceptance remains blocked.
+
+# Archived Docker Hub release construction — November 4, 2026
 
 - Scope: publish semver image `lotharthesavior/socket-conveyor:2.6.0` with `2.6`, `2`, and `latest` aliases; Linux amd64 and arm64. Runtime code is unchanged from `53dc6a9`, whose Tests and Docker image CI workflows passed; the release commit adds documentation and supplies the final OCI revision label.
 - Release build and verification logs live under `/home/savior/.cache/socket-conveyor-release/`.

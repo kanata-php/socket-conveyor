@@ -15,6 +15,11 @@ use Tests\TestCase;
 use WebSocket\Client as WsClient;
 use WebSocket\TimeoutException;
 
+/**
+ * Native process/table fixtures must die with each test instead of accumulating across the suite.
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
 class PusherWebSocketTest extends TestCase
 {
     use ServerProcessCleanup;
