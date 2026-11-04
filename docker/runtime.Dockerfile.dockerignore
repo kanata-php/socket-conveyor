@@ -1,0 +1,5 @@
+# The development runtime needs Locust's requirements, but no project secrets.
+**
+!benchmark/
+!benchmark/locust/
+!benchmark/locust/requirements.txt

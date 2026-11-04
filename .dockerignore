@@ -1,0 +1,9 @@
+# Allow only build inputs: never send local credentials or benchmark output.
+**
+!composer.json
+!composer.lock
+!LICENSE.md
+!src/
+!src/**
+!docker/
+!docker/server.php

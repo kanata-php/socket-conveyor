@@ -12,6 +12,12 @@ find out more about using WebSockets with OpenSwoole
 
 Built for PHP 8.2+.
 
+## Docker
+
+Run Conveyor with PHP and OpenSwoole included using the root
+[Dockerfile](Dockerfile); see the [Docker quick start](docker/README.md) for
+building the image and starting it with your existing application credentials.
+
 ## Documentation
 
 - [Complete usage guide](docs/usage.md): installation, native Conveyor mode,

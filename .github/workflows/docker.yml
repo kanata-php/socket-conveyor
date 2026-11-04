@@ -1,0 +1,21 @@
+name: Docker image
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build current PHP and OpenSwoole server image
+        run: docker build --pull -t socket-conveyor:local .
+      - name: Verify container and actual broadcast delivery
+        run: python3 docker/smoke.py socket-conveyor:local

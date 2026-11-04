@@ -1,4 +1,18 @@
-# Validation handoff — November 2, 2026
+# Docker image — November 3, 2026
+
+- Working directly on `master` at `17aae61`; only master and the primary worktree remain.
+- Prior work was merged as PR #3, released as 2.5.1, and passed hosted Tests on the merge commit.
+- Original dirty changes are preserved in two Git stashes and bundles under `/home/savior/.local/state/socket-conveyor-backups/20261103-cleanup/`; raw benchmarks remain under `benchmark/results/runs/`.
+- Current task: prepare a ready-to-run Conveyor Dockerfile with current stable PHP/OpenSwoole; no container registry publication requested.
+- Added pinned PHP 8.5.12/OpenSwoole 26.2.0 image, non-root server launcher, allowlisted build context, Docker usage guide, runtime smoke, and container CI workflow.
+- Local image built successfully: `/tmp/socket-conveyor-image-build-final.log`; PHP 8.5.12/OpenSwoole 26.2.0 with OpenSSL, approximately 65 MB (Docker image size).
+- `python3 docker/smoke.py socket-conveyor:local` passed: real signed REST-to-WebSocket delivery, default/custom ports, credential/port validation, non-root read-only execution with dropped capabilities, health check and graceful shutdown; `/tmp/socket-conveyor-image-smoke.log`.
+- Full suite on the PHP 8.5 image passed 69 tests/267 assertions; `/tmp/socket-conveyor-image-php85-tests.log` (lsof installed only in the disposable test container).
+- Docker-backed harness verification passed four checks on PHP 8.4; rerun after final documentation edits, then commit/push master and confirm hosted Tests and Docker image checks.
+- No credentials generated or modified; launcher requires existing credentials through environment variables.
+- Security audit found 19 advisories across five locked production packages; refreshed those packages and their required Guzzle promises dependency. Updated GrumPHP and its Gitlib dependency for PHP 8.5 support while retaining PHP 8.2 compatibility. Eight locked packages changed; production Composer audit now passes and is enforced during image builds. Development-only advisories remain outside this image.
+
+## Archived validation handoff — November 2, 2026
 
 ## Delivery
 
