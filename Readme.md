@@ -1,46 +1,42 @@
-
 # Socket Conveyor
 
-This package enables PHP 8.2+ applications to work with WebSocket messages
-using a routing strategy. Add an action handler implementing `ActionInterface`
-to the `SocketMessageRouter`, or run Conveyor in Pusher/Reverb-compatible mode
-for Laravel Echo clients.
+A PHP WebSocket server and message router built on [OpenSwoole](https://openswoole.com/). Use its native action-based protocol for custom applications, or run its Pusher-compatible mode with Laravel Echo and Laravel's Reverb or Pusher broadcaster.
 
-Socket Conveyor is built on [OpenSwoole](https://openswoole.com/). You can
-find out more about using WebSockets with OpenSwoole
-[here](https://www.youtube.com/watch?v=Vgw5Ibqc15k).
+[Documentation](https://socketconveyor.com) · [Usage guide](docs/usage.md) · [Laravel Echo guide](docs/laravel-echo-reverb-compatibility.md) · [Docker Hub](https://hub.docker.com/r/lotharthesavior/socket-conveyor)
 
-Built for PHP 8.2+.
+## What it does
 
-## Docker
+- Routes native WebSocket messages to built-in or custom action handlers.
+- Supports Pusher-compatible public, private and presence channels for Laravel Echo clients.
+- Provides signed HTTP endpoints for publishing events and querying channels.
+- Offers configurable resource limits and application isolation for Pusher deployments.
+- Runs as a PHP library or as a standalone Docker server.
 
-Run Conveyor with PHP and OpenSwoole included using the
-[Docker Hub image](https://hub.docker.com/r/lotharthesavior/socket-conveyor).
-With your existing application credentials exported in the shell:
+## Requirements
+
+For the PHP library, you need PHP 8.2 or newer, Composer, and the OpenSwoole extension (version 22.0 or newer). The Docker image includes PHP and OpenSwoole.
 
 ```sh
-docker run --rm --init -p 127.0.0.1:8080:8080 -e PUSHER_APP_ID -e PUSHER_APP_KEY -e PUSHER_APP_SECRET lotharthesavior/socket-conveyor:2.6.0
+composer require kanata-php/socket-conveyor
 ```
 
-See the [Docker quick start](docker/README.md) for Laravel configuration,
-version tags, and building locally with the root [Dockerfile](Dockerfile).
+See the [usage guide](docs/usage.md) for a native server, protocol examples and configuration.
 
-## Documentation
+## Quick start with Docker
 
-- [Complete usage guide](docs/usage.md): installation, native Conveyor mode,
-  Pusher/Reverb-compatible mode, Laravel Echo setup, HTTP endpoints, smoke
-  testing, and troubleshooting.
-- [Laravel Echo / Reverb compatibility guide](docs/laravel-echo-reverb-compatibility.md):
-  the shortest path for using Conveyor with Laravel's built-in `reverb` or
-  `pusher` broadcaster.
-- [Real Pusher client smoke example](examples/pusher-real/README.md): local
-  browser smoke test using `pusher-js` and Laravel Echo.
-- [Project documentation site](https://socketconveyor.com).
+Export your existing `PUSHER_APP_ID`, `PUSHER_APP_KEY` and `PUSHER_APP_SECRET` in your shell, then run:
 
-## Using Conveyor as a Pusher/Reverb server
+```sh
+docker run --rm --init -p 127.0.0.1:8080:8080 \
+  -e PUSHER_APP_ID -e PUSHER_APP_KEY -e PUSHER_APP_SECRET \
+  lotharthesavior/socket-conveyor:2.6.1
+```
 
-Conveyor can run in a Pusher-compatible mode for Laravel's stock `pusher` or
-`reverb` broadcaster and the standard `pusher-js` / Laravel Echo client.
+The image runs a Pusher-compatible server. Match its credentials to your Laravel broadcasting configuration. The port above binds to localhost; use a properly configured reverse proxy and TLS for public access. See the [Docker guide](docker/README.md) for image tags, configuration and deployment details.
+
+## Laravel Echo and Pusher compatibility
+
+To configure a server from PHP instead of using the Docker launcher:
 
 ```php
 use Conveyor\Constants;
@@ -62,22 +58,15 @@ use Conveyor\ConveyorServer;
     ->start();
 ```
 
-Point Laravel at the Conveyor host and port with the normal Reverb/Pusher env
-values:
+Set Laravel's Reverb or Pusher settings to the same application ID, key, secret, host and port. The server accepts WebSocket connections at `/app/{key}` and signed HTTP requests under `/apps/{app_id}`. Follow the [Laravel Echo guide](docs/laravel-echo-reverb-compatibility.md) for a complete client and authorization setup.
 
-```dotenv
-BROADCAST_CONNECTION=reverb
-REVERB_APP_ID=local
-REVERB_APP_KEY=your-app-key
-REVERB_APP_SECRET=your-app-secret
-REVERB_HOST=127.0.0.1
-REVERB_PORT=8080
-REVERB_SCHEME=http
-```
+## Security and operations
 
-The Pusher mode accepts WebSocket clients at `/app/{key}` and exposes the
-signed REST publish API at `/apps/{app_id}/events`,
-`/apps/{app_id}/batch_events`, and the channel info endpoints under
-`/apps/{app_id}/channels`.
+Pusher mode validates inputs, isolates applications and applies configurable resource budgets; review [Pusher security and limits](docs/pusher-security.md) before deployment. The Docker health check reports TCP liveness; the [smoke test](docker/smoke.py) checks actual event delivery.
 
-Pusher deployments: see [validation, application isolation and configurable resource budgets](docs/pusher-security.md).
+## More resources
+
+- [Full usage guide](docs/usage.md), including native mode and troubleshooting
+- [Real Pusher client example](examples/pusher-real/README.md), using Laravel Echo and `pusher-js`
+- [Changelog](CHANGELOG.md)
+- [MIT license](LICENSE.md)

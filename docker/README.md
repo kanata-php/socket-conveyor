@@ -16,10 +16,10 @@ With your existing `PUSHER_APP_ID`, `PUSHER_APP_KEY`, and `PUSHER_APP_SECRET`
 exported in the shell, start it in one command:
 
 ```sh
-docker run --rm --init -p 127.0.0.1:8080:8080 -e PUSHER_APP_ID -e PUSHER_APP_KEY -e PUSHER_APP_SECRET lotharthesavior/socket-conveyor:2.6.0
+docker run --rm --init -p 127.0.0.1:8080:8080 -e PUSHER_APP_ID -e PUSHER_APP_KEY -e PUSHER_APP_SECRET lotharthesavior/socket-conveyor:2.6.1
 ```
 
-Tags follow Semantic Versioning: `2.6.0` identifies this release, `2.6` tracks
+Tags follow Semantic Versioning: `2.6.1` identifies this release, `2.6` tracks
 its minor series, `2` tracks major version 2, and `latest` tracks the latest
 stable release. Use the full version tag for a specific release.
 

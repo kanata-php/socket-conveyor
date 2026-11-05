@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 Updates should follow the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [2.6.1] - 2026-11-05
+
+### Security
+
+- Hardened Pusher input validation, application isolation, resource limits, and cleanup after connection failures.
+- Updated dependencies with known security advisories and retained Laravel Echo compatibility.
+
+### Changed
+
+- Improved the README and updated the Docker quick start.
+
 ## [3.0.0] - 
 
 - Added extensibility for other Subprotocols.
